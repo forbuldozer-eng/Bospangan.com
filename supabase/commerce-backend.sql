@@ -1,67 +1,13 @@
--- Bos Pangan commerce backend foundation
--- Run after the existing supabase/schema.sql and affiliate migrations.
+-- Bos Pangan CMS commerce backend.
+-- Run after supabase/schema.sql. No affiliate schema or payout migrations are required.
 -- Never expose the Supabase service-role key in browser code.
 
 begin;
 
--- 1) Roles: member, affiliate, admin, super_admin.
-alter table public.profiles drop constraint if exists profiles_role_check;
-alter table public.profiles
-  add constraint profiles_role_check
-  check (role in ('member','affiliate','admin','super_admin'));
+-- Access functions public.is_admin() and public.is_super_admin() are defined in schema.sql.
+-- Roles are limited to admin and super_admin; unassigned Auth users have NULL role.
 
-create or replace function public.is_admin()
-returns boolean language sql stable security definer set search_path = ''
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = (select auth.uid()) and role in ('admin','super_admin')
-  );
-$$;
-revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to authenticated;
-
-create or replace function public.is_super_admin()
-returns boolean language sql stable security definer set search_path = ''
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = (select auth.uid()) and role = 'super_admin'
-  );
-$$;
-revoke all on function public.is_super_admin() from public;
-grant execute on function public.is_super_admin() to authenticated;
-
-create or replace function public.admin_set_user_role(p_user_id uuid, p_role text)
-returns void language plpgsql security definer set search_path = ''
-as $$
-begin
-  if not public.is_admin() then raise exception 'Not authorized'; end if;
-  if p_role not in ('member','affiliate','admin','super_admin') then
-    raise exception 'Invalid role';
-  end if;
-  if p_role in ('admin','super_admin') and not public.is_super_admin() then
-    raise exception 'Only super admin can assign admin privileges';
-  end if;
-  if exists (select 1 from public.profiles where id=p_user_id and role='super_admin')
-     and not public.is_super_admin() then
-    raise exception 'Only super admin can modify a super admin';
-  end if;
-  update public.profiles set role=p_role, updated_at=now() where id=p_user_id;
-  if not found then raise exception 'User profile not found'; end if;
-  if p_role='affiliate' then
-    insert into public.affiliate_accounts(user_id, referral_code, status)
-    values (p_user_id, 'BOS' || upper(substr(replace(gen_random_uuid()::text,'-',''),1,8)), 'active')
-    on conflict (user_id) do update set status='active';
-  elsif p_role in ('member','admin','super_admin') then
-    update public.affiliate_accounts set status='paused' where user_id=p_user_id;
-  end if;
-end;
-$$;
-revoke all on function public.admin_set_user_role(uuid,text) from public;
-grant execute on function public.admin_set_user_role(uuid,text) to authenticated;
-
--- 2) System settings. Tax and owner email are editable from a restricted admin UI.
+-- 1) System settings. Tax and owner email are editable from a restricted admin UI.
 create table if not exists public.store_settings (
   key text primary key,
   value jsonb not null,
