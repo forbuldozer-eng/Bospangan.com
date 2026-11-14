@@ -1,6 +1,6 @@
-// Public browser configuration for the NEW Bos Pangan Supabase project.
-// Replace both placeholders after creating the new Supabase project.
-// Use the Project URL and Publishable key (sb_publishable_...).
-// NEVER put a secret/service_role key in this browser file.
-export const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-export const SUPABASE_ANON_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY";
+// Public browser configuration for the dedicated Bos Pangan Supabase project.
+// This file is loaded directly by the website frontend.
+// Use only the Supabase Project URL and Publishable key here.
+// NEVER place a secret/service_role key in browser code.
+export const SUPABASE_URL = "https://flyndyrplyvalnhzhvzw.supabase.co";
+export const SUPABASE_ANON_KEY = "sb_publishable_LSYv452getvz1s0E3oNciA_O8eBkDny";
