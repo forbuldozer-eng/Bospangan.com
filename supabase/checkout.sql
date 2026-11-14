@@ -299,6 +299,10 @@ security definer
 set search_path = public
 as $$
 begin
+  if old.status = 'cancelled' and new.status <> 'cancelled' then
+    raise exception 'Pesanan yang sudah dibatalkan tidak dapat dibuka kembali. Buat pesanan baru.';
+  end if;
+
   if old.status is distinct from new.status
      and new.status = 'cancelled'
      and old.status in ('new', 'confirmed', 'processing')
