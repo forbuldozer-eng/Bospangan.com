@@ -62,9 +62,19 @@ Deno.serve(async (req) => {
   }
 
   const url = Deno.env.get("SUPABASE_URL");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  let serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!serviceKey) {
+    try {
+      const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+      serviceKey = typeof secretKeys === "string"
+        ? secretKeys
+        : String(secretKeys.default ?? "");
+    } catch {
+      serviceKey = "";
+    }
+  }
   if (!url || !serviceKey) {
-    return json(req, { error: "Konfigurasi server Supabase belum lengkap." }, 500);
+    return json(req, { error: "Kunci server Supabase belum tersedia pada Edge Function." }, 500);
   }
 
   const db = createClient(url, serviceKey, { auth: { persistSession: false } });
