@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
   const origin = req.headers.get("origin");
-  if (origin && !allowedOrigins.has(origin)) {
+  if (!origin || !allowedOrigins.has(origin)) {
     return json(req, { error: "Origin tidak diizinkan." }, 403);
   }
 
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       .from("notification_queue")
       .select("id,recipient_email,subject,status")
       .eq("event_type", "new_order")
-      .eq("status", "pending")
+      .in("status", ["pending", "failed"])
       .eq("payload->>order_id", order.id)
       .maybeSingle();
 
@@ -193,21 +193,29 @@ Deno.serve(async (req) => {
           "<p>Catatan: " + escapeHtml(specialRequest || "—") + "</p>",
         ].join("");
 
-        const sent = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + resendKey,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: emailFrom,
-            to: [queueItem.recipient_email],
-            subject: queueItem.subject,
-            html,
-          }),
-        });
+        let providerError = "";
+        let sentOk = false;
+        try {
+          const sent = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + resendKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: emailFrom,
+              to: [queueItem.recipient_email],
+              subject: queueItem.subject,
+              html,
+            }),
+          });
+          sentOk = sent.ok;
+          if (!sent.ok) providerError = (await sent.text()).slice(0, 1000);
+        } catch (deliveryError) {
+          providerError = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
+        }
 
-        if (sent.ok) {
+        if (sentOk) {
           await db.from("notification_queue").update({
             status: "sent",
             sent_at: new Date().toISOString(),
@@ -215,7 +223,6 @@ Deno.serve(async (req) => {
           }).eq("id", queueItem.id);
           emailStatus = "sent";
         } else {
-          const providerError = (await sent.text()).slice(0, 1000);
           await db.from("notification_queue").update({
             status: "failed",
             last_error: providerError || "Email provider error",
