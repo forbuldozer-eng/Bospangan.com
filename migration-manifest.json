@@ -281,6 +281,54 @@
       "mode": "100644",
       "type": "blob",
       "sha": "8bd63186dceb5d61f0ee18d663da886761875491"
+    },
+    {
+      "path": "blog/images/tips-meningkatkan-penjualan-warung-sembako.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f74688e3da5fdc5708c0f806cd154a3552288761"
+    },
+    {
+      "path": "blog/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "81ca1b1f6f7eb98389ef66841611169d3065fe94"
+    },
+    {
+      "path": "blog/tips-meningkatkan-penjualan-warung-sembako/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e3a31a3287d075059cd59ee265343a7b0f56a906"
+    },
+    {
+      "path": "catalog.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8d12ed1c70b3954aebc5bff10dd6f4cfe60f7d33"
+    },
+    {
+      "path": "dashboard.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "e0f59553a43b6d329024b3326ec1547f22f0395e"
+    },
+    {
+      "path": "dashboard.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "3ca485ba581c2a31f52ae1e111d35709b983546b"
+    },
+    {
+      "path": "docs/COMMERCE-BACKEND-SETUP.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "edb161a48d3ea4b9793fa4d079a1633fb9214dd4"
+    },
+    {
+      "path": "frontend/js/pages/dashboard.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "4f59c53317544c226df47c8fa1b5a3b4237efa70"
     }
   ]
 }
