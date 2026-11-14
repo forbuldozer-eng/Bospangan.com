@@ -74,7 +74,7 @@ function panelMarkup() {
         <label>Pajak default katalog (%)<input name="tax_percent" type="number" min="0" max="100" step="0.01" required></label>
         <label><span><input name="email_enabled" type="checkbox" style="width:auto"> Aktifkan notifikasi email</span></label>
         <label><span><input name="push_enabled" type="checkbox" style="width:auto"> Aktifkan push notification</span></label>
-        <button class="primary">Simpan pengaturan</button>
+        <button class="primary" type="submit">Simpan pengaturan</button><p id="settingsStatus" class="status" role="status" aria-live="polite"></p>
       </form>
     </div>`;
   $("adminView").append(section);
@@ -233,15 +233,52 @@ function wireForms(){
     const {error}=await db.from("product_campaigns").insert(payload);if(error)message(error.message);else{e.currentTarget.reset();message("Campaign disimpan. Admin dapat mengirimnya setelah ditinjau.");await loadCampaigns();}
   };
   $("settingsForm")?.addEventListener("submit",async e=>{
-    e.preventDefault();if(role!=="super_admin")return;
-    const f=e.currentTarget.elements;const rows=[
+    e.preventDefault();
+    if(role!=="super_admin")return;
+
+    const form=e.currentTarget;
+    const f=form.elements;
+    const status=$("settingsStatus");
+    const button=form.querySelector('button[type="submit"]');
+    const originalLabel=button?.textContent||"Simpan pengaturan";
+    const rows=[
       ["owner_notification_email",f.owner_email.value.trim()],
       ["default_tax_percent",Number(f.tax_percent.value)],
       ["email_notifications_enabled",f.email_enabled.checked],
       ["push_notifications_enabled",f.push_enabled.checked]
     ];
-    const {error}=await db.from("store_settings").upsert(rows.map(([key,value])=>({key,value:JSON.stringify(value),updated_by:user.id,updated_at:new Date().toISOString()})),{onConflict:"key"});
-    message(error?error.message:"Pengaturan toko tersimpan.");
+
+    if(status)status.textContent="Menyimpan pengaturan toko...";
+    message("Menyimpan pengaturan toko...");
+    if(button){button.disabled=true;button.textContent="Menyimpan...";}
+
+    try{
+      const {error}=await db.from("store_settings").upsert(
+        rows.map(([key,value])=>({
+          key,
+          value:JSON.stringify(value),
+          updated_by:user.id,
+          updated_at:new Date().toISOString()
+        })),
+        {onConflict:"key"}
+      );
+      if(error)throw error;
+
+      if(status)status.textContent="Pengaturan toko berhasil disimpan.";
+      message("Pengaturan toko berhasil disimpan.");
+
+      try{
+        await loadSettings();
+      }catch(refreshError){
+        if(status)status.textContent="Pengaturan tersimpan, tetapi pembacaan ulang gagal: "+(refreshError.message||refreshError);
+      }
+    }catch(err){
+      const detail=err?.message||String(err);
+      if(status)status.textContent="Gagal menyimpan pengaturan: "+detail;
+      message("Gagal menyimpan pengaturan: "+detail);
+    }finally{
+      if(button){button.disabled=false;button.textContent=originalLabel;}
+    }
   });
 }
 async function init(){
