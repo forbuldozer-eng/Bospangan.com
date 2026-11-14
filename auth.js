@@ -1,54 +1,191 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
-const $ = (id) => document.getElementById(id);
-const ready = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("YOUR_") && SUPABASE_ANON_KEY.length > 20 && !SUPABASE_ANON_KEY.includes("YOUR_");
-let client = null, user = null;
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function show(title, html) { $("heading").textContent = title; $("panel").innerHTML = html; if (!$("box").open) $("box").showModal(); }
-function message(text, ok=false) { const el=$("authStatus"); if(el){el.className=ok?"auth-success":"auth-error";el.textContent=text;} }
-function configNotice(){show("Masuk / Daftar",'<div class="auth-note">Tampilan login sudah dipasang. Untuk mengaktifkan akun, admin perlu menghubungkan project Supabase dengan mengisi <code>auth-config.js</code> dan menjalankan <code>supabase/schema.sql</code>.</div>');}
-function authForm(mode="login"){
- if(!ready||!client) return configNotice();
- const reg=mode==="register";
- show(reg?"Daftar Anggota":"Masuk ke Akun Anda",`
- <div class="auth-tabs"><button data-mode="login" class="${!reg?"active":""}">Masuk</button><button data-mode="register" class="${reg?"active":""}">Daftar</button></div>
- <form id="authForm" class="auth-form">
- ${reg?'<label>Nama lengkap<input name="name" autocomplete="name" maxlength="80" required></label>':""}
- <label>Email<input name="email" type="email" autocomplete="email" maxlength="254" required></label>
- <label>Password<input name="password" type="password" minlength="8" autocomplete="${reg?"new-password":"current-password"}" required></label>
- <p id="authStatus" class="auth-error" role="status"></p><button class="primary full" type="submit">${reg?"Buat Akun":"Masuk"}</button></form>
- ${!reg?'<button id="forgot" class="full" type="button">Lupa password?</button>':""}
- <button id="google" class="auth-google" type="button">Lanjutkan dengan Google</button>
- <p class="auth-small">Gunakan email aktif agar dapat menerima verifikasi dan pemulihan akun.</p>`);
- $("panel").querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>authForm(b.dataset.mode));
- $("authForm").onsubmit=async e=>{
-  e.preventDefault();const data=new FormData(e.currentTarget),email=String(data.get("email")).trim(),password=String(data.get("password"));
-  const submit=e.currentTarget.querySelector('[type="submit"]');submit.disabled=true;message("Memproses...");
-  try{
-   if(reg){const {error}=await client.auth.signUp({email,password,options:{data:{display_name:String(data.get("name")).trim(),referral_code:new URLSearchParams(location.search).get("ref")||""},emailRedirectTo:location.origin}});if(error)throw error;message("Pendaftaran dikirim. Periksa email untuk verifikasi.",true);}
-   else{const {error}=await client.auth.signInWithPassword({email,password});if(error)throw error;await syncUser();account();}
-  }catch(err){message(err.message||"Tidak dapat memproses akun.");}finally{submit.disabled=false;}
- };
- $("google").onclick=async()=>{const {error}=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.origin}});if(error)message(error.message);};
- $("forgot")?.addEventListener("click",async()=>{const email=$("authForm").elements.email.value.trim();if(!email)return message("Isi email terlebih dahulu.");const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin});message(error?error.message:"Jika email terdaftar, tautan pemulihan akan dikirim.",!error);});
+
+const $ = id => document.getElementById(id);
+const ready = SUPABASE_URL.startsWith("https://") &&
+  !SUPABASE_URL.includes("YOUR_") &&
+  SUPABASE_ANON_KEY.length > 20 &&
+  !SUPABASE_ANON_KEY.includes("YOUR_");
+
+let client = null;
+let user = null;
+
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+}[c]));
+
+function show(title, html) {
+  $("heading").textContent = title;
+  $("panel").innerHTML = html;
+  if (!$("box").open) $("box").showModal();
 }
-async function syncUser(){if(!client)return;const {data}=await client.auth.getUser();user=data.user||null;const b=$("accountTop");if(b)b.textContent=user?(user.user_metadata?.display_name||user.email.split("@")[0]):"Masuk / Daftar";}
-async function account(){
- if(!user)return authForm();
- let name=user.user_metadata?.display_name||"",role="member";
- const {data}=await client.from("profiles").select("display_name,role").eq("id",user.id).maybeSingle();
- if(data){name=data.display_name||name;role=data.role||role;}
- show("Akun Saya",`<div class="account-card"><strong>${esc(name||"Anggota")}</strong><p>${esc(user.email)}</p><p>Peran: ${esc(role==="admin"?"Admin":role==="affiliate"?"Affiliator":"Member")}</p></div>
- <div class="auth-actions"><button id="goDashboard" type="button">Buka Dashboard</button><button id="rename" type="button">Ubah Nama</button><button id="logout" type="button">Keluar</button></div><p id="authStatus" role="status"></p>`);
- $("goDashboard").onclick=()=>{location.href="/dashboard.html";};
- $("rename").onclick=async()=>{const next=prompt("Nama tampilan:",name);if(next===null)return;const {error}=await client.from("profiles").update({display_name:next.trim(),updated_at:new Date().toISOString()}).eq("id",user.id);if(error)message(error.message);else{await client.auth.updateUser({data:{display_name:next.trim()}});await syncUser();account();}};
- $("logout").onclick=async()=>{const {error}=await client.auth.signOut();if(error)return message(error.message);user=null;await syncUser();authForm();};
+
+function message(text, ok = false) {
+  const element = $("authStatus");
+  if (!element) return;
+  element.className = ok ? "auth-success" : "auth-error";
+  element.textContent = text;
 }
-function resetPassword(){
- show("Buat Password Baru",'<form id="resetForm" class="auth-form"><label>Password baru<input name="password" type="password" minlength="8" autocomplete="new-password" required></label><p id="authStatus" role="status"></p><button class="primary full" type="submit">Simpan Password</button></form>');
- $("resetForm").onsubmit=async e=>{e.preventDefault();const password=String(new FormData(e.currentTarget).get("password"));const {error}=await client.auth.updateUser({password});if(error)message(error.message);else{message("Password berhasil diperbarui. Silakan masuk kembali.",true);await client.auth.signOut();user=null;await syncUser();setTimeout(()=>authForm("login"),900);}};
+
+function configNotice() {
+  show("Login Admin", '<div class="auth-note">Konfigurasi Supabase belum lengkap. Periksa file <code>auth-config.js</code>.</div>');
 }
-function open(){if(user)account();else authForm();}
-window.TWSAuth={open};
-if(ready){client=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);client.auth.onAuthStateChange((event,session)=>{user=session?.user||null;if(event==="PASSWORD_RECOVERY")resetPassword();syncUser();});syncUser();}
-$("accountTop").onclick=open;
+
+function loginForm(notice = "") {
+  if (!ready || !client) return configNotice();
+
+  show("Login CMS Bos Pangan", `
+    <form id="authForm" class="auth-form">
+      <label>Email Admin
+        <input name="email" type="email" autocomplete="username" maxlength="254" required>
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <p id="authStatus" class="auth-error" role="status">${esc(notice)}</p>
+      <button class="primary full" type="submit">Masuk ke CMS</button>
+    </form>
+    <button id="forgot" class="full" type="button">Lupa password?</button>
+    <p class="auth-small">Akun CMS dibuat oleh pemilik sistem. Pendaftaran publik tidak tersedia.</p>
+  `);
+
+  $("authForm").onsubmit = async event => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email")).trim();
+    const password = String(form.get("password"));
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
+    message("Memeriksa akun…");
+
+    try {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      const { data: { user: signedInUser } } = await client.auth.getUser();
+      const { data: profile, error: profileError } = await client
+        .from("profiles")
+        .select("role")
+        .eq("id", signedInUser.id)
+        .single();
+
+      if (profileError || !profile || !["admin", "super_admin"].includes(profile.role)) {
+        await client.auth.signOut();
+        user = null;
+        message("Akun berhasil dikenali, tetapi belum memiliki akses CMS. Hubungi Super Admin.");
+        return;
+      }
+
+      user = signedInUser;
+      location.href = "/dashboard.html";
+    } catch (error) {
+      message(error?.message || "Login gagal. Periksa email dan password.");
+    } finally {
+      submit.disabled = false;
+    }
+  };
+
+  $("forgot").onclick = async () => {
+    const email = $("authForm").elements.email.value.trim();
+    if (!email) return message("Masukkan email akun terlebih dahulu.");
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin
+    });
+    message(error
+      ? error.message
+      : "Jika akun terdaftar, tautan pemulihan password akan dikirim ke email.",
+      !error);
+  };
+}
+
+async function account() {
+  if (!user) return loginForm();
+
+  const { data: profile, error } = await client
+    .from("profiles")
+    .select("display_name,role")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !profile || !["admin", "super_admin"].includes(profile.role)) {
+    await client.auth.signOut();
+    user = null;
+    return loginForm("Akun ini tidak memiliki akses CMS Bos Pangan.");
+  }
+
+  const roleName = profile.role === "super_admin" ? "Super Admin" : "Admin";
+  const name = profile.display_name || user.email || "Admin";
+
+  show("Akun CMS", `
+    <div class="account-card">
+      <strong>${esc(name)}</strong>
+      <p>${esc(user.email)}</p>
+      <p>Peran: ${esc(roleName)}</p>
+    </div>
+    <div class="auth-actions">
+      <button id="goDashboard" type="button">Buka Dashboard CMS</button>
+      <button id="rename" type="button">Ubah Nama</button>
+      <button id="logout" type="button">Keluar</button>
+    </div>
+    <p id="authStatus" role="status"></p>
+  `);
+
+  $("goDashboard").onclick = () => { location.href = "/dashboard.html"; };
+  $("rename").onclick = async () => {
+    const next = prompt("Nama tampilan:", profile.display_name || "");
+    if (next === null) return;
+    const { error: updateError } = await client
+      .from("profiles")
+      .update({ display_name: next.trim(), updated_at: new Date().toISOString() })
+      .eq("id", user.id);
+    if (updateError) return message(updateError.message);
+    await client.auth.updateUser({ data: { display_name: next.trim() } });
+    await account();
+  };
+  $("logout").onclick = async () => {
+    await client.auth.signOut();
+    user = null;
+    loginForm();
+  };
+}
+
+function resetPassword() {
+  show("Buat Password Baru", `
+    <form id="resetForm" class="auth-form">
+      <label>Password baru
+        <input name="password" type="password" minlength="8" autocomplete="new-password" required>
+      </label>
+      <p id="authStatus" role="status"></p>
+      <button class="primary full" type="submit">Simpan Password</button>
+    </form>
+  `);
+
+  $("resetForm").onsubmit = async event => {
+    event.preventDefault();
+    const password = String(new FormData(event.currentTarget).get("password"));
+    const { error } = await client.auth.updateUser({ password });
+    if (error) return message(error.message);
+    message("Password berhasil diperbarui.", true);
+    await client.auth.signOut();
+    user = null;
+    loginForm("Password diperbarui. Silakan login kembali.");
+  };
+}
+
+function open() {
+  if (user) account();
+  else loginForm();
+}
+
+window.TWSAuth = { open };
+
+if (ready) {
+  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  client.auth.onAuthStateChange((event, session) => {
+    user = session?.user || null;
+    if (event === "PASSWORD_RECOVERY") resetPassword();
+  });
+}
+
+$("accountTop").textContent = "Login Admin";
+$("accountTop").onclick = open;
