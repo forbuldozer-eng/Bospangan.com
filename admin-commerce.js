@@ -183,7 +183,7 @@ async function init(){
  user=session.user;const {data:profile,error}=await db.from("profiles").select("role").eq("id",user.id).single();
  if(error||!["admin","super_admin"].includes(profile?.role))return;
  role=profile.role;
- if(role==="super_admin"){$("memberView").classList.add("hidden");$("affiliateView").classList.add("hidden");$("adminView").classList.remove("hidden");}
+ $("adminView").classList.remove("hidden");
  const section=panelMarkup();wireForms();
  try{await Promise.all([loadProducts(),loadOrders(),loadCampaigns(),loadSettings()]);message("Commerce Control Center siap.");}
  catch(err){message("Backend belum sepenuhnya aktif: "+(err.message||err)+". Pastikan migration SQL sudah dijalankan.");}
