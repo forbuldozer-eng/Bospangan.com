@@ -18,6 +18,10 @@ alter table public.order_items
   add column if not exists tax_amount numeric(14,2) not null default 0
     check (tax_amount >= 0);
 
+-- Prevent public clients from bypassing server-side price, tax, stock and
+-- rate-limit validation by inserting directly into orders.
+revoke insert on public.orders from anon, authenticated;
+
 create table if not exists public.checkout_rate_limits (
   fingerprint text primary key,
   window_started_at timestamptz not null default now(),
