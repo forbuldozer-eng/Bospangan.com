@@ -129,9 +129,11 @@ begin
     raise exception 'Jelaskan kebutuhan transaksi khusus minimal 10 karakter.';
   end if;
 
-  if coalesce(jsonb_typeof(p_items), 'array') <> 'array'
-     or jsonb_array_length(coalesce(p_items, '[]'::jsonb)) > 50 then
-    raise exception 'Daftar produk tidak valid atau melebihi 50 item.';
+  if coalesce(jsonb_typeof(p_items), 'array') <> 'array' then
+    raise exception 'Daftar produk tidak valid.';
+  end if;
+  if jsonb_array_length(coalesce(p_items, '[]'::jsonb)) > 50 then
+    raise exception 'Daftar produk melebihi 50 item.';
   end if;
 
   if v_request_type = 'regular' and jsonb_array_length(coalesce(p_items, '[]'::jsonb)) < 1 then
