@@ -113,12 +113,78 @@ async function loadProducts(){
   $("productsTable").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editProduct(data.find(p=>p.id===b.dataset.edit)));
   $("productsTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!confirm("Hapus produk ini? Riwayat transaksi akan tetap menyimpan snapshot produk."))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)message(error.message);else{message("Produk dihapus.");await loadProducts();}});
 }
+function renderCurrentImages(urls = []) {
+  const root = $("currentImages");
+  root.replaceChildren();
+
+  const heading = document.createElement("p");
+  heading.textContent = urls.length
+    ? `Foto tersimpan: ${urls.length}/5`
+    : "Belum ada foto tersimpan.";
+  root.append(heading);
+
+  if (!urls.length) return;
+
+  const grid = document.createElement("div");
+  grid.style.cssText = "display:flex;flex-wrap:wrap;gap:12px;margin:10px 0";
+  const projectOrigin = new URL(SUPABASE_URL).origin;
+  const publicPath = "/storage/v1/object/public/product-images/";
+
+  urls.forEach((url, index) => {
+    const card = document.createElement("div");
+    card.style.cssText = "width:132px;padding:6px;border:1px solid #dce5d8;border-radius:8px;background:#fff";
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      parsedUrl = null;
+    }
+
+    if (!parsedUrl || parsedUrl.origin !== projectOrigin || !parsedUrl.pathname.includes(publicPath)) {
+      const warning = document.createElement("p");
+      warning.textContent = `Foto ${index + 1}: URL foto tidak valid.`;
+      card.append(warning);
+    } else {
+      const link = document.createElement("a");
+      link.href = parsedUrl.href;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.title = "Buka foto ukuran penuh";
+
+      const image = document.createElement("img");
+      image.src = parsedUrl.href;
+      image.alt = `Foto produk ${index + 1}`;
+      image.loading = "lazy";
+      image.style.cssText = "display:block;width:120px;height:120px;object-fit:cover;border-radius:6px;background:#f3f5f1";
+      image.onerror = () => {
+        const warning = document.createElement("p");
+        warning.textContent = `Foto ${index + 1} gagal dimuat. Periksa bucket product-images di Supabase Storage.`;
+        card.replaceChildren(warning);
+      };
+
+      link.append(image);
+      card.append(link);
+    }
+
+    const caption = document.createElement("small");
+    caption.textContent = `Foto ${index + 1}`;
+    card.append(caption);
+    grid.append(card);
+  });
+
+  root.append(grid);
+
+  const note = document.createElement("p");
+  note.textContent = "Foto baru akan ditambahkan; total maksimal 5 foto. Klik foto untuk membuka ukuran penuh.";
+  root.append(note);
+}
 function editProduct(p){
   editingId=p.id;const f=$("productForm").elements;
   for(const key of ["name","sku","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
   f.is_published.checked=p.is_published;f.is_featured.checked=p.is_featured;
   $("productFormTitle").textContent="Edit produk · "+p.sku;
-  $("currentImages").textContent="Foto tersimpan: "+(p.image_urls||[]).length+". Foto baru akan ditambahkan; pilih ulang maksimal 5 foto total.";
+  renderCurrentImages(p.image_urls || []);
   window.scrollTo({top:$("commerceAdmin").offsetTop,behavior:"smooth"});
 }
 $("commerceAdmin") || null;
