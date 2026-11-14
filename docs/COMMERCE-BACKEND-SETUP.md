@@ -38,9 +38,9 @@ No additional migrations are needed beyond these two SQL files.
 ## 4. Create the first Super Admin
 
 1. In Supabase, open **Authentication → Users → Add user**.
-2. Create the owner account using an email address you control and set a secure password.
+2. Create the owner account with the email forbuldozer@gmail.com and set a secure password.
 3. Open `supabase/bootstrap-super-admin.sql` in this repository.
-4. Replace `YOUR_SUPER_ADMIN_EMAIL` with the exact owner email, then run the script in the new project's SQL Editor.
+4. Run the script in the new project's SQL Editor. It is configured for the first owner account, forbuldozer@gmail.com.
 5. Confirm the verification query returns that account with role `super_admin`.
 
 The bootstrap SQL must be run manually by the project owner. Do not expose elevated credentials or assign roles from browser JavaScript.
