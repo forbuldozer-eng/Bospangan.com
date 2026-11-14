@@ -1,5 +1,5 @@
 -- Bos Pangan CMS commerce backend.
--- Run after supabase/schema.sql. No additional role or payout migrations are needed.
+-- Apply only after supabase/schema.sql has completed successfully.
 -- Never expose the Supabase service-role key in browser code.
 
 begin;
