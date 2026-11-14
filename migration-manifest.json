@@ -233,6 +233,54 @@
       "mode": "100644",
       "type": "blob",
       "sha": "c4f42911312990458daef9035b216a73264dd468"
+    },
+    {
+      "path": "blog/cara-memulai-usaha-warung-sembako/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "83d11318db7308b2f10e7bea44f85d867f627dbd"
+    },
+    {
+      "path": "blog/cara-mengatur-stok-warung/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a5dcbd72ad8b2eb5145c06f98941e7da5f025070"
+    },
+    {
+      "path": "blog/cara-menghitung-keuntungan-warung-sembako/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8bde315c721b70f7bf475e4fbf0d468900b0962b"
+    },
+    {
+      "path": "blog/daftar-barang-warung-sembako/index.html",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "5027132780c7243c8a38622072436207c90255d6"
+    },
+    {
+      "path": "blog/images/cara-memulai-usaha-warung-sembako.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1da34ac31b198c66da2caeb921198a6d88acb749"
+    },
+    {
+      "path": "blog/images/cara-mengatur-stok-warung.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "129b6e8fe4ec0882bd16131d7e32fd14462b482b"
+    },
+    {
+      "path": "blog/images/cara-menghitung-keuntungan-warung-sembako.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "14899f87d438865c6de3df500b03f5c29491bed0"
+    },
+    {
+      "path": "blog/images/daftar-barang-warung-sembako.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "8bd63186dceb5d61f0ee18d663da886761875491"
     }
   ]
 }
