@@ -425,6 +425,30 @@
       "mode": "100644",
       "type": "blob",
       "sha": "96686b082074ea62e245958ad32af12396cdd6ab"
+    },
+    {
+      "path": "supabase/functions/create-order/index.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "41f62a2f4510b216f23311116b8af7e865ad1e8b"
+    },
+    {
+      "path": "supabase/functions/send-product-campaign/index.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "f3438dfe48a5410514dac9efffa61b45dbd85b79"
+    },
+    {
+      "path": "supabase/initial-admin.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "40f0d1f4341a7e4a00f9c984df203bbbf1a5625c"
+    },
+    {
+      "path": "supabase/schema.sql",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "73d4525898bd078b80ff3a56eca2927f2839ae53"
     }
   ]
 }
