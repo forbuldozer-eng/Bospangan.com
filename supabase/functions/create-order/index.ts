@@ -1,123 +1,234 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const cors = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status, headers: { ...cors, "Content-Type": "application/json" },
-});
+const allowedOrigins = new Set([
+  "https://bospangancom-theta.vercel.app",
+  "https://bospangan.com",
+  "https://www.bospangan.com",
+  ...(Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map((value) => value.trim()).filter(Boolean),
+]);
+
+function headersFor(req: Request) {
+  const origin = req.headers.get("origin") ?? "";
+  const allowOrigin = allowedOrigins.has(origin)
+    ? origin
+    : "https://bospangancom-theta.vercel.app";
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(req: Request, body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...headersFor(req), "Content-Type": "application/json" },
+  });
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character] ?? character);
+}
+
+async function fingerprintIp(req: Request): Promise<string | null> {
+  const forwarded = req.headers.get("cf-connecting-ip")
+    ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? "";
+  if (!forwarded) return null;
+
+  const bytes = new TextEncoder().encode(forwarded);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") return new Response("ok", { status: 204, headers: headersFor(req) });
+  if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
+
+  const origin = req.headers.get("origin");
+  if (origin && !allowedOrigins.has(origin)) {
+    return json(req, { error: "Origin tidak diizinkan." }, 403);
+  }
 
   const url = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !serviceKey) return json({ error: "Server configuration is incomplete" }, 500);
+  if (!url || !serviceKey) {
+    return json(req, { error: "Konfigurasi server Supabase belum lengkap." }, 500);
+  }
+
   const db = createClient(url, serviceKey, { auth: { persistSession: false } });
 
   try {
-    const input = await req.json();
+    const raw = await req.text();
+    if (raw.length > 32_000) return json(req, { error: "Data checkout terlalu besar." }, 413);
+
+    const input = JSON.parse(raw);
+    if (String(input.company_website ?? "").trim()) {
+      return json(req, { error: "Permintaan tidak dapat diproses." }, 400);
+    }
+
     const name = String(input.customer_name ?? "").trim().slice(0, 120);
     const email = String(input.customer_email ?? "").trim().toLowerCase().slice(0, 254);
     const phone = String(input.customer_phone ?? "").trim().slice(0, 32);
+    const address = String(input.customer_address ?? "").trim().slice(0, 1000);
     const kind = input.transaction_type === "special" ? "special" : "regular";
     const specialRequest = String(input.special_request ?? "").trim().slice(0, 4000);
+    const suppliedKey = String(input.idempotency_key ?? "");
+    const idempotencyKey = uuidPattern.test(suppliedKey) ? suppliedKey : crypto.randomUUID();
+
     const items = Array.isArray(input.items) ? input.items : [];
-    if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || phone.length < 7) {
-      return json({ error: "Nama, email, dan nomor telepon yang valid wajib diisi." }, 400);
+    if (items.length > 50) return json(req, { error: "Maksimal 50 jenis produk per transaksi." }, 400);
+
+    const normalizedItems = items.map((item: any) => ({
+      product_id: String(item.product_id ?? ""),
+      quantity: Number(item.quantity),
+    }));
+
+    if (normalizedItems.some((item: any) =>
+      !uuidPattern.test(item.product_id) ||
+      !Number.isFinite(item.quantity) ||
+      item.quantity <= 0 ||
+      item.quantity > 100000
+    )) {
+      return json(req, { error: "Produk atau jumlah pesanan tidak valid." }, 400);
+    }
+
+    if (kind === "regular" && normalizedItems.length < 1) {
+      return json(req, { error: "Keranjang pesanan masih kosong." }, 400);
     }
     if (kind === "special" && specialRequest.length < 10) {
-      return json({ error: "Jelaskan kebutuhan transaksi khusus minimal 10 karakter." }, 400);
-    }
-    if (kind === "regular" && (items.length < 1 || items.length > 50)) {
-      return json({ error: "Pesanan reguler harus memiliki 1–50 item." }, 400);
+      return json(req, { error: "Jelaskan kebutuhan transaksi khusus minimal 10 karakter." }, 400);
     }
 
-    const ids = [...new Set(items.map((x: any) => String(x.product_id ?? "")))];
-    let products: any[] = [];
-    if (kind === "regular") {
-      const { data, error } = await db.from("products")
-        .select("id,sku,name,price,stock,tax_percent,is_published")
-        .in("id", ids).eq("is_published", true);
-      if (error) throw error;
-      products = data ?? [];
-      if (products.length !== ids.length) return json({ error: "Satu atau lebih produk tidak tersedia." }, 400);
-    }
-
-    const { data: settings } = await db.from("store_settings").select("key,value")
-      .in("key", ["default_tax_percent", "owner_notification_email", "email_notifications_enabled"]);
-    const config = Object.fromEntries((settings ?? []).map((x: any) => [x.key, x.value]));
-    const defaultTax = Number(config.default_tax_percent ?? 0);
-    const map = new Map(products.map(p => [p.id, p]));
-    const normalized = items.map((item: any) => {
-      const p = map.get(String(item.product_id));
-      const qty = Number(item.quantity);
-      if (!p || !Number.isFinite(qty) || qty <= 0 || qty > 100000) throw new Error("Item atau jumlah pesanan tidak valid.");
-      if (Number(p.stock) < qty) throw new Error("Stok tidak mencukupi untuk " + p.name + ".");
-      return { product: p, quantity: qty, line: Number(p.price) * qty };
+    const { data: result, error: orderError } = await db.rpc("submit_storefront_order", {
+      p_customer_name: name,
+      p_customer_email: email,
+      p_customer_phone: phone,
+      p_customer_address: address,
+      p_transaction_type: kind,
+      p_special_request: specialRequest,
+      p_items: normalizedItems,
+      p_idempotency_key: idempotencyKey,
+      p_request_fingerprint: await fingerprintIp(req),
     });
-    const subtotal = normalized.reduce((sum, x) => sum + x.line, 0);
-    const taxPercent = normalized.length ? defaultTax : defaultTax;
-    const taxAmount = Number(normalized.reduce((sum, x) => {
-      const rate = x.product.tax_percent == null ? defaultTax : Number(x.product.tax_percent);
-      return sum + (x.line * rate / 100);
-    }, 0).toFixed(2));
-    const total = Number((subtotal + taxAmount).toFixed(2));
 
-    const { data: authData } = await db.auth.getUser(
-      req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "") ?? ""
-    );
-    const customerId = authData?.user?.id ?? null;
-
-    const { data: order, error: orderError } = await db.from("orders").insert({
-      customer_id: customerId, customer_name: name, customer_email: email, customer_phone: phone,
-      transaction_type: kind, special_request: specialRequest, subtotal,
-      tax_percent: taxPercent, tax_amount: taxAmount, total,
-      status: kind === "special" ? "quoted" : "new",
-    }).select("id,order_number,total,tax_amount,tax_percent,status").single();
     if (orderError) throw orderError;
-
-    if (normalized.length) {
-      const rows = normalized.map(x => ({
-        order_id: order.id, product_id: x.product.id, sku_snapshot: x.product.sku,
-        product_name_snapshot: x.product.name, unit_price: x.product.price,
-        quantity: x.quantity, line_subtotal: x.line,
-      }));
-      const { error } = await db.from("order_items").insert(rows);
-      if (error) {
-        await db.from("orders").delete().eq("id", order.id);
-        throw error;
-      }
+    const order = result?.order;
+    if (!order?.id || !order?.order_number) {
+      throw new Error("Database tidak mengembalikan nomor transaksi.");
     }
 
-    const ownerEmail = String(config.owner_notification_email ?? "").trim();
-    if (ownerEmail && config.email_notifications_enabled !== false) {
+    let emailStatus = "not_queued";
+    const { data: queueItem, error: queueReadError } = await db
+      .from("notification_queue")
+      .select("id,recipient_email,subject,status")
+      .eq("event_type", "new_order")
+      .eq("status", "pending")
+      .eq("payload->>order_id", order.id)
+      .maybeSingle();
+
+    if (queueReadError) {
+      console.error("Notification queue lookup failed:", queueReadError.message);
+      emailStatus = "queued";
+    } else if (queueItem) {
+      const { data: settings } = await db.from("store_settings")
+        .select("key,value")
+        .in("key", ["email_notifications_enabled"]);
+      const config = Object.fromEntries((settings ?? []).map((row: any) => [row.key, row.value]));
+      const emailEnabled = config.email_notifications_enabled !== false;
       const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (resendKey) {
-        const lines = normalized.map(x => `<li>${x.product.name} (${x.product.sku}) × ${x.quantity}</li>`).join("");
-        const html = `<h2>Transaksi baru Bos Pangan</h2><p>Nomor: <b>${order.order_number}</b></p><p>Customer: ${name}<br>${email}<br>${phone}</p><p>Jenis: ${kind}</p><ul>${lines}</ul><p>Subtotal: Rp${subtotal.toLocaleString("id-ID")}<br>Pajak (${taxPercent}%): Rp${taxAmount.toLocaleString("id-ID")}<br><b>Total: Rp${total.toLocaleString("id-ID")}</b></p><p>${specialRequest}</p>`;
+      const emailFrom = Deno.env.get("EMAIL_FROM");
+
+      if (!emailEnabled) {
+        await db.from("notification_queue")
+          .update({ status: "failed", last_error: "Notifikasi email dinonaktifkan di pengaturan toko." })
+          .eq("id", queueItem.id);
+        emailStatus = "disabled";
+      } else if (!resendKey || !emailFrom) {
+        emailStatus = "pending_configuration";
+      } else {
+        await db.from("notification_queue").update({ status: "processing" }).eq("id", queueItem.id);
+
+        const { data: lines } = await db.from("order_items")
+          .select("sku_snapshot,product_name_snapshot,quantity,unit_price,line_subtotal,tax_percent,tax_amount")
+          .eq("order_id", order.id);
+
+        const itemHtml = (lines ?? []).map((line: any) =>
+          "<li>" + escapeHtml(line.product_name_snapshot) + " (" + escapeHtml(line.sku_snapshot) +
+          ") × " + escapeHtml(line.quantity) + " — Rp" +
+          Number(line.line_subtotal).toLocaleString("id-ID") + "</li>"
+        ).join("");
+
+        const html = [
+          "<h2>Transaksi baru Bos Pangan</h2>",
+          "<p>Nomor transaksi: <strong>" + escapeHtml(order.order_number) + "</strong></p>",
+          "<p>Jenis transaksi: " + escapeHtml(kind === "special" ? "Permintaan khusus / penawaran" : "Pesanan reguler") + "</p>",
+          "<p>Nama: " + escapeHtml(name) + "<br>Email: " + escapeHtml(email) +
+          "<br>Telepon: " + escapeHtml(phone) + "<br>Alamat: " + escapeHtml(address || "Tidak diberikan") + "</p>",
+          itemHtml ? "<h3>Daftar produk</h3><ul>" + itemHtml + "</ul>" : "",
+          "<p>Subtotal: Rp" + Number(order.subtotal).toLocaleString("id-ID") +
+          "<br>Pajak: Rp" + Number(order.tax_amount).toLocaleString("id-ID") +
+          "<br><strong>Total: Rp" + Number(order.total).toLocaleString("id-ID") + "</strong></p>",
+          "<p>Catatan: " + escapeHtml(specialRequest || "—") + "</p>",
+        ].join("");
+
         const sent = await fetch("https://api.resend.com/emails", {
           method: "POST",
-          headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ from: Deno.env.get("EMAIL_FROM") ?? "Bos Pangan <onboarding@resend.dev>", to: [ownerEmail], subject: "Transaksi baru " + order.order_number, html }),
+          headers: {
+            Authorization: "Bearer " + resendKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: emailFrom,
+            to: [queueItem.recipient_email],
+            subject: queueItem.subject,
+            html,
+          }),
         });
-        if (!sent.ok) {
-          const { error: queueError } = await db.from("notification_queue").update({ status: "failed", last_error: "Email provider error" })
-            .eq("event_type", "new_order").eq("recipient_email", ownerEmail).eq("status", "pending").eq("payload->>order_id", order.id);
-          console.error("Owner email failed", await sent.text(), queueError);
+
+        if (sent.ok) {
+          await db.from("notification_queue").update({
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            last_error: null,
+          }).eq("id", queueItem.id);
+          emailStatus = "sent";
         } else {
-          await db.from("notification_queue").update({ status: "sent", sent_at: new Date().toISOString() })
-            .eq("event_type", "new_order").eq("recipient_email", ownerEmail).eq("status", "pending");
+          const providerError = (await sent.text()).slice(0, 1000);
+          await db.from("notification_queue").update({
+            status: "failed",
+            last_error: providerError || "Email provider error",
+          }).eq("id", queueItem.id);
+          console.error("Order email provider error:", providerError);
+          emailStatus = "failed";
         }
       }
     }
 
-    return json({ success: true, order });
+    return json(req, {
+      success: true,
+      duplicate: Boolean(result?.duplicate),
+      order,
+      email_status: emailStatus,
+      message: kind === "special"
+        ? "Permintaan transaksi khusus berhasil diterima."
+        : "Pesanan berhasil diterima.",
+    });
   } catch (error) {
     console.error("create-order:", error);
-    return json({ error: error instanceof Error ? error.message : "Unable to create order" }, 400);
+    return json(req, {
+      error: error instanceof Error ? error.message : "Pesanan tidak dapat diproses.",
+    }, 400);
   }
 });
