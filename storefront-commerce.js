@@ -7,10 +7,12 @@ const rupiah = (value) => "Rp" + Number(value || 0).toLocaleString("id-ID");
 const cartStorageKey = "bp-checkout-cart-v1";
 const favoritesStorageKey = "bp-checkout-favorites-v1";
 
+const storedCart = readStorage(cartStorageKey, {});
+const storedFavorites = readStorage(favoritesStorageKey, []);
 const state = {
   products: [],
-  cart: readStorage(cartStorageKey, {}),
-  favorites: readStorage(favoritesStorageKey, []),
+  cart: storedCart && typeof storedCart === "object" && !Array.isArray(storedCart) ? storedCart : {},
+  favorites: Array.isArray(storedFavorites) ? storedFavorites : [],
   category: "Semua",
   query: "",
   defaultTax: 0,
@@ -643,9 +645,10 @@ async function initialize() {
   saveStorage(cartStorageKey, state.cart);
   saveStorage(favoritesStorageKey, state.favorites);
 
+  let checkoutWarning = "";
   if (taxResponse.error || taxResponse.data === null) {
     state.checkoutReady = false;
-    setStatus("Katalog dimuat, tetapi checkout belum siap. Admin perlu menjalankan supabase/checkout.sql.", true);
+    checkoutWarning = "Katalog dimuat, tetapi checkout belum siap. Admin perlu menjalankan supabase/checkout.sql.";
   } else {
     state.defaultTax = Number(taxResponse.data);
     state.checkoutReady = true;
@@ -654,6 +657,8 @@ async function initialize() {
   renderProducts();
   if (state.checkoutReady) {
     setStatus(state.products.length + " produk tersedia. Pajak default toko " + state.defaultTax + "%.");
+  } else {
+    setStatus(checkoutWarning, true);
   }
 }
 
