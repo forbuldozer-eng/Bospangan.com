@@ -1,3 +1,46 @@
 {
-  "files": []
+  "files": [
+    {
+      "path": "admin-commerce.js",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "1dca598d6366a935cf43169fd60ae21a1a1d4153"
+    },
+    {
+      "path": "assets/bos-pangan-logo.webp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d68dbb6c1d8748fb1629a6876970b84a8dc53916"
+    },
+    {
+      "path": "assets/bospangan-icon.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c01abc70dce23e4075e6ac1f96d3615f3ddf35e5"
+    },
+    {
+      "path": "assets/bospangan-logo.svg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "2a5cb73a08d44225cf84a8b71ef7451bcdf978ed"
+    },
+    {
+      "path": "assets/hero-warung-photo.webp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "9dd717f24546dfbb12fb75f6fa9e712a4f3db2a8"
+    },
+    {
+      "path": "assets/hero-woman-warung.jpg",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "bf4103e9237676de6fd366eb7925386e38b8b287"
+    },
+    {
+      "path": "assets/sheet-0.webp",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "d72eccce6781d2c42991690e5066968986dfe71d"
+    }
+  ]
 }
