@@ -1,6 +1,6 @@
 -- Run once in the NEW Bos Pangan Supabase project's SQL Editor.
 -- First create the owner account in Authentication -> Users.
--- Replace the email below with the exact email of the account you control.
+-- The first Bos Pangan owner account is configured as forbuldozer@gmail.com.
 -- This script is intentionally executed manually by the project owner.
 
 do $$
@@ -9,7 +9,7 @@ declare
 begin
   select id into v_user_id
   from auth.users
-  where lower(email) = lower('YOUR_SUPER_ADMIN_EMAIL')
+  where lower(email) = lower('forbuldozer@gmail.com')
   limit 1;
 
   if v_user_id is null then
