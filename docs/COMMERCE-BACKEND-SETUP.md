@@ -33,7 +33,7 @@ Open SQL Editor in the **new** Supabase project and run these files in this exac
 1. `supabase/schema.sql` — profiles, role checks, access-control functions, and Auth profile trigger.
 2. `supabase/commerce-backend.sql` — products, product image Storage, tax settings, regular and special orders, email/push campaign tables, and audit log.
 
-No affiliate, commission, or payout migrations are required. They have been removed from the Bos Pangan setup.
+No additional migrations are needed beyond these two SQL files.
 
 ## 4. Create the first Super Admin
 
