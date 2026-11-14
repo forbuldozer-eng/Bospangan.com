@@ -22,6 +22,11 @@ alter table public.order_items
 -- rate-limit validation by inserting directly into orders.
 revoke insert on public.orders from anon, authenticated;
 
+-- Explicit privileges for the trusted Edge Function runtime.
+grant select on public.store_settings to service_role;
+grant select on public.order_items to service_role;
+grant select, update on public.notification_queue to service_role;
+
 create table if not exists public.checkout_rate_limits (
   fingerprint text primary key,
   window_started_at timestamptz not null default now(),
