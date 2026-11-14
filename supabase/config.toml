@@ -1,0 +1,7 @@
+project_id = "flyndyrplyvalnhzhvz"
+
+[functions.create-order]
+verify_jwt = false
+
+[functions.send-product-campaign]
+verify_jwt = true
