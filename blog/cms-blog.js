@@ -18,10 +18,33 @@ const readingTime = value => Math.max(1, Math.ceil(String(value || "").trim().sp
 
 function safeMarkdown(markdown) {
   const html = marked.parse(markdown || "", { breaks: false, gfm: true });
-  return DOMPurify.sanitize(html, {
+  const sanitized = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "id"],
   });
+  const template = document.createElement("template");
+  template.innerHTML = sanitized;
+  template.content.querySelectorAll("p").forEach(paragraph => {
+    const images = [...paragraph.querySelectorAll(":scope > img")];
+    const onlyImages = [...paragraph.childNodes].every(node =>
+      (node.nodeType === Node.ELEMENT_NODE && node.tagName === "IMG") ||
+      (node.nodeType === Node.TEXT_NODE && !node.textContent.trim())
+    );
+    if (images.length < 2 || !onlyImages) return;
+    const gallery = document.createElement("div");
+    gallery.className = "article-gallery";
+    images.forEach(image => gallery.append(image));
+    paragraph.replaceWith(gallery);
+  });
+  return template.innerHTML;
+}
+
+function ensureGalleryStyles() {
+  if (document.getElementById("bosPanganArticleGalleryStyles")) return;
+  const style = document.createElement("style");
+  style.id = "bosPanganArticleGalleryStyles";
+  style.textContent = ".article-content .article-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.article-content .article-gallery img{display:block;width:100%;height:260px;object-fit:cover;border-radius:12px}.article-content .article-gallery img:only-child{grid-column:1/-1}@media(max-width:640px){.article-content .article-gallery{grid-template-columns:1fr}.article-content .article-gallery img{height:auto;max-height:360px}}";
+  document.head.append(style);
 }
 
 function setMeta(article) {
@@ -86,6 +109,7 @@ function renderDetail(article, allArticles) {
 }
 
 async function init() {
+  ensureGalleryStyles();
   try {
     const articles = await getPublishedArticles();
     if (listing && articles.length) renderListing(articles);

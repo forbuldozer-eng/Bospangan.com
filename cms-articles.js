@@ -185,6 +185,7 @@ function syncArticleMeta() {
 let initialized = false;
 let currentUser = null;
 let editingArticle = null;
+let articleGalleryQueue = [];
 
 function setStatus(message, isError = false) {
   const node = $("articleStatus");
@@ -244,6 +245,118 @@ async function uploadFeaturedImage(file) {
   if (error) throw error;
   const { data } = db.storage.from("cms-article-images").getPublicUrl(path);
   return data.publicUrl;
+}
+
+function renderArticleGalleryQueue() {
+  const panel = $("articleGalleryQueue");
+  const list = $("articleGalleryItems");
+  if (!panel || !list) return;
+  panel.classList.toggle("hidden", articleGalleryQueue.length === 0);
+  list.replaceChildren();
+  articleGalleryQueue.forEach((item, index) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid #e2e8f0";
+    const image = document.createElement("img");
+    image.src = item.previewUrl;
+    image.alt = "";
+    image.style.cssText = "width:64px;height:56px;object-fit:cover;border-radius:7px";
+    const fields = document.createElement("div");
+    const filename = document.createElement("small");
+    filename.textContent = item.file.name;
+    filename.style.cssText = "display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;margin-bottom:5px";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 250;
+    input.value = item.alt;
+    input.placeholder = "Alt text deskriptif untuk foto ini";
+    input.setAttribute("aria-label", "Alt text foto " + (index + 1));
+    input.style.cssText = "width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cbd5e1;border-radius:7px";
+    input.addEventListener("input", () => { articleGalleryQueue[index].alt = input.value; });
+    fields.append(filename, input);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "btn";
+    remove.textContent = "Hapus";
+    remove.addEventListener("click", () => {
+      URL.revokeObjectURL(articleGalleryQueue[index].previewUrl);
+      articleGalleryQueue.splice(index, 1);
+      renderArticleGalleryQueue();
+    });
+    row.append(image, fields, remove);
+    list.append(row);
+  });
+  $("insertArticleGallery").disabled = articleGalleryQueue.length === 0;
+}
+
+function queueArticleGalleryFiles(files) {
+  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  const incoming = Array.from(files || []);
+  if (!incoming.length) return;
+  if (articleGalleryQueue.length + incoming.length > 12) {
+    setStatus("Maksimal 12 foto dalam satu batch galeri.", true);
+    return;
+  }
+  for (const file of incoming) {
+    if (!allowed.includes(file.type)) {
+      setStatus("File " + file.name + " bukan JPG, PNG, atau WebP.", true);
+      continue;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setStatus("Ukuran " + file.name + " melebihi 8 MB.", true);
+      continue;
+    }
+    const suggestedAlt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+    articleGalleryQueue.push({ file, alt: suggestedAlt, previewUrl: URL.createObjectURL(file) });
+  }
+  renderArticleGalleryQueue();
+  if (articleGalleryQueue.length) setStatus(articleGalleryQueue.length + " foto siap ditambahkan. Periksa alt text setiap foto.");
+}
+
+async function uploadGalleryImage(file) {
+  const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" })[file.type];
+  const path = currentUser.id + "/gallery/" + crypto.randomUUID() + "." + extension;
+  const { error } = await db.storage.from("cms-article-images").upload(path, file, {
+    contentType: file.type,
+    upsert: false
+  });
+  if (error) throw error;
+  const { data } = db.storage.from("cms-article-images").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function insertArticleGallery() {
+  if (!articleGalleryQueue.length) return;
+  const button = $("insertArticleGallery");
+  button.disabled = true;
+  button.textContent = "Mengunggah foto…";
+  try {
+    const images = [];
+    for (const item of articleGalleryQueue) {
+      const alt = item.alt.trim();
+      if (!alt) throw new Error("Alt text wajib diisi untuk setiap foto galeri.");
+      const url = await uploadGalleryImage(item.file);
+      const safeAlt = alt.replace(/[\[\]]/g, " ").replace(/[\r\n]+/g, " ").trim();
+      images.push("![" + safeAlt + "](" + url + ")");
+    }
+    const field = $("articleContent");
+    const start = field.selectionStart;
+    const end = field.selectionEnd;
+    const prefix = start > 0 && !field.value.slice(0, start).endsWith("\n\n") ? "\n\n" : "";
+    const suffix = end < field.value.length && !field.value.slice(end).startsWith("\n\n") ? "\n\n" : "";
+    field.setRangeText(prefix + images.join(" ") + suffix, start, end, "end");
+    field.focus();
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    articleGalleryQueue.forEach(item => URL.revokeObjectURL(item.previewUrl));
+    articleGalleryQueue = [];
+    $("articleGalleryFiles").value = "";
+    renderArticleGalleryQueue();
+    setStatus(images.length + " foto berhasil diunggah dan dimasukkan ke artikel.");
+  } catch (error) {
+    setStatus("Gagal memasukkan galeri: " + (error.message || error), true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Unggah & Sisipkan Galeri";
+  }
 }
 
 function editArticle(article) {
@@ -419,6 +532,17 @@ async function initialize() {
   document.querySelectorAll("[data-md]").forEach(button => {
     button.addEventListener("click", () => insertMarkdown(button.dataset.md));
   });
+  $("[data-gallery-trigger]").addEventListener("click", () => $("articleGalleryFiles").click());
+  $("articleGalleryFiles").addEventListener("change", event => {
+    queueArticleGalleryFiles(event.target.files);
+    event.target.value = "";
+  });
+  $("cancelArticleGallery").addEventListener("click", () => {
+    articleGalleryQueue.forEach(item => URL.revokeObjectURL(item.previewUrl));
+    articleGalleryQueue = [];
+    renderArticleGalleryQueue();
+  });
+  $("insertArticleGallery").addEventListener("click", insertArticleGallery);
   const contentField=$("articleContent");
   const preview=$("articleContentPreview");
   $("articleVisualTab").addEventListener("click", () => {

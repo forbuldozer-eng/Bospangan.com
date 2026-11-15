@@ -216,9 +216,22 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
                       <button class="editor-tool" type="button" data-md="quote" title="Kutipan">❝</button>
                       <button class="editor-tool" type="button" data-md="link" title="Sisipkan tautan">↗</button>
                       <button class="editor-tool" type="button" data-md="image" title="Markdown gambar">▧</button>
-                      <button class="editor-tool" type="button" data-md="table" title="Sisipkan tabel">▦</button>
+                      <button class="editor-tool" type="button" data-gallery-trigger title="Unggah beberapa foto sebagai galeri">▦ Galeri</button>
+                      <button class="editor-tool" type="button" data-md="table" title="Sisipkan tabel">▤</button>
                       <span class="editor-tool separator"></span>
                       <button class="editor-tool" type="button" data-md="hr" title="Garis pemisah">―</button>
+                    </div>
+                    <input id="articleGalleryFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                    <div id="articleGalleryQueue" class="hidden" style="margin:10px 0;padding:14px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc">
+                      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                        <strong>Foto Galeri Artikel</strong>
+                        <small style="color:#64748b">Maksimal 12 foto per batch · JPG, PNG, WebP · 8 MB per foto</small>
+                      </div>
+                      <div id="articleGalleryItems"></div>
+                      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+                        <button class="btn" id="cancelArticleGallery" type="button">Batal</button>
+                        <button class="btn primary" id="insertArticleGallery" type="button">Unggah &amp; Sisipkan Galeri</button>
+                      </div>
                     </div>
                     <textarea class="editor-textarea" name="content_markdown" id="articleContent" required placeholder="Mulai menulis artikel di sini...&#10;&#10;Gunakan toolbar untuk heading, teks tebal, daftar, kutipan, dan tautan."></textarea>
                     <div class="editor-preview hidden" id="articleContentPreview"></div>
