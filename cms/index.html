@@ -33,9 +33,9 @@ h1{margin:17px 0 14px;font-size:clamp(34px,5vw,56px);line-height:1.06;letter-spa
 .card-kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#6d806f}
 .card-title{font-size:24px;letter-spacing:-.04em;margin:8px 0 6px}
 .card-copy{font-size:14px;color:var(--muted);margin:0 0 18px}
-#box{position:static;inset:auto;display:block;width:100%;max-width:none;max-height:none;overflow:visible;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink)}
+#box{position:static;inset:auto;display:none;width:100%;max-width:none;max-height:none;overflow:visible;margin:0;padding:0;border:0;border-radius:0;background:transparent;color:var(--ink)}
 #box::backdrop{background:transparent}
-#box[open]{position:static}
+#box[open]{position:static;display:block}
 #box .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px}
 #heading{font-size:22px;line-height:1.25;margin:0}
 #closeBox{width:34px;height:34px;padding:0;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--muted);font-size:19px}
