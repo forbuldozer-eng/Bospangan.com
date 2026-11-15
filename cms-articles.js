@@ -133,6 +133,8 @@ function syncArticleMeta() {
   const internalLinks=(content.match(/\]\((?:\/|https?:\/\/bospangan\.com)/gi)||[]).length;
   const externalLinks=(content.match(/\]\(https?:\/\//gi)||[]).length-internalLinks;
   const imageMatches=[...content.matchAll(/!\[([^\]]*)\]\([^)]+\)/g)];
+  const hasFeaturedImage=!!(f.featured_image.files?.[0] || editingArticle?.featured_image_url);
+  const featuredAlt=(f.featured_image_alt?.value || "").trim();
   const sentences=text.split(/[.!?]+/).map(x=>x.trim()).filter(Boolean);
   const avgSentence=sentences.length ? text.split(/\s+/).length/sentences.length : 0;
   const paragraphs=content.split(/\n\s*\n/).map(p=>plainArticleText(p)).filter(Boolean);
@@ -141,7 +143,7 @@ function syncArticleMeta() {
   const transitionCount=transitions.reduce((sum,w)=>sum+(lower.match(new RegExp("\\b"+w+"\\b","g"))||[]).length,0);
   const checks=[];
   let score=0;
-  const add=(label,ok,detail,points=100/13)=>{score+=ok?points:0;checks.push(seoCheck(label,ok?"good":"warn",detail));};
+  const add=(label,ok,detail,points=100/14)=>{score+=ok?points:0;checks.push(seoCheck(label,ok?"good":"warn",detail));};
   add("Frasa kunci utama",!!keyphrase, keyphrase?"Frasa kunci sudah ditentukan.":"Tambahkan frasa kunci utama untuk menganalisis relevansi.");
   add("Frasa kunci di judul",!!keyphrase && countMatches(title,keyphrase)>0,keyphrase?"Pastikan frasa kunci muncul secara alami di judul.":"Belum ada frasa kunci.");
   add("Frasa kunci di URL",!!keyphrase && countMatches(f.slug.value.replace(/-/g," "),keyphrase)>0,keyphrase?"Gunakan frasa kunci di slug bila tetap terbaca alami.":"Belum ada frasa kunci.");
@@ -153,7 +155,8 @@ function syncArticleMeta() {
   add("Panjang artikel",words>=300,"Jumlah saat ini "+words+" kata; artikel informatif umumnya membutuhkan konteks yang cukup.");
   add("Subheading",headings.length>=2,"Ditemukan "+headings.length+" heading Markdown; gunakan beberapa subheading untuk membagi topik.");
   add("Tautan internal",internalLinks>=2,"Ditemukan "+internalLinks+" tautan internal; hubungkan artikel dengan halaman relevan Bos Pangan.");
-  add("Gambar dengan alt text",imageMatches.length>0 && imageMatches.every(m=>m[1].trim().length>0),"Ditemukan "+imageMatches.length+" gambar; isi teks alternatif deskriptif pada setiap gambar.");
+  add("Gambar dalam isi dengan alt text",imageMatches.length>0 && imageMatches.every(m=>m[1].trim().length>0),"Ditemukan "+imageMatches.length+" gambar Markdown; isi teks alternatif deskriptif pada setiap gambar.");
+  add("Alt text gambar unggulan",!hasFeaturedImage || !!featuredAlt,hasFeaturedImage?(featuredAlt?"Alt text gambar unggulan sudah diisi.":"Tambahkan alt text yang menjelaskan gambar unggulan."):"Belum ada gambar unggulan; pemeriksaan ini tidak diwajibkan.");
   add("Frasa kunci pada SEO title",!!keyphrase && countMatches(seoTitle,keyphrase)>0,keyphrase?"Masukkan frasa utama ke SEO Title bila sesuai.":"Belum ada frasa kunci.");
   score=Math.round(score);
   $("seoChecks").innerHTML=checks.join("");
@@ -210,7 +213,7 @@ function resetEditor() {
   showEditor(false);
 }
 
-function showImage(url) {
+function showImage(url, altText = "") {
   const root = $("articleImagePreview");
   root.replaceChildren();
   if (!url) {
@@ -219,7 +222,7 @@ function showImage(url) {
   }
   const image = document.createElement("img");
   image.src = url;
-  image.alt = "Pratinjau gambar utama artikel";
+  image.alt = altText || "Pratinjau gambar utama artikel";
   image.loading = "lazy";
   image.style.cssText = "display:block;width:min(260px,100%);max-height:180px;object-fit:cover;border-radius:8px;margin:8px 0";
   image.onerror = () => { root.textContent = "Gambar tidak dapat dimuat."; };
@@ -258,7 +261,8 @@ function editArticle(article) {
   f.seo_description.value = article.seo_description || "";
   f.status.value = article.status || "draft";
   f.featured_image.value = "";
-  showImage(article.featured_image_url);
+  f.featured_image_alt.value = article.featured_image_alt || "";
+  showImage(article.featured_image_url, f.featured_image_alt.value);
   form.querySelector('button[type="submit"]').textContent = "Perbarui Artikel";
   showEditor(true);
 }
@@ -266,7 +270,7 @@ function editArticle(article) {
 async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
@@ -335,6 +339,7 @@ async function saveArticle(forceDraft = false) {
     excerpt: f.excerpt.value.trim(),
     content_markdown: content,
     featured_image_url: imageUrl,
+    featured_image_alt: f.featured_image_alt.value.trim(),
     seo_title: f.seo_title.value.trim(),
     seo_description: f.seo_description.value.trim(),
     focus_keyphrase: f.focus_keyphrase.value.trim(),
@@ -397,8 +402,14 @@ async function initialize() {
   });
   $("articleForm").elements.featured_image.addEventListener("change", event => {
     const file = event.target.files?.[0];
-    if (!file) return showImage(editingArticle?.featured_image_url);
-    showImage(URL.createObjectURL(file));
+    if (!file) return showImage(editingArticle?.featured_image_url, $("articleForm").elements.featured_image_alt.value);
+    showImage(URL.createObjectURL(file), $("articleForm").elements.featured_image_alt.value);
+  });
+  $("articleForm").elements.featured_image_alt.addEventListener("input", event => {
+    const file = $("articleForm").elements.featured_image.files?.[0];
+    const url = file ? URL.createObjectURL(file) : editingArticle?.featured_image_url;
+    showImage(url, event.target.value);
+    syncArticleMeta();
   });
   $("cancelArticleEditSide").addEventListener("click", resetEditor);
   $("backToArticleList").addEventListener("click", () => {
