@@ -4,12 +4,13 @@ Bos Pangan uses a new Vercel project and a new, dedicated Supabase project. Do n
 
 ## CMS roles
 
-The CMS has exactly two privileged roles:
+Bos Pangan separates customer accounts from CMS access:
 
+- **Customer**: can maintain their own profile and read only their own order history. Customers cannot access CMS, manage products, change order/payment status, or read other customers' data.
 - **Super Admin**: full CMS access, store settings, tax defaults, notification settings, and Admin access management.
 - **Admin**: product catalog, product images, orders, special transactions, and campaign management.
 
-A new Supabase Auth user is created with **no CMS role**. The Super Admin must explicitly grant Admin access. No public registration is provided by the website login.
+Public website sign-up assigns only the `customer` role. The fixed sign-up marker can never grant Admin or Super Admin. Auth users created manually in Supabase start unassigned until the Super Admin grants a role.
 
 ## 1. Create the new Supabase project
 
@@ -30,10 +31,12 @@ The new Bos Pangan Project URL and Publishable key are already configured in thi
 
 Open SQL Editor in the **new** Supabase project and run these files in this exact order:
 
-1. `supabase/schema.sql` — profiles, role checks, access-control functions, and Auth profile trigger.
+1. `supabase/schema.sql` — profiles, role checks, CMS access-control functions, and Auth profile trigger.
 2. `supabase/commerce-backend.sql` — products, product image Storage, tax settings, regular and special orders, email/push campaign tables, and audit log.
+3. `supabase/checkout.sql` — secure server-side checkout, stock reservation, rate limiting, and public tax lookup.
+4. `supabase/customer-accounts.sql` — customer role, customer-only profile enrollment, own-order and own-order-item read policies, and secure order-to-account linking.
 
-No additional migrations are needed beyond these two SQL files.
+The customer migration must be run after the checkout migration. It is safe to re-run.
 
 ## 4. Create the first Super Admin
 
@@ -54,14 +57,19 @@ The bootstrap SQL must be run manually by the project owner. Do not expose eleva
 
 The Super Admin can later revoke Admin access from the same panel. An Admin cannot grant or revoke roles, and the Super Admin account is protected from changes in the panel.
 
-For security, disable public sign-ups in Supabase Authentication settings. Create CMS accounts only from the Supabase Auth dashboard, then grant Admin access through the CMS.
+Keep **Allow new users to sign up** enabled so customers can create website accounts. Keep email confirmation enabled where practical and configure the Supabase Auth Site URL as `https://www.bospangan.com`. Add these redirect URLs to the Auth URL allowlist:
+
+- `https://www.bospangan.com/**`
+- `https://bospangan.com/**`
+
+Customer sign-ups receive only the customer role. Create CMS users separately from Supabase Authentication → Users, then grant Admin access through the Super Admin panel. Never expose database secret/service-role keys in browser code.
 
 ## 6. Create a new Vercel project
 
 1. Import only `forbuldozer-eng/Bospangan.com` into a **new** Vercel project.
 2. Use `main` as the Production Branch.
 3. Do not connect the previous Vercel project.
-4. After the new Supabase database is ready, deploy the website and test Admin login, product creation, image upload, tax settings, orders, and special transactions.
+4. After the new Supabase database is ready, deploy the website and test customer sign-up/login, CMS login, product creation, image upload, tax settings, orders, and special transactions.
 5. Connect the custom domain only after the new deployment has been tested.
 
 ## 7. Server-side secrets and Edge Functions
@@ -87,7 +95,8 @@ supabase functions deploy send-product-campaign
 
 - Keep all secret/service-role keys and email provider keys in server-side secrets only.
 - A fresh Supabase project starts with an empty database, users, and Storage. Previous products, orders, users, and media are not transferred.
-- Admin and Super Admin access is enforced by database functions and Row Level Security, not only by hidden frontend controls.
+- Customer, Admin, and Super Admin permissions are enforced by database functions and Row Level Security, not only by hidden frontend controls.
+- Customer order history works only for orders that were placed while signed in (or securely linked using the order email that matches the authenticated account). Older guest orders remain guest orders.
 - Confirm applicable tax rates with the business's tax advisor before enabling production transactions.
 - Verify the email sender domain before sending campaigns.
 - Scheduled campaign records require a separate scheduled dispatcher (for example, Supabase Cron) to send automatically.
