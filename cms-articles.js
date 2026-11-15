@@ -99,6 +99,22 @@ function applyVisualCommand(command) {
   syncVisualEditorToMarkdown();saveVisualSelection();
 }
 
+const TRANSITION_WORDS = [
+  "oleh karena itu", "dengan demikian", "selain itu", "sebagai contoh",
+  "di sisi lain", "sementara itu", "karena itu", "akibatnya",
+  "berikutnya", "meskipun", "selanjutnya", "akhirnya",
+  "misalnya", "namun", "sehingga", "pertama"
+];
+
+function highlightTransitionWords(value) {
+  const words = [...TRANSITION_WORDS].sort((a, b) => b.length - a.length);
+  const pattern = words.join("|");
+  const regex = new RegExp("(^|[^\\p{L}\\p{N}_])(" + pattern + ")(?=$|[^\\p{L}\\p{N}_])", "giu");
+  return String(value).replace(regex, (match, prefix, word) =>
+    prefix + '<mark class="transition-word-tag" title="Terdeteksi sebagai kata/frasa transisi" style="background:#fff1b8;color:#765300;border-bottom:2px solid #e0ae32;border-radius:3px;padding:0 2px;">' + word + "</mark>"
+  );
+}
+
 function markdownPreview(markdown) {
   const sourceLines = String(markdown || "").split(/\r?\n/);
   const lines = [];
@@ -122,7 +138,7 @@ function markdownPreview(markdown) {
   let listType = null;
   const closeList = () => { if (listType) { html.push(listType === "ol" ? "</ol>" : "</ul>"); listType = null; } };
   const inline = value => {
-    let out = escapeHtml(value);
+    let out = highlightTransitionWords(escapeHtml(value));
     out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, source) => {
       const src = source.trim();
       if (!/^(https?:\/\/|\/)/i.test(src)) return escapeHtml(alt);
