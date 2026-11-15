@@ -90,6 +90,28 @@ create table if not exists public.cms_articles (
   constraint cms_articles_title_not_blank check (length(trim(title)) > 0)
 );
 
+create or replace function public.set_cms_article_audit_fields()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+  if tg_op = 'INSERT' then
+    if new.created_by is null then
+      new.created_by := (select auth.uid());
+    end if;
+  end if;
+  new.updated_by := (select auth.uid());
+  new.updated_at := now();
+  return new;
+end;
+$;
+
+drop trigger if exists trg_set_cms_article_audit_fields on public.cms_articles;
+create trigger trg_set_cms_article_audit_fields
+before insert or update on public.cms_articles
+for each row execute function public.set_cms_article_audit_fields();
+
 create index if not exists cms_articles_status_published_idx
   on public.cms_articles(status, published_at desc);
 create index if not exists cms_articles_updated_at_idx
@@ -101,7 +123,14 @@ drop policy if exists "public reads published CMS articles" on public.cms_articl
 create policy "public reads published CMS articles"
 on public.cms_articles
 for select
-to anon, authenticated
+to anon
+using (status = 'published');
+
+drop policy if exists "users read published or admins all CMS articles" on public.cms_articles;
+create policy "users read published or admins all CMS articles"
+on public.cms_articles
+for select
+to authenticated
 using (status = 'published' or public.is_admin());
 
 drop policy if exists "admins create CMS articles" on public.cms_articles;
