@@ -94,7 +94,7 @@ create or replace function public.set_cms_article_audit_fields()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $article_audit$
 begin
   if tg_op = 'INSERT' then
     new.created_by := (select auth.uid());
@@ -103,7 +103,7 @@ begin
   new.updated_at := now();
   return new;
 end;
-$;
+$article_audit$;
 
 drop trigger if exists trg_set_cms_article_audit_fields on public.cms_articles;
 create trigger trg_set_cms_article_audit_fields
