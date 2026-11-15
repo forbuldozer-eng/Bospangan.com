@@ -21,18 +21,18 @@ function escapeHtml(value) {
 }
 
 function markdownPreview(markdown) {
-  const lines = String(markdown || "").split(/\\r?\\n/);
+  const lines = String(markdown || "").split(/\r?\n/);
   const html = [];
   let listType = null;
   const closeList = () => { if (listType) { html.push(listType === "ol" ? "</ol>" : "</ul>"); listType = null; } };
   const inline = value => {
     let out = escapeHtml(value);
-    out = out.replace(/\\*\\*(.+?)\\*\\*/g, "<strong>$1</strong>")
-      .replace(/\\*(.+?)\\*/g, "<em>$1</em>")
+    out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
       .replace(/`([^`]+)`/g, "<code>$1</code>");
-    out = out.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, (match, label, href) => {
+    out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, href) => {
       const safeHref = href.trim();
-      return /^(https?:\\/\\/|\\/)/i.test(safeHref)
+      return /^(https?:\/\/|\/)/i.test(safeHref)
         ? '<a href="' + escapeHtml(safeHref) + '" target="_blank" rel="noopener">' + label + "</a>"
         : label;
     });
@@ -41,12 +41,12 @@ function markdownPreview(markdown) {
   for (const raw of lines) {
     const line = raw.trim();
     if (!line) { closeList(); continue; }
-    const heading = line.match(/^(#{1,3})\\s+(.+)$/);
-    const bullet = line.match(/^[-*]\\s+(.+)$/);
-    const numbered = line.match(/^\\d+\\.\\s+(.+)$/);
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    const numbered = line.match(/^\d+\.\s+(.+)$/);
     if (heading) { closeList(); const level=heading[1].length; html.push("<h"+level+">"+inline(heading[2])+"</h"+level+">"); }
     else if (/^---+$/.test(line)) { closeList(); html.push("<hr>"); }
-    else if (line.startsWith(">")) { closeList(); html.push("<blockquote>"+inline(line.replace(/^>\\s?/, ""))+"</blockquote>"); }
+    else if (line.startsWith(">")) { closeList(); html.push("<blockquote>"+inline(line.replace(/^>\s?/, ""))+"</blockquote>"); }
     else if (bullet || numbered) {
       const type = bullet ? "ul" : "ol";
       if (listType !== type) { closeList(); html.push("<"+type+">"); listType=type; }
@@ -64,8 +64,8 @@ function insertMarkdown(command) {
     h2:"## Judul Bagian", h3:"### Subjudul", bold:"**teks tebal**",
     italic:"*teks miring*", ul:"- Item daftar", ol:"1. Item daftar",
     quote:"> Kutipan", link:"[teks tautan](https://contoh.com)",
-    image:"![deskripsi gambar](https://alamat-gambar)", table:"| Kolom 1 | Kolom 2 |\\n| --- | --- |\\n| Isi 1 | Isi 2 |",
-    hr:"\\n---\\n"
+    image:"![deskripsi gambar](https://alamat-gambar)", table:"| Kolom 1 | Kolom 2 |\n| --- | --- |\n| Isi 1 | Isi 2 |",
+    hr:"\n---\n"
   };
   const value=templates[command] || "";
   const start=field.selectionStart, end=field.selectionEnd;
@@ -83,7 +83,7 @@ function syncArticleMeta() {
   const seoTitle=f.seo_title.value.trim() || title || "Judul artikel akan tampil di sini";
   const seoDescription=f.seo_description.value.trim() || excerpt || "Deskripsi artikel akan tampil di sini.";
   const content=f.content_markdown.value;
-  const words=content.trim() ? content.trim().split(/\\s+/).length : 0;
+  const words=content.trim() ? content.trim().split(/\s+/).length : 0;
   $("articleWordCount").textContent=words+" kata · "+content.length+" karakter";
   $("seoPreviewTitle").textContent=seoTitle;
   $("seoPreviewDescription").textContent=seoDescription;
