@@ -341,8 +341,8 @@ async function insertArticleGallery() {
     const field = $("articleContent");
     const start = field.selectionStart;
     const end = field.selectionEnd;
-    const prefix = start > 0 && !field.value.slice(0, start).endsWith("\\n\\n") ? "\\n\\n" : "";
-    const suffix = end < field.value.length && !field.value.slice(end).startsWith("\\n\\n") ? "\\n\\n" : "";
+    const prefix = start > 0 && !field.value.slice(0, start).endsWith("\n\n") ? "\n\n" : "";
+    const suffix = end < field.value.length && !field.value.slice(end).startsWith("\n\n") ? "\n\n" : "";
     field.setRangeText(prefix + images.join(" ") + suffix, start, end, "end");
     field.focus();
     field.dispatchEvent(new Event("input", { bubbles: true }));
