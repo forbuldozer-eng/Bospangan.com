@@ -1,19 +1,11 @@
 -- Import the five existing Bos Pangan static articles into the CMS.
--- Run once in the Bos Pangan Supabase SQL Editor after the CMS migration.
--- Existing public URLs/slugs are preserved; this does not delete static pages.
+-- Run once in the Bos Pangan Supabase SQL Editor after the CMS blog PR is merged and deployed.
+-- Existing public URLs/slugs are preserved; this does not delete static pages or overwrite existing CMS rows.
 begin;
 insert into public.cms_articles
 (title, slug, excerpt, content_markdown, featured_image_url, seo_title, seo_description, status, published_at)
 values
 ('Cara Memulai Usaha Warung Sembako dari Nol', 'cara-memulai-usaha-warung-sembako', 'Pelajari cara memulai usaha warung sembako dari nol, mulai dari riset kebutuhan, modal, produk, pemasok, hingga pencatatan transaksi.', $article0$
-Panduan usaha warung · Bekasi
-
-Cara Memulai Usaha Warung Sembako dari Nol
-
-Pelajari cara memulai usaha warung sembako dari nol, mulai dari riset kebutuhan, modal, produk, pemasok, hingga pencatatan transaksi.
-
-Diperbarui: 4 November 2026 · Bos Pangan
-
 Usaha warung sembako dapat dimulai secara bertahap dengan perencanaan yang jelas. Kunci awalnya adalah memahami kebutuhan warga sekitar, memilih barang yang perputarannya baik, dan menjaga pencatatan sederhana sejak hari pertama.
 
 ## 1. Kenali kebutuhan lingkungan
@@ -44,21 +36,13 @@ Susun produk berdasarkan kategori, tempatkan barang yang sering dibeli pada area
 
 Catat penjualan, pembelian stok, pengeluaran, dan uang yang masuk setiap hari. Periksa barang yang cepat terjual dan barang yang perlu pengadaan ulang. Panduan [cara mengatur stok warung](/blog/cara-mengatur-stok-warung/) dapat membantu membuat rutinitas persediaan lebih teratur.
 
-> ****Langkah sederhana untuk memulai:**
+**Langkah sederhana untuk memulai:**
 
 Mulai dari kebutuhan lingkungan, belanja secara terukur, catat setiap transaksi, lalu kembangkan pilihan produk berdasarkan masukan pelanggan.
 
-[Kunjungi Bos Pangan](/)**
+[Kunjungi Bos Pangan](/)
 $article0$, null, 'Cara Memulai Usaha Warung Sembako dari Nol | Bos Pangan', 'Pelajari cara memulai usaha warung sembako dari nol, mulai dari riset kebutuhan, modal, produk, pemasok, hingga pencatatan transaksi.', 'published', '2026-11-04T00:00:00+07:00'::timestamptz),
 ('Daftar Barang Warung Sembako yang Perlu Disiapkan', 'daftar-barang-warung-sembako', 'Panduan daftar barang warung sembako untuk stok awal, mulai dari bahan pokok, kebutuhan dapur, makanan, minuman, hingga perlengkapan rumah.', $article1$
-Panduan usaha warung · Tangerang
-
-Daftar Barang Warung Sembako yang Perlu Disiapkan
-
-Panduan daftar barang warung sembako untuk stok awal, mulai dari bahan pokok, kebutuhan dapur, makanan, minuman, hingga perlengkapan rumah.
-
-Diperbarui: 4 November 2026 · Bos Pangan
-
 Daftar produk yang tepat membantu warung melayani kebutuhan pelanggan sehari-hari sekaligus membuat pengelolaan persediaan lebih terarah. Susunan berikut dapat menjadi titik awal dan perlu disesuaikan dengan kebiasaan belanja warga sekitar.
 
 ## 1. Bahan pokok
@@ -85,6 +69,7 @@ Daftar produk yang tepat membantu warung melayani kebutuhan pelanggan sehari-har
 ## 4. Kebutuhan rumah tangga
 
 - Sabun mandi, sampo, pasta gigi, dan sikat gigi.
+- Deterjen, sabun cuci piring, dan pembersih lantai.
 - Tisu, kantong sampah, korek api, dan perlengkapan rumah sederhana.
 - Popok atau kebutuhan bayi jika memang dicari pelanggan.
 
@@ -94,21 +79,11 @@ Gunakan tiga pertimbangan: seberapa sering produk dibutuhkan, berapa lama masa s
 
 Catat kategori, merek, ukuran, harga beli, jumlah stok, dan tanggal pembelian. Rutinitas ini akan membantu pemilik warung mengenali produk yang perlu ditambah atau dikurangi. Pelajari juga [cara mengatur stok warung](/blog/cara-mengatur-stok-warung/) dan [panduan memulai usaha warung sembako](/blog/cara-memulai-usaha-warung-sembako/).
 
-> ****Catatan:** daftar ini bersifat panduan. Pilih produk berdasarkan permintaan lokal, kemampuan modal, fasilitas penyimpanan, dan ketentuan produk yang berlaku.
+**Catatan:** daftar ini bersifat panduan. Pilih produk berdasarkan permintaan lokal, kemampuan modal, fasilitas penyimpanan, dan ketentuan produk yang berlaku.
 
 [Lihat katalog Bos Pangan](/)
-
-**
 $article1$, null, 'Daftar Barang Warung Sembako yang Perlu Disiapkan | Bos Pangan', 'Panduan daftar barang warung sembako untuk stok awal, mulai dari bahan pokok, kebutuhan dapur, makanan, minuman, hingga perlengkapan rumah.', 'published', '2026-11-04T00:00:00+07:00'::timestamptz),
 ('Cara Mengatur Stok Warung agar Lebih Terencana', 'cara-mengatur-stok-warung', 'Pelajari cara mengatur stok warung dengan pencatatan barang masuk keluar, stok minimum, pemeriksaan rutin, FIFO, dan FEFO.', $article2$
-Panduan usaha warung · Bekasi
-
-Cara Mengatur Stok Warung agar Lebih Terencana
-
-Pelajari cara mengatur stok warung dengan pencatatan barang masuk keluar, stok minimum, pemeriksaan rutin, FIFO, dan FEFO.
-
-Diperbarui: 4 November 2026 · Bos Pangan
-
 Pengelolaan stok yang rapi membantu pemilik warung mengetahui barang yang tersedia, menentukan waktu pemesanan ulang, dan merencanakan modal belanja. Sistemnya tidak harus rumit; buku catatan atau spreadsheet sederhana sudah dapat menjadi awal yang bermanfaat.
 
 ## 1. Buat daftar persediaan
@@ -133,21 +108,13 @@ FIFO (first in, first out) berarti barang yang lebih dahulu masuk diprioritaskan
 
 Pengelolaan stok menjadi lebih mudah ketika dipadukan dengan perencanaan pembelian. Baca juga [daftar barang warung sembako](/blog/daftar-barang-warung-sembako/) dan [panduan memulai usaha warung](/blog/cara-memulai-usaha-warung-sembako/) untuk melengkapi perencanaan usaha.
 
-> ****Template pencatatan sederhana:**
+**Template pencatatan sederhana:**
 
 Tanggal | Nama barang | Stok awal | Barang masuk | Terjual | Stok akhir | Catatan.
 
-[Kunjungi halaman utama](/)**
+[Kunjungi halaman utama](/)
 $article2$, null, 'Cara Mengatur Stok Warung agar Lebih Terencana | Bos Pangan', 'Pelajari cara mengatur stok warung dengan pencatatan barang masuk keluar, stok minimum, pemeriksaan rutin, FIFO, dan FEFO.', 'published', '2026-11-04T00:00:00+07:00'::timestamptz),
 ('Cara Menghitung Keuntungan Warung Sembako dengan Mudah', 'cara-menghitung-keuntungan-warung-sembako', 'Pelajari cara menghitung keuntungan warung sembako dengan mencatat omzet, harga pokok penjualan, biaya operasional, dan laba bersih secara sederhana.', $article3$
-Keuangan warung · 7 menit baca
-
-Cara Menghitung Keuntungan Warung Sembako dengan Mudah
-
-Pelajari cara menghitung keuntungan warung sembako dengan mencatat omzet, harga pokok penjualan, biaya operasional, dan laba bersih secara sederhana.
-
-Bos Pangan · Panduan praktis untuk usaha lokal
-
 Pelajari cara menghitung keuntungan warung sembako dengan mencatat omzet, harga pokok penjualan, biaya operasional, dan laba bersih secara sederhana. Panduan ini membantu pemilik warung membuat keputusan berdasarkan catatan sederhana, kebutuhan pelanggan, dan kemampuan usaha masing-masing.
 
 ## 1. Bedakan omzet dan keuntungan
@@ -186,11 +153,9 @@ Buat tabel berisi tanggal, omzet, pembelian, stok awal, stok akhir, biaya operas
 
 Perhitungan akan lebih akurat jika jumlah stok juga dikelola. Baca panduan [cara mengatur stok warung](/blog/cara-mengatur-stok-warung/) untuk membuat pemeriksaan persediaan rutin. Untuk menyusun pilihan barang, lihat [daftar barang warung sembako](/blog/daftar-barang-warung-sembako/). Jika sedang merintis, mulai dari [panduan memulai usaha warung sembako](/blog/cara-memulai-usaha-warung-sembako/).
 
-> ****Langkah berikutnya:**
+**Langkah berikutnya:**
 
 Terapkan satu atau dua langkah terlebih dahulu, catat hasilnya, lalu sesuaikan dengan kondisi warung. Untuk panduan lain, kunjungi [halaman artikel Bos Pangan](/blog/) atau kembali ke [halaman utama Bos Pangan](/).
-
-**
 
 ## Artikel terkait
 
@@ -199,14 +164,6 @@ Terapkan satu atau dua langkah terlebih dahulu, catat hasilnya, lalu sesuaikan d
 - [Cara Memulai Usaha Warung Sembako dari Nol](/blog/cara-memulai-usaha-warung-sembako/)
 $article3$, 'https://bospangan.com/blog/images/cara-menghitung-keuntungan-warung-sembako.svg', 'Cara Menghitung Keuntungan Warung Sembako dengan Mudah | Bos Pangan', 'Pelajari cara menghitung keuntungan warung sembako dengan mencatat omzet, harga pokok penjualan, biaya operasional, dan laba bersih secara sederhana.', 'published', '2026-11-04T00:00:00+07:00'::timestamptz),
 ('Tips Meningkatkan Penjualan Warung Sembako secara Bertahap', 'tips-meningkatkan-penjualan-warung-sembako', 'Pelajari tips meningkatkan penjualan warung sembako melalui pelayanan, penataan produk, ketersediaan stok, promosi lokal, dan evaluasi penjualan.', $article4$
-Pemasaran warung · 7 menit baca
-
-Tips Meningkatkan Penjualan Warung Sembako secara Bertahap
-
-Pelajari tips meningkatkan penjualan warung sembako melalui pelayanan, penataan produk, ketersediaan stok, promosi lokal, dan evaluasi penjualan.
-
-Bos Pangan · Panduan praktis untuk usaha lokal
-
 Pelajari tips meningkatkan penjualan warung sembako melalui pelayanan, penataan produk, ketersediaan stok, promosi lokal, dan evaluasi penjualan. Panduan ini membantu pemilik warung membuat keputusan berdasarkan catatan sederhana, kebutuhan pelanggan, dan kemampuan usaha masing-masing.
 
 ## 1. Kenali kebutuhan pelanggan sekitar
@@ -245,11 +202,9 @@ Catat jumlah transaksi, omzet, kategori produk yang banyak terjual, dan produk y
 
 Jika sedang menyiapkan usaha, baca [cara memulai usaha warung sembako dari nol](/blog/cara-memulai-usaha-warung-sembako/). Menghitung hasil usaha juga penting; gunakan panduan [cara menghitung keuntungan warung sembako](/blog/cara-menghitung-keuntungan-warung-sembako/) untuk memantau laba, bukan hanya omzet.
 
-> ****Langkah berikutnya:**
+**Langkah berikutnya:**
 
 Terapkan satu atau dua langkah terlebih dahulu, catat hasilnya, lalu sesuaikan dengan kondisi warung. Untuk panduan lain, kunjungi [halaman artikel Bos Pangan](/blog/) atau kembali ke [halaman utama Bos Pangan](/).
-
-**
 
 ## Artikel terkait
 
