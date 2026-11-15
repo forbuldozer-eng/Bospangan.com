@@ -11,16 +11,9 @@ const status = message => { $("status").textContent = message; };
 const roleLabels = {
   super_admin: "Super Admin",
   admin: "Admin",
-  product_manager: "Product Manager",
-  warehouse_manager: "Warehouse Manager",
-  order_manager: "Order Manager",
-  customer_service: "Customer Service",
-  marketing_manager: "Marketing Manager",
-  finance_manager: "Finance Manager",
   customer: "Pelanggan",
   none: "Belum diberi akses"
 };
-const cmsRoles = Object.keys(roleLabels).filter(role => !["super_admin", "customer", "none"].includes(role));
 
 let currentUser = null;
 let currentRole = null;
@@ -139,12 +132,7 @@ async function loadAdminAccounts() {
           ["none", "Belum diberi akses"],
           ["customer", "Pelanggan (tanpa akses CMS)"],
           ["admin", "Admin (akses penuh)"],
-          ["product_manager", "Product Manager"],
-          ["warehouse_manager", "Warehouse Manager"],
-          ["order_manager", "Order Manager"],
-          ["customer_service", "Customer Service"],
-          ["marketing_manager", "Marketing Manager"],
-          ["finance_manager", "Finance Manager"]
+           
         ];
         return '<tr><td>' + name + '</td><td>' + email +
           '</td><td><select data-role-user="' + esc(profile.id) + '">' +
@@ -192,7 +180,7 @@ async function init() {
     .eq("id", currentUser.id)
     .single();
 
-  if (error || !profile || !["admin", "super_admin", ...cmsRoles].includes(profile.role)) {
+  if (error || !profile || !["admin", "super_admin"].includes(profile.role)) {
     await supabase.auth.signOut();
     alert("Akun ini belum memiliki akses CMS Bos Pangan.");
     location.href = "/";
