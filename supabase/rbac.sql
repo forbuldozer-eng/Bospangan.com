@@ -144,6 +144,45 @@ $$;
 revoke all on function public.has_permission(text) from public;
 grant execute on function public.has_permission(text) to authenticated;
 
+-- Warehouse stock changes use a dedicated RPC so inventory users cannot
+-- alter product prices, tax, publication state, or other catalog fields.
+create or replace function public.update_product_stock(p_product_id uuid, p_new_stock numeric)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if not public.has_permission('inventory.update') then
+    raise exception 'You do not have permission to update inventory';
+  end if;
+  if p_new_stock is null or p_new_stock < 0 or p_new_stock > 999999999 then
+    raise exception 'Stock value is invalid';
+  end if;
+
+  update public.products
+  set stock = p_new_stock,
+      updated_at = now()
+  where id = p_product_id;
+
+  if not found then
+    raise exception 'Product not found';
+  end if;
+
+  insert into public.admin_audit_log(actor_id, action, entity_type, entity_id, details)
+  values (
+    (select auth.uid()),
+    'stock_updated',
+    'product',
+    p_product_id::text,
+    jsonb_build_object('new_stock', p_new_stock)
+  );
+end;
+$;
+
+revoke all on function public.update_product_stock(uuid, numeric) from public;
+grant execute on function public.update_product_stock(uuid, numeric) to authenticated;
+
 create or replace function public.get_my_permissions()
 returns text[]
 language sql
