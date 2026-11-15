@@ -507,7 +507,7 @@ function openCheckout(type = "regular", initialRequest = "") {
     submit.textContent = "Mengirim...";
     status.textContent = "Mengirim pesanan ke Bos Pangan...";
     try {
-      const response = await fetch(SUPABASE_URL.replace(/\\/+$/, "") + "/functions/v1/create-order", {
+      const response = await fetch(SUPABASE_URL.replace(/\/+$/, "") + "/functions/v1/create-order", {
         method: "POST",
         headers: {
           apikey: SUPABASE_ANON_KEY,
