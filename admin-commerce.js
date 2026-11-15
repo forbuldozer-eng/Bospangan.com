@@ -303,7 +303,7 @@ function wireForms(){
       const {error}=await db.from("store_settings").upsert(
         rows.map(([key,value])=>({
           key,
-          value:JSON.stringify(value),
+          value,
           updated_by:user.id,
           updated_at:new Date().toISOString()
         })),
