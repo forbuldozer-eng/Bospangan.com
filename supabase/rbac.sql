@@ -117,6 +117,49 @@ create index if not exists cms_articles_status_published_idx
 create index if not exists cms_articles_updated_at_idx
   on public.cms_articles(updated_at desc);
 
+-- Dedicated public-read storage for CMS article featured images.
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values (
+  'cms-article-images',
+  'cms-article-images',
+  true,
+  8388608,
+  array['image/jpeg','image/png','image/webp']
+)
+on conflict (id) do update
+set public = true,
+    file_size_limit = 8388608,
+    allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+
+drop policy if exists "public reads Bos Pangan article images" on storage.objects;
+create policy "public reads Bos Pangan article images"
+on storage.objects
+for select
+to anon, authenticated
+using (bucket_id = 'cms-article-images');
+
+drop policy if exists "admins upload Bos Pangan article images" on storage.objects;
+create policy "admins upload Bos Pangan article images"
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'cms-article-images' and public.is_admin());
+
+drop policy if exists "admins update Bos Pangan article images" on storage.objects;
+create policy "admins update Bos Pangan article images"
+on storage.objects
+for update
+to authenticated
+using (bucket_id = 'cms-article-images' and public.is_admin())
+with check (bucket_id = 'cms-article-images' and public.is_admin());
+
+drop policy if exists "admins delete Bos Pangan article images" on storage.objects;
+create policy "admins delete Bos Pangan article images"
+on storage.objects
+for delete
+to authenticated
+using (bucket_id = 'cms-article-images' and public.is_admin());
+
 alter table public.cms_articles enable row level security;
 
 drop policy if exists "public reads published CMS articles" on public.cms_articles;
