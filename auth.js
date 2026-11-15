@@ -17,7 +17,10 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
 function show(title, html) {
   $("heading").textContent = title;
   $("panel").innerHTML = html;
-  if (!$("box").open) $("box").showModal();
+  if (!$("box").open) {
+    if (location.pathname === "/cms" || location.pathname === "/cms/") $("box").setAttribute("open", "");
+    else $("box").showModal();
+  }
 }
 
 function message(text, ok = false) {
@@ -193,7 +196,7 @@ if (ready) {
   });
 }
 
-const isCmsPage = location.pathname.replace(/\\/+$/, "") === "/cms";
+const isCmsPage = location.pathname === "/cms" || location.pathname === "/cms/";
 if (isCmsPage) {
   $("closeBox")?.addEventListener("click", () => { location.href = "/"; });
   $("box")?.addEventListener("cancel", event => {
