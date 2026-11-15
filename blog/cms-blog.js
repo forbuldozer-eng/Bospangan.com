@@ -118,8 +118,12 @@ async function init() {
     const articles = await getPublishedArticles();
     if (listing && articles.length) renderListing(articles);
     if (detail) {
-      const pathSlug = window.location.pathname.replace(/^\\/blog\\//, "").replace(/\\/$/, "");
-      const slug = detail.dataset.slug || new URLSearchParams(window.location.search).get("slug") || pathSlug;
+      // Resolve the CMS slug from the rewrite query first, then from the URL path.
+      // Avoid regex literals here so the browser can parse this module reliably.
+      const pathParts = window.location.pathname.split("/").filter(Boolean);
+      const pathSlug = pathParts[0] === "blog" ? (pathParts[1] || "") : "";
+      const querySlug = new URLSearchParams(window.location.search).get("slug") || "";
+      const slug = detail.dataset.slug || querySlug || pathSlug;
       const article = articles.find(item => item.slug === slug);
       if (article) {
         renderDetail(article, articles);
@@ -128,7 +132,13 @@ async function init() {
       }
     }
   } catch (error) {
-    console.error("Bos Pangan CMS blog failed to load; static fallback retained.", error);
+    console.error("Bos Pangan CMS blog failed to load.", error);
+    if (detail) {
+      detail.innerHTML = '<div class="article-not-found"><h1>Artikel belum dapat dimuat</h1><p>Terjadi kendala saat mengambil artikel dari server. Silakan muat ulang halaman beberapa saat lagi.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
+    }
+    if (listing) {
+      listing.innerHTML = '<h1>Artikel &amp; Panduan Usaha</h1><p>Artikel belum dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</p>';
+    }
   }
 }
 
