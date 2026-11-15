@@ -69,7 +69,8 @@ set description = excluded.description;
 insert into public.cms_role_permissions(role_code, permission_key)
 select 'product_manager', permission_key
 from public.cms_permissions
-where permission_key in ('products.view','products.create','products.update','products.delete','inventory.view');
+where permission_key in ('products.view','products.create','products.update','products.delete','inventory.view')
+on conflict do nothing;
 
 -- Warehouse Manager
 insert into public.cms_role_permissions(role_code, permission_key) values
@@ -272,6 +273,7 @@ grant execute on function public.admin_set_user_role(uuid, text) to authenticate
 
 -- Profiles are visible to their owner and users with explicit user-list permission.
 drop policy if exists "admins read profiles" on public.profiles;
+drop policy if exists "users read own profile or authorized directory" on public.profiles;
 create policy "users read own profile or authorized directory"
 on public.profiles for select to authenticated
 using (id = (select auth.uid()) or public.has_permission('users.view'));
@@ -279,22 +281,49 @@ using (id = (select auth.uid()) or public.has_permission('users.view'));
 -- Product permissions. Public visitors continue to see published products only.
 drop policy if exists "public reads published products" on public.products;
 drop policy if exists "admins manage products" on public.products;
+drop policy if exists "public and authorized users read products" on public.products;
 create policy "public and authorized users read products"
 on public.products for select to anon, authenticated
 using (is_published or public.has_permission('products.view'));
+drop policy if exists "authorized users create products" on public.products;
 create policy "authorized users create products"
 on public.products for insert to authenticated
 with check (public.has_permission('products.create'));
+drop policy if exists "authorized users update products" on public.products;
 create policy "authorized users update products"
 on public.products for update to authenticated
 using (public.has_permission('products.update'))
 with check (public.has_permission('products.update'));
+drop policy if exists "authorized users delete products" on public.products;
 create policy "authorized users delete products"
 on public.products for delete to authenticated
 using (public.has_permission('products.delete'));
 
+-- Product Manager may edit catalog fields but cannot alter stock.
+-- Stock changes are reserved for Warehouse Manager through update_product_stock().
+create or replace function public.enforce_product_stock_permissions()
+returns trigger
+language plpgsql
+set search_path = ''
+as $
+begin
+  if not public.is_admin()
+     and new.stock is distinct from old.stock
+     and not public.has_permission('inventory.update') then
+    raise exception 'Only users with inventory.update may change product stock';
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists trg_enforce_product_stock_permissions on public.products;
+create trigger trg_enforce_product_stock_permissions
+before update on public.products
+for each row execute function public.enforce_product_stock_permissions();
+
 -- Order permissions. Public checkout remains exclusively through the server function.
 drop policy if exists "admins manage orders" on public.orders;
+drop policy if exists "authorized users read orders" on public.orders;
 create policy "authorized users read orders"
 on public.orders for select to authenticated
 using (
@@ -302,6 +331,7 @@ using (
   or public.has_permission('finance.view')
   or public.has_permission('customers.view')
 );
+drop policy if exists "authorized users update orders" on public.orders;
 create policy "authorized users update orders"
 on public.orders for update to authenticated
 using (public.has_permission('orders.update'))
@@ -351,6 +381,7 @@ for each row execute function public.enforce_order_update_permissions();
 
 drop policy if exists "admins manage order items" on public.order_items;
 drop policy if exists "authorized users manage order items" on public.order_items;
+drop policy if exists "authorized users read order items" on public.order_items;
 create policy "authorized users read order items"
 on public.order_items for select to authenticated
 using (
@@ -361,39 +392,48 @@ using (
 
 -- Campaigns are limited to the marketing permission.
 drop policy if exists "admins manage product campaigns" on public.product_campaigns;
+drop policy if exists "authorized users read campaigns" on public.product_campaigns;
 create policy "authorized users read campaigns"
 on public.product_campaigns for select to authenticated
 using (public.has_permission('marketing.view'));
+drop policy if exists "authorized users create campaigns" on public.product_campaigns;
 create policy "authorized users create campaigns"
 on public.product_campaigns for insert to authenticated
 with check (public.has_permission('marketing.manage'));
+drop policy if exists "authorized users update campaigns" on public.product_campaigns;
 create policy "authorized users update campaigns"
 on public.product_campaigns for update to authenticated
 using (public.has_permission('marketing.manage'))
 with check (public.has_permission('marketing.manage'));
+drop policy if exists "authorized users delete campaigns" on public.product_campaigns;
 create policy "authorized users delete campaigns"
 on public.product_campaigns for delete to authenticated
 using (public.has_permission('marketing.manage'));
 
 -- Marketing contacts and notification history.
 drop policy if exists "admins manage notification preferences" on public.notification_preferences;
+drop policy if exists "authorized users read notification preferences" on public.notification_preferences;
 create policy "authorized users read notification preferences"
 on public.notification_preferences for select to authenticated
 using (public.has_permission('marketing.view') or public.has_permission('customers.view'));
+drop policy if exists "marketing users manage notification preferences" on public.notification_preferences;
 create policy "marketing users manage notification preferences"
 on public.notification_preferences for all to authenticated
 using (public.has_permission('marketing.manage'))
 with check (public.has_permission('marketing.manage'));
 
 drop policy if exists "admins read notification queue" on public.notification_queue;
+drop policy if exists "authorized users read notification queue" on public.notification_queue;
 create policy "authorized users read notification queue"
 on public.notification_queue for select to authenticated
 using (public.has_permission('notifications.view'));
 
 drop policy if exists "admins manage product subscriptions" on public.product_notification_subscriptions;
+drop policy if exists "authorized users read product subscriptions" on public.product_notification_subscriptions;
 create policy "authorized users read product subscriptions"
 on public.product_notification_subscriptions for select to authenticated
 using (public.has_permission('marketing.view') or public.has_permission('customers.view'));
+drop policy if exists "marketing users manage product subscriptions" on public.product_notification_subscriptions;
 create policy "marketing users manage product subscriptions"
 on public.product_notification_subscriptions for all to authenticated
 using (public.has_permission('marketing.manage'))
@@ -401,6 +441,7 @@ with check (public.has_permission('marketing.manage'));
 
 -- Audit log remains read-only from the browser.
 drop policy if exists "admins read audit log" on public.admin_audit_log;
+drop policy if exists "authorized users read audit log" on public.admin_audit_log;
 create policy "authorized users read audit log"
 on public.admin_audit_log for select to authenticated
 using (public.has_permission('audit.view'));
@@ -409,13 +450,16 @@ using (public.has_permission('audit.view'));
 drop policy if exists "admins upload Bos Pangan product images" on storage.objects;
 drop policy if exists "admins update Bos Pangan product images" on storage.objects;
 drop policy if exists "admins delete Bos Pangan product images" on storage.objects;
+drop policy if exists "authorized users upload Bos Pangan product images" on storage.objects;
 create policy "authorized users upload Bos Pangan product images"
 on storage.objects for insert to authenticated
 with check (bucket_id = 'product-images' and public.has_permission('products.create'));
+drop policy if exists "authorized users update Bos Pangan product images" on storage.objects;
 create policy "authorized users update Bos Pangan product images"
 on storage.objects for update to authenticated
 using (bucket_id = 'product-images' and public.has_permission('products.update'))
 with check (bucket_id = 'product-images' and public.has_permission('products.update'));
+drop policy if exists "authorized users delete Bos Pangan product images" on storage.objects;
 create policy "authorized users delete Bos Pangan product images"
 on storage.objects for delete to authenticated
 using (bucket_id = 'product-images' and public.has_permission('products.delete'));
