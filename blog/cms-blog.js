@@ -44,7 +44,7 @@ function setMeta(article) {
 async function getPublishedArticles() {
   const { data, error } = await supabase
     .from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,seo_title,seo_description,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
@@ -60,7 +60,7 @@ function renderListing(articles) {
     (articles.length
       ? articles.map(article => '<article class="item">' +
           '<p class="meta">Panduan usaha · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
-          (article.featured_image_url ? '<a href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
+          (article.featured_image_url ? '<a href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
           '<h2><a href="/blog/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
@@ -77,7 +77,7 @@ function renderDetail(article, allArticles) {
     '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
     '<h1>' + esc(article.title) + '</h1>' +
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
-    (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.title) + '" loading="eager">' : fallbackHero) +
+    (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" loading="eager">' : fallbackHero) +
     '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
     '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +

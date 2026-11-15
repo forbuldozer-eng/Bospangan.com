@@ -244,6 +244,11 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
                 <div class="featured-drop">
                   <label class="article-label" for="articleFeaturedImage">Pilih gambar utama (JPG, PNG, WebP · maks. 8 MB)</label>
                   <input id="articleFeaturedImage" name="featured_image" type="file" accept="image/jpeg,image/png,image/webp">
+                  <div class="article-field" style="margin-top:12px">
+                    <label class="article-label" for="articleFeaturedImageAlt">Alt Text Gambar</label>
+                    <input id="articleFeaturedImageAlt" name="featured_image_alt" type="text" maxlength="250" placeholder="Contoh: Tim Bos Pangan menata bahan pangan segar di area distribusi" aria-describedby="articleFeaturedImageAltHelp">
+                    <small id="articleFeaturedImageAltHelp" class="article-side-note">Jelaskan isi dan konteks gambar secara singkat. Hindari menumpuk kata kunci.</small>
+                  </div>
                   <div id="articleImagePreview">Belum ada gambar utama.</div>
                 </div>
               </section>
