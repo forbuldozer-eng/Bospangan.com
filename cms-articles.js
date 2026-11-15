@@ -20,6 +20,85 @@ function escapeHtml(value) {
   }[c]));
 }
 
+
+function markdownToEditorHtml(markdown) { return markdownPreview(markdown); }
+
+function editorNodeToMarkdown(node) {
+  if (node.nodeType === Node.TEXT_NODE) return node.nodeValue.replace(/\u00a0/g, " ");
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const tag=node.tagName.toLowerCase();
+  const children=Array.from(node.childNodes).map(editorNodeToMarkdown).join("");
+  if(tag==="br") return "\n";
+  if(tag==="strong"||tag==="b") return "**"+children+"**";
+  if(tag==="em"||tag==="i") return "*"+children+"*";
+  if(tag==="a"){const href=node.getAttribute("href")||"";return /^(https?:\/\/|\/)/i.test(href)?"["+children+"]("+href+")":children;}
+  if(tag==="img"){const src=node.getAttribute("src")||"";const alt=node.getAttribute("alt")||"";return /^(https?:\/\/|\/)/i.test(src)?"!["+alt.replace(/[\[\]]/g," ")+"]("+src+")":"";}
+  if(tag==="h2") return "\n\n## "+children+"\n\n";
+  if(tag==="h3") return "\n\n### "+children+"\n\n";
+  if(tag==="p"||tag==="div") return "\n\n"+children+"\n\n";
+  if(tag==="ul"||tag==="ol"){const items=Array.from(node.children).filter(el=>el.tagName.toLowerCase()==="li");return "\n\n"+items.map((li,i)=>(tag==="ul"?"- ":(i+1)+". ")+Array.from(li.childNodes).map(editorNodeToMarkdown).join("")).join("\n")+"\n\n";}
+  if(tag==="li") return children;
+  if(tag==="blockquote") return "\n\n> "+children+"\n\n";
+  if(tag==="hr") return "\n\n---\n\n";
+  if(tag==="table") return "\n\n"+Array.from(node.querySelectorAll("tr")).map(row=>"| "+Array.from(row.children).map(cell=>cell.textContent.trim()).join(" | ")+" |").join("\n")+"\n\n";
+  return children;
+}
+
+function syncVisualEditorToMarkdown() {
+  const visual=$("articleVisualEditor"), field=$("articleContent");
+  if(!visual||!field) return;
+  field.value=Array.from(visual.childNodes).map(editorNodeToMarkdown).join("").replace(/\n{3,}/g,"\n\n").trim();
+  field.dispatchEvent(new Event("input",{bubbles:true}));
+}
+function renderVisualEditorFromMarkdown() {
+  const visual=$("articleVisualEditor"), field=$("articleContent");
+  if(visual&&field) visual.innerHTML=markdownToEditorHtml(field.value);
+}
+function saveVisualSelection() {
+  const visual=$("articleVisualEditor"), selection=window.getSelection();
+  if(!visual||!selection||!selection.rangeCount) return;
+  const range=selection.getRangeAt(0);
+  if(visual.contains(range.commonAncestorContainer)) visual._savedRange=range.cloneRange();
+}
+function restoreVisualSelection() {
+  const visual=$("articleVisualEditor");
+  if(!visual) return;
+  visual.focus();
+  const selection=window.getSelection();
+  if(visual._savedRange&&selection){selection.removeAllRanges();selection.addRange(visual._savedRange);}
+}
+function insertVisualHtml(html) {
+  const visual=$("articleVisualEditor");if(!visual)return;
+  restoreVisualSelection();document.execCommand("insertHTML",false,html);
+  syncVisualEditorToMarkdown();saveVisualSelection();
+}
+function applyVisualCommand(command) {
+  const visual=$("articleVisualEditor");if(!visual)return;
+  restoreVisualSelection();
+  const commands={bold:"bold",italic:"italic",ul:"insertUnorderedList",ol:"insertOrderedList"};
+  if(command==="h2"||command==="h3") document.execCommand("formatBlock",false,command);
+  else if(commands[command]) document.execCommand(commands[command],false,null);
+  else if(command==="quote") document.execCommand("formatBlock",false,"blockquote");
+  else if(command==="hr") document.execCommand("insertHorizontalRule",false,null);
+  else if(command==="link"){
+    const selected=window.getSelection()?.toString()||"";
+    if(!selected){window.alert("Pilih dahulu kata atau kalimat yang akan dijadikan hyperlink.");return;}
+    const href=window.prompt("Masukkan URL internal (/blog/...) atau eksternal (https://...):");
+    if(!href)return;
+    if(!/^(https?:\/\/|\/)/i.test(href.trim())||/^\/\//.test(href.trim())){window.alert("URL tidak valid.");return;}
+    document.execCommand("createLink",false,href.trim());
+    const sel=window.getSelection();if(sel?.anchorNode){const a=sel.anchorNode.parentElement?.closest("a");if(a){a.style.color="#1769d2";a.style.textDecoration="underline";a.target="_blank";a.rel="noopener noreferrer";}}
+  } else if(command==="image"){
+    const alt=window.prompt("Masukkan alt text gambar:");if(alt===null)return;
+    const src=window.prompt("Masukkan URL gambar:");if(!src)return;
+    if(!/^(https?:\/\/|\/)/i.test(src.trim())||/^\/\//.test(src.trim())){window.alert("URL gambar tidak valid.");return;}
+    insertVisualHtml('<img src="'+escapeHtml(src.trim())+'" alt="'+escapeHtml(alt)+'" style="max-width:100%;height:auto;border-radius:8px">');return;
+  } else if(command==="table"){
+    insertVisualHtml("<table><tbody><tr><th>Kolom 1</th><th>Kolom 2</th></tr><tr><td>Isi 1</td><td>Isi 2</td></tr></tbody></table>");return;
+  }
+  syncVisualEditorToMarkdown();saveVisualSelection();
+}
+
 function markdownPreview(markdown) {
   const lines = String(markdown || "").split(/\r?\n/);
   const html = [];
@@ -113,6 +192,7 @@ function restoreEditorHistory(index) {
   field.focus();
   field.setSelectionRange(Math.min(state.start, field.value.length), Math.min(state.end, field.value.length));
   field.dispatchEvent(new Event("input", { bubbles: true }));
+  renderVisualEditorFromMarkdown();
   editorHistoryRestoring = false;
   updateEditorHistoryButtons();
 }
@@ -163,6 +243,7 @@ function insertHyperlink() {
 }
 
 function insertMarkdown(command) {
+  if ($("articleVisualEditor")) { applyVisualCommand(command); return; }
   const field = $("articleContent");
   if (!field) return;
   if (command === "link") return insertHyperlink();
@@ -312,6 +393,7 @@ function resetEditor() {
   $("articleForm").reset();
   $("articleForm").elements.id.value = "";
   $("articleForm").elements.slug.dataset.manual = "false";
+  if ($("articleVisualEditor")) $("articleVisualEditor").innerHTML = "";
   resetEditorHistory();
   $("articleImagePreview").textContent = "Belum ada gambar utama.";
   $("articleForm").querySelector('button[type="submit"]').textContent = "Simpan Artikel";
@@ -471,6 +553,7 @@ function editArticle(article) {
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
   f.content_markdown.value = article.content_markdown || "";
+  renderVisualEditorFromMarkdown();
   resetEditorHistory();
   f.seo_title.value = article.seo_title || "";
   f.focus_keyphrase.value = article.focus_keyphrase || "";
@@ -635,6 +718,7 @@ async function initialize() {
   document.querySelectorAll("[data-md]").forEach(button => {
     button.addEventListener("click", () => insertMarkdown(button.dataset.md));
   });
+  document.querySelector("[data-gallery-trigger]")?.addEventListener("mousedown", saveVisualSelection);
   document.querySelector("[data-gallery-trigger]")?.addEventListener("click", () => $("articleGalleryFiles")?.click());
   $("articleGalleryFiles").addEventListener("change", event => {
     queueArticleGalleryFiles(event.target.files);
@@ -687,13 +771,24 @@ async function initialize() {
     style.textContent=".editor-preview .article-preview-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.editor-preview .article-preview-image{max-width:100%;height:auto;max-height:360px;object-fit:contain;border-radius:10px;vertical-align:middle}.editor-preview .article-preview-gallery img{width:100%;height:240px;object-fit:cover;border-radius:10px}.editor-preview .article-preview-gallery img:only-child{grid-column:1/-1}@media(max-width:640px){.editor-preview .article-preview-gallery{grid-template-columns:1fr}.editor-preview .article-preview-gallery img{height:auto;max-height:360px}}";
     document.head.append(style);
   }
+  const visualEditor=$("articleVisualEditor");
+  if(visualEditor){
+    visualEditor.addEventListener("input",syncVisualEditorToMarkdown);
+    visualEditor.addEventListener("keyup",saveVisualSelection);
+    visualEditor.addEventListener("mouseup",saveVisualSelection);
+    visualEditor.addEventListener("keydown",event=>{const mod=event.ctrlKey||event.metaKey;if(mod&&["z","y"].includes(event.key.toLowerCase())){event.preventDefault();event.key.toLowerCase()==="y"||event.shiftKey?redoArticleEdit():undoArticleEdit();}});
+    toolbar?.addEventListener("mousedown",event=>{if(event.target.closest("button")){saveVisualSelection();event.preventDefault();}});
+  }
   $("articleVisualTab").addEventListener("click", () => {
-    contentField.classList.remove("hidden");
+    contentField.classList.add("hidden");
+    visualEditor?.classList.remove("hidden");
     preview.classList.add("hidden");
   });
   $("articlePreviewTab").addEventListener("click", () => {
+    syncVisualEditorToMarkdown();
     preview.innerHTML=markdownPreview(contentField.value);
     contentField.classList.add("hidden");
+    visualEditor?.classList.add("hidden");
     preview.classList.remove("hidden");
   });
   ["title","excerpt","content_markdown","seo_title","seo_description","focus_keyphrase","slug"].forEach(name => {
