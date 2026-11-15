@@ -532,7 +532,7 @@ async function initialize() {
   document.querySelectorAll("[data-md]").forEach(button => {
     button.addEventListener("click", () => insertMarkdown(button.dataset.md));
   });
-  $("[data-gallery-trigger]").addEventListener("click", () => $("articleGalleryFiles").click());
+  document.querySelector("[data-gallery-trigger]")?.addEventListener("click", () => $("articleGalleryFiles")?.click());
   $("articleGalleryFiles").addEventListener("change", event => {
     queueArticleGalleryFiles(event.target.files);
     event.target.value = "";
