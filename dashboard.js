@@ -193,18 +193,9 @@ async function init() {
   }
 
   currentRole = profile.role;
-  const permissionResult = await supabase.rpc("get_my_permissions");
-  if (permissionResult.error) {
-    if (["admin", "super_admin"].includes(profile.role)) {
-      // Keep existing privileged accounts operational until the RBAC migration is applied.
-      currentPermissions = [];
-    } else {
-      status("Hak akses RBAC belum aktif. Hubungi Super Admin.");
-      throw permissionResult.error;
-    }
-  } else {
-    currentPermissions = permissionResult.data || [];
-  }
+  // Current release uses only Super Admin, Admin, and Customer roles.
+  // Article access is enforced by Supabase RLS on cms_articles.
+  currentPermissions = [];
   const displayName = profile.display_name || currentUser.email || "Admin";
   const roleName = roleLabels[currentRole] || "Admin";
   $("welcome").textContent = "Selamat datang, " + displayName + ". Pilih menu di samping untuk mulai mengelola website.";
