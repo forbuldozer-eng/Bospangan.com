@@ -74,6 +74,44 @@ function insertMarkdown(command) {
   field.dispatchEvent(new Event("input",{bubbles:true}));
 }
 
+function plainArticleText(markdown) {
+  return String(markdown || "")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, " $1 ")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, " $1 ")
+    .replace(/^\s{0,3}#{1,6}\s+/gm, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[>*_\x60|~-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countMatches(text, phrase) {
+  const haystack=String(text || "").toLocaleLowerCase("id-ID");
+  const needle=String(phrase || "").toLocaleLowerCase("id-ID").trim();
+  if (!needle) return 0;
+  let count=0, index=0;
+  while ((index=haystack.indexOf(needle,index)) !== -1) {
+    count++;
+    index += needle.length;
+  }
+  return count;
+}
+
+function seoCheck(label, state, detail) {
+  return '<li class="'+state+'"><span><strong>'+escapeHtml(label)+'</strong><br>'+escapeHtml(detail)+'</span></li>';
+}
+
+function setSeoScore(prefix, score, summary) {
+  const wrap=$(prefix==="seo" ? "seoScoreValue" : "readabilityScoreValue");
+  const bar=$(prefix==="seo" ? "seoScoreBar" : "readabilityScoreBar");
+  const box=bar?.closest(".seo-score-wrap");
+  if (wrap) wrap.textContent=score+"/100";
+  if (bar) bar.style.width=score+"%";
+  if (box) box.dataset.level=score>=75?"good":score>=50?"warning":"bad";
+  const note=$(prefix==="seo" ? "seoScoreSummary" : "readabilitySummary");
+  if (note) note.textContent=summary;
+}
+
 function syncArticleMeta() {
   const form=$("articleForm");
   if (!form) return;
@@ -83,12 +121,59 @@ function syncArticleMeta() {
   const seoTitle=f.seo_title.value.trim() || title || "Judul artikel akan tampil di sini";
   const seoDescription=f.seo_description.value.trim() || excerpt || "Deskripsi artikel akan tampil di sini.";
   const content=f.content_markdown.value;
+  const keyphrase=(f.focus_keyphrase?.value || "").trim();
   const words=content.trim() ? content.trim().split(/\s+/).length : 0;
+  const text=plainArticleText(content);
+  const lower=text.toLocaleLowerCase("id-ID");
+  const phraseCount=countMatches(text,keyphrase);
+  const density=words ? phraseCount/words*100 : 0;
+  const headings=[...content.matchAll(/^\s{0,3}(#{1,3})\s+(.+)$/gm)];
+  const firstParagraph=(content.split(/\n\s*\n/).find(x=>x.trim() && !/^\s{0,3}#/.test(x)) || "");
+  const titleLength=seoTitle.length, descLength=f.seo_description.value.trim().length;
+  const internalLinks=(content.match(/\]\((?:\/|https?:\/\/bospangan\.com)/gi)||[]).length;
+  const externalLinks=(content.match(/\]\(https?:\/\//gi)||[]).length-internalLinks;
+  const imageMatches=[...content.matchAll(/!\[([^\]]*)\]\([^)]+\)/g)];
+  const sentences=text.split(/[.!?]+/).map(x=>x.trim()).filter(Boolean);
+  const avgSentence=sentences.length ? text.split(/\s+/).length/sentences.length : 0;
+  const paragraphs=content.split(/\n\s*\n/).map(p=>plainArticleText(p)).filter(Boolean);
+  const longParagraphs=paragraphs.filter(p=>p.split(/\s+/).length>120).length;
+  const transitions=["namun","selain itu","oleh karena itu","karena itu","dengan demikian","misalnya","sebagai contoh","selanjutnya","pertama","berikutnya","akhirnya","meskipun","sementara itu","di sisi lain","sehingga","akibatnya"];
+  const transitionCount=transitions.reduce((sum,w)=>sum+(lower.match(new RegExp("\\b"+w+"\\b","g"))||[]).length,0);
+  const checks=[];
+  let score=0;
+  const add=(label,ok,detail,points=100/13)=>{score+=ok?points:0;checks.push(seoCheck(label,ok?"good":"warn",detail));};
+  add("Frasa kunci utama",!!keyphrase, keyphrase?"Frasa kunci sudah ditentukan.":"Tambahkan frasa kunci utama untuk menganalisis relevansi.");
+  add("Frasa kunci di judul",!!keyphrase && countMatches(title,keyphrase)>0,keyphrase?"Pastikan frasa kunci muncul secara alami di judul.":"Belum ada frasa kunci.");
+  add("Frasa kunci di URL",!!keyphrase && countMatches(f.slug.value.replace(/-/g," "),keyphrase)>0,keyphrase?"Gunakan frasa kunci di slug bila tetap terbaca alami.":"Belum ada frasa kunci.");
+  add("Frasa kunci di pembuka",!!keyphrase && countMatches(firstParagraph,keyphrase)>0,keyphrase?"Sebaiknya frasa utama muncul di paragraf pembuka.":"Belum ada frasa kunci.");
+  add("Frasa kunci dalam isi",!!keyphrase && phraseCount>=2,keyphrase?(phraseCount+" kemunculan terdeteksi; gunakan secara alami, jangan dipaksakan."):"Belum ada frasa kunci.");\n  add("Kepadatan frasa kunci",!!keyphrase && density>=0.5 && density<=2.5,"Kepadatan saat ini "+density.toFixed(2)+"%; hindari pengulangan berlebihan.");
+  add("SEO Title",titleLength>=30 && titleLength<=60,"Panjang saat ini "+titleLength+" karakter; target panduan 30–60 karakter.");
+  add("Meta Description",descLength>=120 && descLength<=160,"Panjang saat ini "+descLength+" karakter; target panduan 120–160 karakter.");
+  add("Panjang artikel",words>=300,"Jumlah saat ini "+words+" kata; artikel informatif umumnya membutuhkan konteks yang cukup.");
+  add("Subheading",headings.length>=2,"Ditemukan "+headings.length+" heading Markdown; gunakan beberapa subheading untuk membagi topik.");
+  add("Tautan internal",internalLinks>=2,"Ditemukan "+internalLinks+" tautan internal; hubungkan artikel dengan halaman relevan Bos Pangan.");
+  add("Gambar dengan alt text",imageMatches.length>0 && imageMatches.every(m=>m[1].trim().length>0),"Ditemukan "+imageMatches.length+" gambar; isi teks alternatif deskriptif pada setiap gambar.");
+  add("Frasa kunci pada SEO title",!!keyphrase && countMatches(seoTitle,keyphrase)>0,keyphrase?"Masukkan frasa utama ke SEO Title bila sesuai.":"Belum ada frasa kunci.");
+  score=Math.round(score);\n  $("seoChecks").innerHTML=checks.join("");
+  setSeoScore("seo",score,score>=80?"Optimasi dasar sudah kuat. Periksa kembali kualitas dan akurasi konten.":score>=55?"Masih ada beberapa rekomendasi SEO yang perlu ditindaklanjuti.":"Lengkapi frasa kunci dan elemen dasar SEO.");
+  const readability=[];
+  let readScore=100;
+  const addRead=(label,ok,detail,penalty)=>{if(!ok)readScore-=penalty;readability.push(seoCheck(label,ok?"good":"warn",detail));};
+  addRead("Panjang kalimat",avgSentence>0 && avgSentence<=20,"Rata-rata "+(avgSentence?avgSentence.toFixed(1):"0")+" kata per kalimat; usahakan sekitar 20 kata atau kurang.",18);
+  addRead("Panjang paragraf",paragraphs.length>0 && longParagraphs===0,longParagraphs?"Ada "+longParagraphs+" paragraf lebih dari 120 kata.":"Panjang paragraf terdeteksi cukup ringkas.",18);
+  addRead("Kata transisi",transitionCount>=Math.max(2,Math.round(sentences.length*0.08)),transitionCount+" penggunaan kata/frasa transisi terdeteksi.",14);
+  addRead("Struktur subheading",headings.length>=2,"Ditemukan "+headings.length+" subheading untuk membantu pemindaian konten.",18);
+  addRead("Kalimat dan paragraf",sentences.length>=4 && paragraphs.length>=3,"Ditemukan "+sentences.length+" kalimat dan "+paragraphs.length+" blok paragraf.",16);
+  readScore=Math.max(0,Math.min(100,readScore));
+  $("readabilityChecks").innerHTML=readability.join("");
+  setSeoScore("readability",readScore,readScore>=80?"Struktur tulisan cukup mudah dipindai.":readScore>=60?"Perbaiki beberapa bagian agar lebih nyaman dibaca.":"Pecah paragraf dan sederhanakan kalimat.");
   $("articleWordCount").textContent=words+" kata · "+content.length+" karakter";
   $("seoPreviewTitle").textContent=seoTitle;
   $("seoPreviewDescription").textContent=seoDescription;
-  $("seoTitleMeter").style.width=Math.min(100,(f.seo_title.value.length/60)*100)+"%";
-  $("seoDescriptionMeter").style.width=Math.min(100,(f.seo_description.value.length/155)*100)+"%";
+  $("seoTitleMeter").style.width=Math.min(100,(titleLength/60)*100)+"%";
+  $("seoDescriptionMeter").style.width=Math.min(100,(descLength/155)*100)+"%";
+  $("seoTitleLength").textContent=titleLength+" karakter";
+  $("seoDescriptionLength").textContent=descLength+" karakter";
 }
 
 
@@ -166,7 +251,7 @@ function editArticle(article) {
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
   f.content_markdown.value = article.content_markdown || "";
-  f.seo_title.value = article.seo_title || "";
+  f.seo_title.value = article.seo_title || "";\n  f.focus_keyphrase.value = article.focus_keyphrase || "";
   f.seo_description.value = article.seo_description || "";
   f.status.value = article.status || "draft";
   f.featured_image.value = "";
@@ -178,7 +263,7 @@ function editArticle(article) {
 async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,seo_title,seo_description,status,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,content_markdown,featured_image_url,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
@@ -248,7 +333,7 @@ async function saveArticle(forceDraft = false) {
     content_markdown: content,
     featured_image_url: imageUrl,
     seo_title: f.seo_title.value.trim(),
-    seo_description: f.seo_description.value.trim(),
+    seo_description: f.seo_description.value.trim(),\n    focus_keyphrase: f.focus_keyphrase.value.trim(),
     status,
     published_at: status === "published" ? (editingArticle?.published_at || now) : null,
     updated_by: currentUser.id,
@@ -330,7 +415,7 @@ async function initialize() {
     contentField.classList.add("hidden");
     preview.classList.remove("hidden");
   });
-  ["title","excerpt","content_markdown","seo_title","seo_description"].forEach(name => {
+  ["title","excerpt","content_markdown","seo_title","seo_description","focus_keyphrase","slug"].forEach(name => {
     $( "articleForm" ).elements[name].addEventListener("input", syncArticleMeta);
   });
   syncArticleMeta();

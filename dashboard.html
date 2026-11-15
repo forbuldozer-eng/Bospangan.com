@@ -88,6 +88,9 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 @media(max-width:800px){.article-workspace{grid-template-columns:1fr}.article-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.article-sidebar .article-card{margin:0}.article-title-input{font-size:21px}}
 @media(max-width:560px){.article-sidebar{grid-template-columns:1fr}.article-card{padding:14px}.editor-textarea,.editor-preview{min-height:380px;padding:14px!important}.article-title-input{font-size:19px}.editor-tool{min-width:29px}}
 
+
+/* Yoast-style on-page SEO analysis */
+.seo-score-wrap{border:1px solid #e7ebf1;border-radius:8px;padding:12px;margin:14px 0;background:#fbfcfe}.seo-score-wrap>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:8px}.seo-score-wrap strong{font-size:20px;color:#33415c}.seo-score-track{height:8px;border-radius:20px;background:#e9edf2;overflow:hidden;margin:9px 0 7px}.seo-score-track span{display:block;height:100%;width:0;background:#16a36b;transition:width .2s,background .2s}.seo-score-wrap[data-level="warning"] .seo-score-track span{background:#d99a28}.seo-score-wrap[data-level="bad"] .seo-score-track span{background:#d65353}.seo-side-hint{display:block;color:#8993a5;font-size:10px;margin-top:5px}.seo-check-groups h4{font-size:12px;color:#43516a;margin:17px 0 7px}.seo-check-list{list-style:none;padding:0;margin:0;display:grid;gap:7px}.seo-check-list li{font-size:11px;line-height:1.45;padding:8px 9px;border-radius:6px;background:#f7f9fb;color:#536078;display:flex;gap:7px;align-items:flex-start}.seo-check-list li::before{content:"•";font-size:15px;line-height:1;color:#9aa4b2}.seo-check-list li.good::before{content:"✓";color:#169b62;font-weight:900}.seo-check-list li.warn::before{content:"!";color:#d28a18;font-weight:900}.seo-check-list li.bad::before{content:"×";color:#d34d4d;font-weight:900}.seo-analysis-card{max-height:none}.seo-analysis-card .article-field{margin-bottom:13px}
 </style>
 </head>
 <body>
@@ -244,12 +247,16 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
                   <div id="articleImagePreview">Belum ada gambar utama.</div>
                 </div>
               </section>
-              <section class="article-card">
-                <h3 class="sidebar-card-title">Yoast SEO <span>⌃</span></h3>
-                <div class="article-field"><label class="article-label" for="articleSeoTitle">SEO Title</label><input id="articleSeoTitle" name="seo_title" maxlength="70" placeholder="Judul untuk hasil pencarian"><div class="seo-meter"><span id="seoTitleMeter"></span></div></div>
-                <div class="article-field"><label class="article-label" for="articleSeoDescription">Meta Description</label><textarea id="articleSeoDescription" name="seo_description" rows="4" maxlength="170" placeholder="Deskripsi untuk hasil pencarian"></textarea><div class="seo-meter"><span id="seoDescriptionMeter"></span></div></div>
+              <section class="article-card seo-analysis-card">
+                <h3 class="sidebar-card-title">Analisis SEO <span>⌃</span></h3>
+                <div class="article-field"><label class="article-label" for="articleFocusKeyphrase">Frasa kunci utama</label><input id="articleFocusKeyphrase" name="focus_keyphrase" maxlength="120" placeholder="Contoh: usaha warung sembako"><p class="article-side-note">Gunakan satu frasa utama yang paling mewakili topik artikel.</p></div>
+                <div class="article-field"><label class="article-label" for="articleSeoTitle">SEO Title</label><input id="articleSeoTitle" name="seo_title" maxlength="70" placeholder="Judul untuk hasil pencarian"><div class="seo-meter"><span id="seoTitleMeter"></span></div><small id="seoTitleLength" class="seo-side-hint">0 karakter</small></div>
+                <div class="article-field"><label class="article-label" for="articleSeoDescription">Meta Description</label><textarea id="articleSeoDescription" name="seo_description" rows="4" maxlength="170" placeholder="Deskripsi untuk hasil pencarian"></textarea><div class="seo-meter"><span id="seoDescriptionMeter"></span></div><small id="seoDescriptionLength" class="seo-side-hint">0 karakter</small></div>
                 <div class="seo-snippet"><div class="seo-site">bospangan.com › blog</div><div class="seo-heading" id="seoPreviewTitle">Judul artikel akan tampil di sini</div><div class="seo-description" id="seoPreviewDescription">Deskripsi artikel akan tampil di sini.</div></div>
-                <p class="article-side-note">Pratinjau ini membantu memeriksa tampilan judul dan deskripsi. Skor SEO otomatis belum diaktifkan.</p>
+                <div class="seo-score-wrap"><div><span class="article-label">Skor SEO</span><strong id="seoScoreValue">—/100</strong></div><div class="seo-score-track"><span id="seoScoreBar"></span></div><p id="seoScoreSummary" class="article-side-note">Isi frasa kunci dan artikel untuk memulai analisis.</p></div>
+                <div class="seo-score-wrap readability-wrap"><div><span class="article-label">Keterbacaan</span><strong id="readabilityScoreValue">—/100</strong></div><div class="seo-score-track"><span id="readabilityScoreBar"></span></div><p id="readabilitySummary" class="article-side-note">Analisis keterbacaan akan muncul di sini.</p></div>
+                <div class="seo-check-groups"><h4>Analisis SEO</h4><ul id="seoChecks" class="seo-check-list"><li>Masukkan frasa kunci utama.</li></ul><h4>Analisis keterbacaan</h4><ul id="readabilityChecks" class="seo-check-list"><li>Tulis isi artikel untuk memulai.</li></ul></div>
+                <p class="article-side-note">Analisis lokal berbasis aturan, bukan skor resmi plugin Yoast atau jaminan peringkat Google. Hasil diperbarui saat Anda mengetik.</p>
               </section>
             </aside>
           </div>
