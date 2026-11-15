@@ -41,6 +41,53 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 @media(max-width:1100px){.sidebar{width:238px}.main{margin-left:238px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);width:270px}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:grid;place-items:center}.topbar{height:64px;padding:0 15px}.content{padding:20px 15px 45px}.user-copy{display:none}.scrim.show{display:block;position:fixed;inset:0;background:#0d142a88;z-index:25}.page-head{flex-direction:column}.stats{gap:10px}.stat-card{padding:14px}.quick-grid{grid-template-columns:1fr}}
 @media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.stat-card strong{font-size:20px}.top-actions{gap:8px}.site-link{font-size:11px}.content{padding-left:12px;padding-right:12px}.panel{padding:14px}}
+
+/* WordPress-inspired article workspace */
+.article-workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:20px;align-items:start}
+.article-main,.article-sidebar{min-width:0}
+.article-card{background:#fff;border:1px solid #e1e6ee;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 4px 18px #17213a08}
+.article-title-input{width:100%;font-size:25px;font-weight:700;letter-spacing:-.035em;padding:13px 15px;margin-bottom:10px}
+.article-slug-row{display:flex;align-items:center;gap:8px;color:#8490a5;font-size:12px;margin:0 0 18px;flex-wrap:wrap}
+.article-slug-row input{flex:1;min-width:180px}
+.article-label{display:block;font-size:12px;font-weight:750;color:#536078;margin:0 0 7px}
+.article-field{margin:0 0 17px}
+.article-field input,.article-field textarea{width:100%}
+.article-field textarea{resize:vertical;min-height:88px}
+.editor-shell{border:1px solid #dce2eb;border-radius:8px;overflow:hidden;background:#fff}
+.editor-tabs{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f7f9fc;border-bottom:1px solid #e3e8ef}
+.editor-tabs strong{font-size:12px;color:#526078}
+.editor-toolbar{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #e5e9ef;background:#fbfcfe}
+.editor-tool{min-width:32px;height:31px;border:1px solid transparent;background:transparent;border-radius:5px;color:#48556d;font-weight:750}
+.editor-tool:hover{background:#edf4f0;border-color:#d6e9df}
+.editor-tool.separator{width:1px;min-width:1px;height:22px;background:#e0e5ec;margin:0 5px}
+.editor-textarea{display:block;width:100%;min-height:510px;border:0!important;border-radius:0!important;resize:vertical;padding:20px!important;font:15px/1.8 Georgia,serif!important;color:#29344a!important;outline:none!important;box-shadow:none!important}
+.editor-preview{min-height:510px;padding:20px 24px;font:15px/1.8 Georgia,serif;color:#29344a;overflow-wrap:anywhere}
+.editor-preview h1,.editor-preview h2,.editor-preview h3{line-height:1.3;margin:1.2em 0 .5em}
+.editor-preview p{margin:.7em 0}.editor-preview blockquote{border-left:4px solid #11b981;padding:4px 14px;color:#66738a;margin:16px 0}
+.editor-preview table{border-collapse:collapse;width:100%}.editor-preview td,.editor-preview th{border:1px solid #dfe5ed;padding:8px}
+.editor-footer{display:flex;justify-content:space-between;gap:12px;padding:9px 13px;border-top:1px solid #e6eaf0;color:#8a95a7;font-size:11px}
+.article-sidebar .article-card{padding:16px}
+.sidebar-card-title{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:800;color:#35415a;margin:0 0 14px}
+.publish-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0;color:#68748a;font-size:12px}
+.publish-actions{display:flex;gap:8px;margin-top:15px}
+.publish-actions .btn{flex:1}
+.featured-drop{border:1px dashed #cbd4df;border-radius:8px;padding:14px;text-align:center;background:#fafbfd}
+.featured-drop input{width:100%;font-size:11px}
+.featured-drop #articleImagePreview{margin-top:10px;font-size:12px;color:#8792a5}
+.featured-drop #articleImagePreview img{width:100%!important;max-height:190px!important;object-fit:cover}
+.seo-snippet{border:1px solid #e5e9ef;border-radius:8px;padding:12px;margin:12px 0;background:#fff}
+.seo-snippet .seo-site{font-size:11px;color:#758198}
+.seo-snippet .seo-heading{font-size:17px;color:#1a5dab;line-height:1.35;margin:4px 0}
+.seo-snippet .seo-description{font-size:12px;color:#68748a;line-height:1.5}
+.seo-meter{height:5px;border-radius:9px;background:#edf0f4;overflow:hidden;margin-top:6px}
+.seo-meter span{display:block;height:100%;background:#11b981;width:0;transition:width .15s}
+.article-side-note{font-size:11px;color:#8993a5;line-height:1.55}
+.article-form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.article-list-card{margin-top:22px}
+@media(max-width:1050px){.article-workspace{grid-template-columns:minmax(0,1fr) 270px;gap:14px}}
+@media(max-width:800px){.article-workspace{grid-template-columns:1fr}.article-sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.article-sidebar .article-card{margin:0}.article-title-input{font-size:21px}}
+@media(max-width:560px){.article-sidebar{grid-template-columns:1fr}.article-card{padding:14px}.editor-textarea,.editor-preview{min-height:380px;padding:14px!important}.article-title-input{font-size:19px}.editor-tool{min-width:29px}}
+
 </style>
 </head>
 <body>
@@ -133,38 +180,84 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
     </section>
     <section id="articleView" class="hidden">
       <div class="page-head">
-        <div><h1 class="page-title">Berita / Blog</h1><p class="page-subtitle">Buat, edit, simpan sebagai draft, dan terbitkan artikel Bos Pangan.</p></div>
-        <div class="head-actions"><button class="btn primary" id="newArticleButton" type="button">+ Artikel Baru</button></div>
+        <div><h1 class="page-title">Berita / Blog</h1><p class="page-subtitle">Editor artikel Bos Pangan · kelola konten, gambar, publikasi, dan SEO.</p></div>
+        <div class="head-actions"><button class="btn" id="backToArticleList" type="button">Daftar Artikel</button><button class="btn primary" id="newArticleButton" type="button">+ Artikel Baru</button></div>
       </div>
       <div id="articleStatus" class="status" role="status" aria-live="polite">Memuat artikel...</div>
-      <section id="articleEditor" class="panel hidden">
+      <section id="articleEditor" class="hidden">
         <form id="articleForm">
           <input type="hidden" name="id">
-          <div class="row">
-            <label style="flex:2">Judul artikel<input name="title" maxlength="220" required></label>
-            <label style="flex:1">Slug URL<input name="slug" maxlength="180" required></label>
+          <div class="article-field">
+            <input class="article-title-input" name="title" maxlength="220" required placeholder="Masukkan judul artikel">
+            <div class="article-slug-row"><span>Permalink</span><span>/blog/</span><input name="slug" maxlength="180" required placeholder="slug-artikel"><span>.html</span></div>
           </div>
-          <label>Ringkasan artikel<textarea name="excerpt" rows="2" maxlength="500" placeholder="Ringkasan singkat untuk daftar artikel dan mesin pencari."></textarea></label>
-          <label>Isi artikel<textarea name="content_markdown" rows="16" required placeholder="Tulis isi artikel di sini. Format Markdown didukung."></textarea></label>
-          <div class="row">
-            <label style="flex:2">Gambar utama (JPG, PNG, WebP · maks. 8 MB)<input name="featured_image" type="file" accept="image/jpeg,image/png,image/webp"></label>
-            <label style="flex:1">Status publikasi<select name="status"><option value="draft">Draft</option><option value="published">Terbitkan</option></select></label>
-          </div>
-          <div id="articleImagePreview" class="muted"></div>
-          <div class="row">
-            <label>SEO Title<input name="seo_title" maxlength="70" placeholder="Judul untuk hasil pencarian"></label>
-            <label>SEO Description<textarea name="seo_description" rows="2" maxlength="170" placeholder="Deskripsi untuk hasil pencarian"></textarea></label>
-          </div>
-          <div class="head-actions">
-            <button class="btn primary" type="submit">Simpan Artikel</button>
-            <button class="btn" id="saveArticleDraft" type="button">Simpan Draft</button>
-            <button class="btn" id="cancelArticleEdit" type="button">Batal</button>
+          <div class="article-workspace">
+            <div class="article-main">
+              <div class="article-card">
+                <div class="article-field">
+                  <label class="article-label" for="articleExcerpt">Ringkasan artikel</label>
+                  <textarea id="articleExcerpt" name="excerpt" rows="3" maxlength="500" placeholder="Tulis ringkasan singkat untuk halaman daftar artikel."></textarea>
+                </div>
+                <div class="article-field">
+                  <label class="article-label">Isi artikel</label>
+                  <div class="editor-shell">
+                    <div class="editor-tabs"><strong>EDITOR KONTEN</strong><div><button class="btn" id="articleVisualTab" type="button">Tulis</button> <button class="btn" id="articlePreviewTab" type="button">Pratinjau</button></div></div>
+                    <div class="editor-toolbar" role="toolbar" aria-label="Pemformatan artikel">
+                      <button class="editor-tool" type="button" data-md="h2" title="Heading 2">H2</button>
+                      <button class="editor-tool" type="button" data-md="h3" title="Heading 3">H3</button>
+                      <span class="editor-tool separator"></span>
+                      <button class="editor-tool" type="button" data-md="bold" title="Tebal"><strong>B</strong></button>
+                      <button class="editor-tool" type="button" data-md="italic" title="Miring"><em>I</em></button>
+                      <button class="editor-tool" type="button" data-md="ul" title="Daftar bullet">☷</button>
+                      <button class="editor-tool" type="button" data-md="ol" title="Daftar bernomor">1.</button>
+                      <button class="editor-tool" type="button" data-md="quote" title="Kutipan">❝</button>
+                      <button class="editor-tool" type="button" data-md="link" title="Sisipkan tautan">↗</button>
+                      <button class="editor-tool" type="button" data-md="image" title="Markdown gambar">▧</button>
+                      <button class="editor-tool" type="button" data-md="table" title="Sisipkan tabel">▦</button>
+                      <span class="editor-tool separator"></span>
+                      <button class="editor-tool" type="button" data-md="hr" title="Garis pemisah">―</button>
+                    </div>
+                    <textarea class="editor-textarea" name="content_markdown" id="articleContent" required placeholder="Mulai menulis artikel di sini...&#10;&#10;Gunakan toolbar untuk heading, teks tebal, daftar, kutipan, dan tautan."></textarea>
+                    <div class="editor-preview hidden" id="articleContentPreview"></div>
+                    <div class="editor-footer"><span>Format Markdown · perubahan disimpan saat menekan tombol simpan</span><span id="articleWordCount">0 kata · 0 karakter</span></div>
+                  </div>
+                </div>
+                <div class="article-form-actions">
+                  <button class="btn primary" type="submit">Simpan Artikel</button>
+                  <button class="btn" id="saveArticleDraft" type="button">Simpan Draft</button>
+                  <button class="btn" id="cancelArticleEdit" type="button">Batal</button>
+                </div>
+              </div>
+            </div>
+            <aside class="article-sidebar">
+              <section class="article-card">
+                <h3 class="sidebar-card-title">Terbitkan <span>⌃</span></h3>
+                <div class="publish-row"><span>Status publikasi</span><select name="status"><option value="draft">Draft</option><option value="published">Terbitkan</option></select></div>
+                <div class="publish-row"><span id="articlePublishInfo">Belum diterbitkan</span></div>
+                <div class="publish-actions"><button class="btn" id="cancelArticleEditSide" type="button">Batal</button><button class="btn primary" type="submit" form="articleForm">Simpan</button></div>
+              </section>
+              <section class="article-card">
+                <h3 class="sidebar-card-title">Gambar Unggulan <span>⌃</span></h3>
+                <div class="featured-drop">
+                  <label class="article-label" for="articleFeaturedImage">Pilih gambar utama (JPG, PNG, WebP · maks. 8 MB)</label>
+                  <input id="articleFeaturedImage" name="featured_image" type="file" accept="image/jpeg,image/png,image/webp">
+                  <div id="articleImagePreview">Belum ada gambar utama.</div>
+                </div>
+              </section>
+              <section class="article-card">
+                <h3 class="sidebar-card-title">Yoast SEO <span>⌃</span></h3>
+                <div class="article-field"><label class="article-label" for="articleSeoTitle">SEO Title</label><input id="articleSeoTitle" name="seo_title" maxlength="70" placeholder="Judul untuk hasil pencarian"><div class="seo-meter"><span id="seoTitleMeter"></span></div></div>
+                <div class="article-field"><label class="article-label" for="articleSeoDescription">Meta Description</label><textarea id="articleSeoDescription" name="seo_description" rows="4" maxlength="170" placeholder="Deskripsi untuk hasil pencarian"></textarea><div class="seo-meter"><span id="seoDescriptionMeter"></span></div></div>
+                <div class="seo-snippet"><div class="seo-site">bospangan.com › blog</div><div class="seo-heading" id="seoPreviewTitle">Judul artikel akan tampil di sini</div><div class="seo-description" id="seoPreviewDescription">Deskripsi artikel akan tampil di sini.</div></div>
+                <p class="article-side-note">Pratinjau ini membantu memeriksa tampilan judul dan deskripsi. Skor SEO otomatis belum diaktifkan.</p>
+              </section>
+            </aside>
           </div>
         </form>
       </section>
-      <section class="panel">
+      <section class="panel article-list-card" id="articleListPanel">
         <div class="row" style="align-items:center;justify-content:space-between">
-          <h2 style="margin:0;font-size:18px">Daftar Artikel</h2>
+          <div><h2 style="margin:0;font-size:18px">Daftar Artikel</h2><p class="page-subtitle">Artikel yang tersimpan di database CMS Bos Pangan.</p></div>
           <button class="btn" id="refreshArticles" type="button">Muat Ulang</button>
         </div>
         <div id="articlesTable" class="table-wrap">Memuat artikel...</div>
