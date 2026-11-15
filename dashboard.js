@@ -202,10 +202,16 @@ async function init() {
   currentRole = profile.role;
   const permissionResult = await supabase.rpc("get_my_permissions");
   if (permissionResult.error) {
-    status("Gagal memeriksa hak akses. Hubungi Super Admin.");
-    throw permissionResult.error;
+    if (["admin", "super_admin"].includes(profile.role)) {
+      // Keep existing privileged accounts operational until the RBAC migration is applied.
+      currentPermissions = [];
+    } else {
+      status("Hak akses RBAC belum aktif. Hubungi Super Admin.");
+      throw permissionResult.error;
+    }
+  } else {
+    currentPermissions = permissionResult.data || [];
   }
-  currentPermissions = permissionResult.data || [];
   const displayName = profile.display_name || currentUser.email || "Admin";
   const roleName = roleLabels[currentRole] || "Admin";
   $("welcome").textContent = "Selamat datang, " + displayName + ". Pilih menu di samping untuk mulai mengelola website.";
