@@ -88,14 +88,11 @@ function renderDetail(article, allArticles) {
 async function init() {
   try {
     const articles = await getPublishedArticles();
-    if (listing) renderListing(articles);
+    if (listing && articles.length) renderListing(articles);
     if (detail) {
       const slug = detail.dataset.slug;
       const article = articles.find(item => item.slug === slug);
       if (article) renderDetail(article, articles);
-      else {
-        detail.innerHTML = '<div class="crumb"><a href="/">Beranda</a> / <a href="/blog/">Artikel</a></div><h1>Artikel tidak ditemukan</h1><p>Artikel ini belum diterbitkan atau sudah tidak tersedia.</p><p><a href="/blog/">Kembali ke daftar artikel</a></p>';
-      }
     }
   } catch (error) {
     console.error("Bos Pangan CMS blog failed to load; static fallback retained.", error);
