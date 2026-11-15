@@ -89,7 +89,7 @@ function loginForm(notice = "") {
     const email = $("authForm").elements.email.value.trim();
     if (!email) return message("Masukkan email akun terlebih dahulu.");
     const { error } = await client.auth.resetPasswordForEmail(email, {
-      redirectTo: location.origin
+      redirectTo: `${location.origin}/cms/`
     });
     message(error
       ? error.message
@@ -179,6 +179,12 @@ function open() {
 
 window.TWSAuth = { open };
 
+const accountButton = $("accountTop");
+if (accountButton) {
+  accountButton.textContent = "Login Admin";
+  accountButton.onclick = () => { location.href = "/cms/"; };
+}
+
 if (ready) {
   client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   client.auth.onAuthStateChange((event, session) => {
@@ -187,5 +193,25 @@ if (ready) {
   });
 }
 
-$("accountTop").textContent = "Login Admin";
-$("accountTop").onclick = open;
+const isCmsPage = location.pathname.replace(/\\/+$/, "") === "/cms";
+if (isCmsPage) {
+  $("closeBox")?.addEventListener("click", () => { location.href = "/"; });
+  $("box")?.addEventListener("cancel", event => {
+    event.preventDefault();
+    location.href = "/";
+  });
+
+  if (!ready || !client) {
+    configNotice();
+  } else {
+    client.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        loginForm("Sesi tidak dapat diperiksa. Silakan login kembali.");
+        return;
+      }
+      user = data?.session?.user || null;
+      if (user) account();
+      else loginForm();
+    }).catch(() => loginForm("Tidak dapat menghubungkan sesi. Silakan coba lagi."));
+  }
+}
