@@ -69,6 +69,7 @@ function renderListing(articles) {
 
 function renderDetail(article, allArticles) {
   if (!detail) return;
+  const fallbackHero = detail.querySelector(".heroimg")?.outerHTML || "";
   setMeta(article);
   const related = allArticles.filter(item => item.slug !== article.slug).slice(0, 3);
   detail.innerHTML =
@@ -76,7 +77,7 @@ function renderDetail(article, allArticles) {
     '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
     '<h1>' + esc(article.title) + '</h1>' +
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
-    (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.title) + '" loading="eager">' : '') +
+    (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.title) + '" loading="eager">' : fallbackHero) +
     '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
     '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
