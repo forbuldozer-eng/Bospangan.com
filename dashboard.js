@@ -40,7 +40,7 @@ function closeMobileMenu(){
   $("scrim").classList.remove("show");
 }
 function showOnly(id){
-  ["overviewView","placeholderView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
+  ["overviewView","placeholderView","articleView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
@@ -55,6 +55,11 @@ function activatePage(page){
 
   if(page === "overview"){
     showOnly("overviewView");
+    return;
+  }
+  if(page === "news"){
+    showOnly("articleView");
+    window.dispatchEvent(new CustomEvent("cms:articles-open"));
     return;
   }
   if(page === "admins"){
