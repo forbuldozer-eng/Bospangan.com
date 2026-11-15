@@ -100,7 +100,7 @@ function editArticle(article) {
 async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
-    .select("id,title,slug,excerpt,featured_image_url,status,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,content_markdown,featured_image_url,seo_title,seo_description,status,published_at,created_at,updated_at")
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
