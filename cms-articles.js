@@ -27,13 +27,18 @@ function markdownPreview(markdown) {
   const closeList = () => { if (listType) { html.push(listType === "ol" ? "</ol>" : "</ul>"); listType = null; } };
   const inline = value => {
     let out = escapeHtml(value);
+    out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, source) => {
+      const src = source.trim();
+      if (!/^(https?:\/\/|\/)/i.test(src)) return escapeHtml(alt);
+      return '<img class="article-preview-image" src="' + escapeHtml(src) + '" alt="' + escapeHtml(alt) + '" loading="lazy">';
+    });
     out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.+?)\*/g, "<em>$1</em>")
       .replace(/`([^`]+)`/g, "<code>$1</code>");
     out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, href) => {
       const safeHref = href.trim();
       return /^(https?:\/\/|\/)/i.test(safeHref)
-        ? '<a href="' + escapeHtml(safeHref) + '" target="_blank" rel="noopener">' + label + "</a>"
+        ? '<a href="' + escapeHtml(safeHref) + '" target="_blank" rel="noopener noreferrer">' + label + "</a>"
         : label;
     });
     return out;
@@ -44,7 +49,11 @@ function markdownPreview(markdown) {
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
     const bullet = line.match(/^[-*]\s+(.+)$/);
     const numbered = line.match(/^\d+\.\s+(.+)$/);
-    if (heading) { closeList(); const level=heading[1].length; html.push("<h"+level+">"+inline(heading[2])+"</h"+level+">"); }
+    const galleryOnly = /^(?:!\[[^\]]*\]\((?:https?:\/\/|\/)[^)]+\)\s*){2,}$/.test(line);
+    if (galleryOnly) {
+      closeList();
+      html.push('<div class="article-preview-gallery">' + inline(line) + "</div>");
+    } else if (heading) { closeList(); const level=heading[1].length; html.push("<h"+level+">"+inline(heading[2])+"</h"+level+">"); }
     else if (/^---+$/.test(line)) { closeList(); html.push("<hr>"); }
     else if (line.startsWith(">")) { closeList(); html.push("<blockquote>"+inline(line.replace(/^>\s?/, ""))+"</blockquote>"); }
     else if (bullet || numbered) {
@@ -56,24 +65,109 @@ function markdownPreview(markdown) {
   closeList();
   return html.join("");
 }
+let editorHistory = [];
+let editorHistoryIndex = -1;
+let editorHistoryRestoring = false;
+let editorHistoryLastInputAt = 0;
+
+function getEditorState(field) {
+  return { value: field.value, start: field.selectionStart, end: field.selectionEnd };
+}
+
+function recordEditorState(force = false) {
+  const field = $("articleContent");
+  if (!field || editorHistoryRestoring) return;
+  const state = getEditorState(field);
+  const current = editorHistory[editorHistoryIndex];
+  if (current && current.value === state.value) {
+    editorHistory[editorHistoryIndex] = state;
+    return;
+  }
+  const now = Date.now();
+  if (!force && current && editorHistoryIndex === editorHistory.length - 1 && now - editorHistoryLastInputAt < 800) {
+    editorHistory[editorHistoryIndex] = state;
+  } else {
+    editorHistory = editorHistory.slice(0, editorHistoryIndex + 1);
+    editorHistory.push(state);
+    if (editorHistory.length > 100) editorHistory.shift();
+    editorHistoryIndex = editorHistory.length - 1;
+  }
+  editorHistoryLastInputAt = now;
+  updateEditorHistoryButtons();
+}
+
+function updateEditorHistoryButtons() {
+  const undo = document.querySelector('[data-editor-history="undo"]');
+  const redo = document.querySelector('[data-editor-history="redo"]');
+  if (undo) undo.disabled = editorHistoryIndex <= 0;
+  if (redo) redo.disabled = editorHistoryIndex < 0 || editorHistoryIndex >= editorHistory.length - 1;
+}
+
+function restoreEditorHistory(index) {
+  const field = $("articleContent");
+  const state = editorHistory[index];
+  if (!field || !state) return;
+  editorHistoryIndex = index;
+  editorHistoryRestoring = true;
+  field.value = state.value;
+  field.focus();
+  field.setSelectionRange(Math.min(state.start, field.value.length), Math.min(state.end, field.value.length));
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  editorHistoryRestoring = false;
+  updateEditorHistoryButtons();
+}
+
+function undoArticleEdit() {
+  if (editorHistoryIndex > 0) restoreEditorHistory(editorHistoryIndex - 1);
+}
+
+function redoArticleEdit() {
+  if (editorHistoryIndex < editorHistory.length - 1) restoreEditorHistory(editorHistoryIndex + 1);
+}
+
+function applyEditorEdit(value, start, end) {
+  const field = $("articleContent");
+  if (!field) return;
+  field.setRangeText(value, start, end, "end");
+  field.focus();
+  field.dispatchEvent(new Event("input", { bubbles: true }));
+  recordEditorState(true);
+}
+
+function insertHyperlink() {
+  const field = $("articleContent");
+  if (!field) return;
+  const start = field.selectionStart;
+  const end = field.selectionEnd;
+  const selected = field.value.slice(start, end);
+  const label = selected || window.prompt("Teks keyword atau kalimat yang akan dijadikan hyperlink:");
+  if (!label) return;
+  const destination = window.prompt("Masukkan URL tujuan (internal: /blog/slug/ atau eksternal: https://...):");
+  if (!destination) return;
+  const href = destination.trim();
+  if (!/^(https?:\/\/|\/)/i.test(href) || /^\/\//.test(href)) {
+    window.alert("URL harus berupa alamat https:// atau path internal yang diawali /.");
+    return;
+  }
+  const markdown = "[" + label.replace(/[\[\]]/g, "") + "](" + href.replace(/[\s()]/g, encodeURIComponent) + ")";
+  applyEditorEdit(markdown, start, end);
+}
 
 function insertMarkdown(command) {
   const field = $("articleContent");
   if (!field) return;
+  if (command === "link") return insertHyperlink();
   const templates = {
     h2:"## Judul Bagian", h3:"### Subjudul", bold:"**teks tebal**",
     italic:"*teks miring*", ul:"- Item daftar", ol:"1. Item daftar",
-    quote:"> Kutipan", link:"[teks tautan](https://contoh.com)",
+    quote:"> Kutipan",
     image:"![deskripsi gambar](https://alamat-gambar)", table:"| Kolom 1 | Kolom 2 |\n| --- | --- |\n| Isi 1 | Isi 2 |",
     hr:"\n---\n"
   };
   const value=templates[command] || "";
   const start=field.selectionStart, end=field.selectionEnd;
-  field.setRangeText(value,start,end,"end");
-  field.focus();
-  field.dispatchEvent(new Event("input",{bubbles:true}));
+  applyEditorEdit(value,start,end);
 }
-
 function plainArticleText(markdown) {
   return String(markdown || "")
     .replace(/!\[([^\]]*)\]\([^)]+\)/g, " $1 ")
@@ -343,9 +437,7 @@ async function insertArticleGallery() {
     const end = field.selectionEnd;
     const prefix = start > 0 && !field.value.slice(0, start).endsWith("\n\n") ? "\n\n" : "";
     const suffix = end < field.value.length && !field.value.slice(end).startsWith("\n\n") ? "\n\n" : "";
-    field.setRangeText(prefix + images.join(" ") + suffix, start, end, "end");
-    field.focus();
-    field.dispatchEvent(new Event("input", { bubbles: true }));
+    applyEditorEdit(prefix + images.join(" ") + suffix, start, end);
     articleGalleryQueue.forEach(item => URL.revokeObjectURL(item.previewUrl));
     articleGalleryQueue = [];
     $("articleGalleryFiles").value = "";
@@ -545,6 +637,45 @@ async function initialize() {
   $("insertArticleGallery").addEventListener("click", insertArticleGallery);
   const contentField=$("articleContent");
   const preview=$("articleContentPreview");
+  const toolbar=$("articleContent").closest(".editor-shell")?.querySelector(".editor-toolbar");
+  if (toolbar && !toolbar.querySelector("[data-editor-history]")) {
+    const undoButton=document.createElement("button");
+    undoButton.type="button";
+    undoButton.className="editor-tool";
+    undoButton.textContent="↶";
+    undoButton.title="Undo (Ctrl+Z)";
+    undoButton.setAttribute("aria-label","Undo perubahan");
+    undoButton.dataset.editorHistory="undo";
+    undoButton.addEventListener("click",undoArticleEdit);
+    const redoButton=document.createElement("button");
+    redoButton.type="button";
+    redoButton.className="editor-tool";
+    redoButton.textContent="↷";
+    redoButton.title="Redo (Ctrl+Y)";
+    redoButton.setAttribute("aria-label","Redo perubahan");
+    redoButton.dataset.editorHistory="redo";
+    redoButton.addEventListener("click",redoArticleEdit);
+    toolbar.prepend(redoButton);
+    toolbar.prepend(undoButton);
+  }
+  editorHistory=[getEditorState(contentField)];
+  editorHistoryIndex=0;
+  updateEditorHistoryButtons();
+  contentField.addEventListener("input",()=>{ if(!editorHistoryRestoring) recordEditorState(false); });
+  contentField.addEventListener("keydown",event=>{
+    const mod=event.ctrlKey||event.metaKey;
+    if(!mod) return;
+    const key=event.key.toLowerCase();
+    if(key==="z" && event.shiftKey){event.preventDefault();redoArticleEdit();}
+    else if(key==="z"){event.preventDefault();undoArticleEdit();}
+    else if(key==="y"){event.preventDefault();redoArticleEdit();}
+  });
+  if(!document.getElementById("bosArticlePreviewStyles")){
+    const style=document.createElement("style");
+    style.id="bosArticlePreviewStyles";
+    style.textContent=".editor-preview .article-preview-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.editor-preview .article-preview-image{max-width:100%;height:auto;max-height:360px;object-fit:contain;border-radius:10px;vertical-align:middle}.editor-preview .article-preview-gallery img{width:100%;height:240px;object-fit:cover;border-radius:10px}.editor-preview .article-preview-gallery img:only-child{grid-column:1/-1}@media(max-width:640px){.editor-preview .article-preview-gallery{grid-template-columns:1fr}.editor-preview .article-preview-gallery img{height:auto;max-height:360px}}";
+    document.head.append(style);
+  }
   $("articleVisualTab").addEventListener("click", () => {
     contentField.classList.remove("hidden");
     preview.classList.add("hidden");
