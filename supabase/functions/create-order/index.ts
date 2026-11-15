@@ -92,7 +92,7 @@ async function databaseRequest(path: string, options: { method?: string; body?: 
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { status: 204, headers: headersFor(req) });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: headersFor(req) });
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
 
   const origin = req.headers.get("origin");
