@@ -217,7 +217,7 @@ begin
   from public.profiles
   where id = v_user_id;
 
-  if v_role <> 'customer' then
+  if coalesce(v_role, '') <> 'customer' then
     raise exception 'Only customer accounts can link orders';
   end if;
 
