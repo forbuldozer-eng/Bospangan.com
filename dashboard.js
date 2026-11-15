@@ -31,10 +31,11 @@ async function loadAdminAccounts() {
           return '<tr><td>' + name + '</td><td>' + email +
             '</td><td><strong>Super Admin (terlindungi)</strong></td><td>' + date + '</td></tr>';
         }
-        const selected = profile.role === "admin" ? "admin" : "none";
+        const selected = profile.role === "admin" ? "admin" : profile.role === "customer" ? "customer" : "none";
         return '<tr><td>' + name + '</td><td>' + email +
           '</td><td><select data-role-user="' + esc(profile.id) + '">' +
-          '<option value="none" ' + (selected === "none" ? "selected" : "") + '>Tidak ada akses CMS</option>' +
+          '<option value="none" ' + (selected === "none" ? "selected" : "") + '>Belum ditetapkan</option>' +
+          '<option value="customer" ' + (selected === "customer" ? "selected" : "") + '>Pelanggan (tanpa akses CMS)</option>' +
           '<option value="admin" ' + (selected === "admin" ? "selected" : "") + '>Admin</option>' +
           '</select></td><td>' + date + '</td></tr>';
       }).join("") +
@@ -58,7 +59,9 @@ async function loadAdminAccounts() {
 
       status(select.value === "admin"
         ? "Akses Admin berhasil diberikan."
-        : "Akses CMS berhasil dicabut.");
+        : select.value === "customer"
+          ? "Akun dikembalikan ke role Pelanggan."
+          : "Akses CMS berhasil dicabut.");
       await loadAdminAccounts();
     });
   });
