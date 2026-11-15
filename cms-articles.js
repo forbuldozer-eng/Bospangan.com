@@ -146,7 +146,8 @@ function syncArticleMeta() {
   add("Frasa kunci di judul",!!keyphrase && countMatches(title,keyphrase)>0,keyphrase?"Pastikan frasa kunci muncul secara alami di judul.":"Belum ada frasa kunci.");
   add("Frasa kunci di URL",!!keyphrase && countMatches(f.slug.value.replace(/-/g," "),keyphrase)>0,keyphrase?"Gunakan frasa kunci di slug bila tetap terbaca alami.":"Belum ada frasa kunci.");
   add("Frasa kunci di pembuka",!!keyphrase && countMatches(firstParagraph,keyphrase)>0,keyphrase?"Sebaiknya frasa utama muncul di paragraf pembuka.":"Belum ada frasa kunci.");
-  add("Frasa kunci dalam isi",!!keyphrase && phraseCount>=2,keyphrase?(phraseCount+" kemunculan terdeteksi; gunakan secara alami, jangan dipaksakan."):"Belum ada frasa kunci.");\n  add("Kepadatan frasa kunci",!!keyphrase && density>=0.5 && density<=2.5,"Kepadatan saat ini "+density.toFixed(2)+"%; hindari pengulangan berlebihan.");
+  add("Frasa kunci dalam isi",!!keyphrase && phraseCount>=2,keyphrase?(phraseCount+" kemunculan terdeteksi; gunakan secara alami, jangan dipaksakan."):"Belum ada frasa kunci.");
+  add("Kepadatan frasa kunci",!!keyphrase && density>=0.5 && density<=2.5,"Kepadatan saat ini "+density.toFixed(2)+"%; hindari pengulangan berlebihan.");
   add("SEO Title",titleLength>=30 && titleLength<=60,"Panjang saat ini "+titleLength+" karakter; target panduan 30–60 karakter.");
   add("Meta Description",descLength>=120 && descLength<=160,"Panjang saat ini "+descLength+" karakter; target panduan 120–160 karakter.");
   add("Panjang artikel",words>=300,"Jumlah saat ini "+words+" kata; artikel informatif umumnya membutuhkan konteks yang cukup.");
@@ -154,7 +155,8 @@ function syncArticleMeta() {
   add("Tautan internal",internalLinks>=2,"Ditemukan "+internalLinks+" tautan internal; hubungkan artikel dengan halaman relevan Bos Pangan.");
   add("Gambar dengan alt text",imageMatches.length>0 && imageMatches.every(m=>m[1].trim().length>0),"Ditemukan "+imageMatches.length+" gambar; isi teks alternatif deskriptif pada setiap gambar.");
   add("Frasa kunci pada SEO title",!!keyphrase && countMatches(seoTitle,keyphrase)>0,keyphrase?"Masukkan frasa utama ke SEO Title bila sesuai.":"Belum ada frasa kunci.");
-  score=Math.round(score);\n  $("seoChecks").innerHTML=checks.join("");
+  score=Math.round(score);
+  $("seoChecks").innerHTML=checks.join("");
   setSeoScore("seo",score,score>=80?"Optimasi dasar sudah kuat. Periksa kembali kualitas dan akurasi konten.":score>=55?"Masih ada beberapa rekomendasi SEO yang perlu ditindaklanjuti.":"Lengkapi frasa kunci dan elemen dasar SEO.");
   const readability=[];
   let readScore=100;
@@ -251,7 +253,8 @@ function editArticle(article) {
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
   f.content_markdown.value = article.content_markdown || "";
-  f.seo_title.value = article.seo_title || "";\n  f.focus_keyphrase.value = article.focus_keyphrase || "";
+  f.seo_title.value = article.seo_title || "";
+  f.focus_keyphrase.value = article.focus_keyphrase || "";
   f.seo_description.value = article.seo_description || "";
   f.status.value = article.status || "draft";
   f.featured_image.value = "";
@@ -333,7 +336,8 @@ async function saveArticle(forceDraft = false) {
     content_markdown: content,
     featured_image_url: imageUrl,
     seo_title: f.seo_title.value.trim(),
-    seo_description: f.seo_description.value.trim(),\n    focus_keyphrase: f.focus_keyphrase.value.trim(),
+    seo_description: f.seo_description.value.trim(),
+    focus_keyphrase: f.focus_keyphrase.value.trim(),
     status,
     published_at: status === "published" ? (editingArticle?.published_at || now) : null,
     updated_by: currentUser.id,
