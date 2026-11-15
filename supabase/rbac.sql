@@ -97,9 +97,7 @@ set search_path = ''
 as $
 begin
   if tg_op = 'INSERT' then
-    if new.created_by is null then
-      new.created_by := (select auth.uid());
-    end if;
+    new.created_by := (select auth.uid());
   end if;
   new.updated_by := (select auth.uid());
   new.updated_at := now();
