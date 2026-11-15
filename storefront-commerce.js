@@ -680,7 +680,8 @@ async function initialize() {
 
   renderProducts();
   if (state.checkoutReady) {
-    setStatus(state.products.length + " produk tersedia. Pajak default toko " + state.defaultTax + "%.");
+    // Hide internal catalogue counts and default-tax diagnostics from customers.
+    setStatus("");
   } else {
     setStatus(checkoutWarning, true);
   }
