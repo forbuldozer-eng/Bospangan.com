@@ -66,6 +66,14 @@ function panelMarkup() {
         <button class="primary">Simpan campaign</button>
       </form>
       <div id="campaignsTable" class="table-wrap"></div>
+      <div class="panel" style="margin-top:16px">
+        <div class="row" style="align-items:center;justify-content:space-between">
+          <h3>Log notifikasi email pesanan</h3>
+          <button id="refreshNotificationQueue" type="button">Perbarui log</button>
+        </div>
+        <p class="muted">Memantau email pemberitahuan transaksi baru yang dikirim ke alamat owner.</p>
+        <div id="notificationQueueTable" class="table-wrap">Memuat log notifikasi...</div>
+      </div>
     </div>
     <div id="tab-settings" class="${role === "super_admin" ? "" : "hidden"}">
       <form id="settingsForm" class="panel">
@@ -205,6 +213,35 @@ async function loadCampaigns(){
    data.map(c=>'<tr><td>'+esc(c.title)+'<br><small>'+esc(c.subject)+'</small></td><td>'+esc(c.channel)+' / '+esc(c.audience)+'</td><td>'+esc(c.status)+'</td><td>'+esc(c.scheduled_at||"—")+'</td><td>'+(c.status==="draft"||c.status==="scheduled"?'<button data-send-campaign="'+c.id+'">Kirim sekarang</button>':"—")+'</td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada campaign.</p>';
   $("campaignsTable").querySelectorAll("[data-send-campaign]").forEach(b=>b.onclick=async()=>{if(!confirm("Kirim campaign ini kepada pelanggan yang sudah memberi izin?"))return;b.disabled=true;const {data:{session}}=await db.auth.getSession();const response=await fetch(SUPABASE_URL+"/functions/v1/send-product-campaign",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({campaign_id:b.dataset.sendCampaign})});const result=await response.json().catch(()=>({}));message(response.ok?"Campaign diproses. "+(result.sent??0)+" email terkirim.":(result.error||"Gagal mengirim campaign."));b.disabled=false;await loadCampaigns();});
 }
+async function loadNotificationQueue(){
+  const target=$("notificationQueueTable");
+  if(!target)return;
+  target.textContent="Memuat log notifikasi...";
+  const {data,error}=await db.from("notification_queue")
+    .select("id,recipient_email,subject,status,attempts,last_error,created_at,sent_at")
+    .eq("event_type","new_order")
+    .order("created_at",{ascending:false})
+    .limit(30);
+  if(error)throw error;
+  if(!data?.length){
+    target.innerHTML='<p class="muted">Belum ada notifikasi pesanan. Pastikan email owner sudah diisi di Pengaturan dan simpan pengaturan tersebut.</p>';
+    return;
+  }
+  const labels={pending:"Menunggu",processing:"Sedang dikirim",sent:"Terkirim",failed:"Gagal"};
+  target.innerHTML='<table><thead><tr><th>Waktu</th><th>Penerima</th><th>Subjek</th><th>Status</th><th>Detail</th></tr></thead><tbody>'+
+    data.map(item=>{
+      const detail=item.status==="failed"
+        ? (item.last_error||"Pengiriman gagal")
+        : item.status==="sent"
+          ? ("Terkirim "+(item.sent_at?new Date(item.sent_at).toLocaleString("id-ID"):""))
+          : ("Percobaan: "+Number(item.attempts||0));
+      return '<tr><td>'+esc(new Date(item.created_at).toLocaleString("id-ID"))+
+        '</td><td>'+esc(item.recipient_email)+
+        '</td><td>'+esc(item.subject)+
+        '</td><td>'+esc(labels[item.status]||item.status)+
+        '</td><td><small>'+esc(detail)+'</small></td></tr>';
+    }).join("")+'</tbody></table>';
+}
 async function loadSettings(){
   if(role!=="super_admin")return;
   const {data,error}=await db.from("store_settings").select("key,value");
@@ -217,6 +254,13 @@ async function loadSettings(){
 }
 $("commerceAdmin")?.addEventListener("submit",()=>{});
 function wireForms(){
+  $("refreshNotificationQueue")?.addEventListener("click",async()=>{
+    const button=$("refreshNotificationQueue");
+    button.disabled=true;
+    try{await loadNotificationQueue();message("Log notifikasi diperbarui.");}
+    catch(err){message("Gagal memuat log notifikasi: "+(err.message||err));}
+    finally{button.disabled=false;}
+  });
   $("productForm").onsubmit=async e=>{
     e.preventDefault();const f=e.currentTarget.elements;const button=e.submitter;button.disabled=true;
     try{
@@ -291,7 +335,7 @@ async function init(){
  role=profile.role;
  $("adminView").classList.remove("hidden");
  const section=panelMarkup();wireForms();
- try{await Promise.all([loadProducts(),loadOrders(),loadCampaigns(),loadSettings()]);message("Commerce Control Center siap.");}
+ try{await Promise.all([loadProducts(),loadOrders(),loadCampaigns(),loadSettings(),loadNotificationQueue()]);message("Commerce Control Center siap.");}
  catch(err){message("Backend belum sepenuhnya aktif: "+(err.message||err)+". Pastikan migration SQL sudah dijalankan.");}
 }
 init().catch(e=>console.error("Bos Pangan commerce admin:",e));
