@@ -211,9 +211,18 @@ async function ensureCustomerProfile(displayName = "") {
 }
 
 async function openAccountAfterLogin() {
-  const { data: role } = await supabase.rpc("ensure_customer_profile", {
+  const { data: role, error } = await supabase.rpc("ensure_customer_profile", {
     p_display_name: currentUser?.user_metadata?.display_name || "",
-  }).catch(() => ({ data: null }));
+  });
+  if (error) {
+    show("Akun pelanggan belum siap", `
+      <p class="customer-auth-error">${esc(migrationHint())}</p>
+      <p class="customer-auth-muted">${esc(error.message)}</p>
+      <button id="customerRetryLogin" class="primary customer-auth-submit" type="button">Kembali ke login</button>
+    `);
+    $("customerRetryLogin").addEventListener("click", () => loginForm());
+    return;
+  }
   if (role === "admin" || role === "super_admin") {
     show("Akun administrator", `
       <p class="customer-auth-intro">Akun ini memiliki peran administrator, bukan akun pelanggan.</p>
