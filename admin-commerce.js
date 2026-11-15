@@ -197,14 +197,85 @@ function editProduct(p){
 }
 $("commerceAdmin") || null;
 async function loadOrders(){
-  const {data,error}=await db.from("orders").select("id,order_number,customer_name,customer_email,customer_phone,customer_address,transaction_type,total,tax_amount,status,payment_status,created_at,special_request,order_items(sku_snapshot,product_name_snapshot,quantity,unit_price,line_subtotal,tax_percent,tax_amount)").order("created_at",{ascending:false}).limit(100);
+  const {data,error}=await db.from("orders")
+    .select("id,order_number,customer_name,customer_email,customer_phone,customer_address,transaction_type,total,tax_amount,status,payment_status,created_at,special_request,order_items(sku_snapshot,product_name_snapshot,quantity,unit_price,line_subtotal,tax_percent,tax_amount)")
+    .order("created_at",{ascending:false}).limit(100);
   if(error)throw error;
-  $("ordersTable").innerHTML=data.length?'<table><thead><tr><th>Nomor</th><th>Pelanggan & alamat</th><th>Rincian</th><th>Jenis</th><th>Total / pajak</th><th>Status</th><th>Ubah status</th></tr></thead><tbody>'+
-    data.map(o=>{
-      const items=(o.order_items||[]).map(item=>esc(item.product_name_snapshot)+' × '+esc(item.quantity)+' <small>('+esc(item.sku_snapshot)+')</small><br><small>Pajak '+esc(item.tax_percent)+'% · '+money(item.tax_amount)+'</small>').join('<br>')||'—';
-      return '<tr><td>'+esc(o.order_number)+'<br><small>'+new Date(o.created_at).toLocaleString("id-ID")+'</small></td><td>'+esc(o.customer_name)+'<br>'+esc(o.customer_email)+'<br>'+esc(o.customer_phone)+'<br><small>'+esc(o.customer_address||"Alamat belum diberikan")+'</small></td><td>'+items+'</td><td>'+esc(o.transaction_type)+(o.special_request?'<br><small>'+esc(o.special_request)+'</small>':"")+'</td><td>'+money(o.total)+'<br><small>Pajak '+money(o.tax_amount)+'</small></td><td>'+esc(o.status)+' / '+esc(o.payment_status)+'</td><td><select data-order-status="'+o.id+'"><option>new</option><option>quoted</option><option>confirmed</option><option>processing</option><option>shipped</option><option>completed</option><option>cancelled</option></select></td></tr>';
-    }).join("")+'</tbody></table>':'<p class="muted">Belum ada transaksi.</p>';
-  $("ordersTable").querySelectorAll("[data-order-status]").forEach(sel=>{const o=data.find(x=>x.id===sel.dataset.orderStatus);sel.value=o.status;sel.onchange=async()=>{const {error}=await db.from("orders").update({status:sel.value,updated_at:new Date().toISOString()}).eq("id",o.id);message(error?error.message:"Status transaksi diperbarui.");};});
+
+  const canCancel = (order) => order.payment_status === "unpaid" && (
+    (order.transaction_type === "regular" && ["new","confirmed","processing"].includes(order.status)) ||
+    (order.transaction_type === "special" && order.status === "quoted")
+  );
+
+  $("ordersTable").innerHTML=data.length
+    ? '<table><thead><tr><th>Nomor</th><th>Pelanggan & alamat</th><th>Rincian</th><th>Jenis</th><th>Total / pajak</th><th>Status</th><th>Ubah status</th><th>Aksi</th></tr></thead><tbody>'+
+      data.map(o=>{
+        const items=(o.order_items||[]).map(item=>esc(item.product_name_snapshot)+' × '+esc(item.quantity)+' <small>('+esc(item.sku_snapshot)+')</small><br><small>Pajak '+esc(item.tax_percent)+'% · '+money(item.tax_amount)+'</small>').join('<br>')||'—';
+        const cancelAction=canCancel(o)
+          ? '<button type="button" data-cancel-order="'+esc(o.id)+'">Batalkan</button>'
+          : '<small>—</small>';
+        return '<tr><td>'+esc(o.order_number)+'<br><small>'+new Date(o.created_at).toLocaleString("id-ID")+'</small></td>'+
+          '<td>'+esc(o.customer_name)+'<br>'+esc(o.customer_email)+'<br>'+esc(o.customer_phone)+'<br><small>'+esc(o.customer_address||"Alamat belum diberikan")+'</small></td>'+
+          '<td>'+items+'</td>'+
+          '<td>'+esc(o.transaction_type)+(o.special_request?'<br><small>'+esc(o.special_request)+'</small>':"")+'</td>'+
+          '<td>'+money(o.total)+'<br><small>Pajak '+money(o.tax_amount)+'</small></td>'+
+          '<td>'+esc(o.status)+' / '+esc(o.payment_status)+'</td>'+
+          '<td><select data-order-status="'+esc(o.id)+'"><option value="new">Menunggu</option><option value="quoted">Menunggu penawaran</option><option value="confirmed">Dikonfirmasi</option><option value="processing">Diproses</option><option value="shipped">Dikirim</option><option value="completed">Selesai</option><option value="cancelled">Dibatalkan</option></select></td>'+
+          '<td>'+cancelAction+'</td></tr>';
+      }).join("")+'</tbody></table>'
+    : '<p class="muted">Belum ada transaksi.</p>';
+
+  $("ordersTable").querySelectorAll("[data-order-status]").forEach(sel=>{
+    const order=data.find(x=>x.id===sel.dataset.orderStatus);
+    sel.value=order.status;
+    sel.onchange=async()=>{
+      const nextStatus=sel.value;
+      if(nextStatus==="cancelled" && !canCancel(order)){
+        message("Pesanan ini tidak dapat dibatalkan dari status atau pembayaran saat ini.");
+        sel.value=order.status;
+        return;
+      }
+      if(nextStatus==="cancelled" && !confirm("Batalkan pesanan "+order.order_number+"? Stok produk yang dipesan akan dikembalikan.")){
+        sel.value=order.status;
+        return;
+      }
+      sel.disabled=true;
+      const {error:updateError}=await db.from("orders")
+        .update({status:nextStatus,updated_at:new Date().toISOString()})
+        .eq("id",order.id)
+        .select("id,status")
+        .single();
+      if(updateError){
+        message("Gagal memperbarui status: "+updateError.message);
+        await loadOrders();
+        return;
+      }
+      message(nextStatus==="cancelled" ? "Pesanan dibatalkan. Stok terkait dikembalikan." : "Status transaksi diperbarui.");
+      await loadOrders();
+      if(nextStatus==="cancelled") await loadProducts();
+    };
+  });
+
+  $("ordersTable").querySelectorAll("[data-cancel-order]").forEach(button=>{
+    button.onclick=async()=>{
+      const order=data.find(x=>x.id===button.dataset.cancelOrder);
+      if(!order || !canCancel(order))return;
+      if(!confirm("Batalkan pesanan "+order.order_number+"? Stok produk yang dipesan akan dikembalikan."))return;
+      button.disabled=true;
+      const {error:updateError}=await db.from("orders")
+        .update({status:"cancelled",updated_at:new Date().toISOString()})
+        .eq("id",order.id)
+        .select("id,status")
+        .single();
+      if(updateError){
+        message("Gagal membatalkan pesanan: "+updateError.message);
+        await loadOrders();
+        return;
+      }
+      message("Pesanan dibatalkan. Stok produk telah dikembalikan ke katalog.");
+      await Promise.all([loadOrders(),loadProducts()]);
+    };
+  });
 }
 async function loadCampaigns(){
   const {data,error}=await db.from("product_campaigns").select("id,title,subject,channel,audience,status,scheduled_at,created_at").order("created_at",{ascending:false}).limit(50);
