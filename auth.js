@@ -214,7 +214,8 @@ if (ready) {
   client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   client.auth.onAuthStateChange((event, session) => {
     user = session?.user || null;
-    if (event === "PASSWORD_RECOVERY") resetPassword();
+    const onCmsRoute = location.pathname === "/cms" || location.pathname === "/cms/";
+    if (event === "PASSWORD_RECOVERY" && onCmsRoute) resetPassword();
   });
 }
 
