@@ -62,6 +62,10 @@ function setMeta(article) {
   if (ogTitle) ogTitle.content = title;
   const ogDescription = document.querySelector('meta[property="og:description"]');
   if (ogDescription) ogDescription.content = description;
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = "https://bospangan.com/blog/" + encodeURIComponent(article.slug) + "/";
+  const ogImage = document.querySelector('meta[property="og:image"]');
+  if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
 async function getPublishedArticles() {
@@ -114,9 +118,14 @@ async function init() {
     const articles = await getPublishedArticles();
     if (listing && articles.length) renderListing(articles);
     if (detail) {
-      const slug = detail.dataset.slug;
+      const pathSlug = window.location.pathname.replace(/^\\/blog\\//, "").replace(/\\/$/, "");
+      const slug = detail.dataset.slug || new URLSearchParams(window.location.search).get("slug") || pathSlug;
       const article = articles.find(item => item.slug === slug);
-      if (article) renderDetail(article, articles);
+      if (article) {
+        renderDetail(article, articles);
+      } else {
+        detail.innerHTML = '<div class="article-not-found"><h1>Artikel tidak ditemukan</h1><p>Artikel mungkin belum diterbitkan atau alamatnya sudah berubah.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
+      }
     }
   } catch (error) {
     console.error("Bos Pangan CMS blog failed to load; static fallback retained.", error);
