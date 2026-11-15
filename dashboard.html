@@ -131,6 +131,45 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
       <div class="page-head"><div><h1 class="page-title" id="placeholderTitle">Modul CMS</h1><p class="page-subtitle" id="placeholderSubtitle">Pengelolaan konten Bos Pangan</p></div></div>
       <div class="placeholder"><div><div class="symbol">▦</div><h2 id="placeholderHeading">Modul sedang disiapkan</h2><p id="placeholderText">Tampilan menu sudah disediakan. Integrasi penyimpanan dan proses backend akan dibuat setelah struktur data modul ditentukan.</p></div></div>
     </section>
+    <section id="articleView" class="hidden">
+      <div class="page-head">
+        <div><h1 class="page-title">Berita / Blog</h1><p class="page-subtitle">Buat, edit, simpan sebagai draft, dan terbitkan artikel Bos Pangan.</p></div>
+        <div class="head-actions"><button class="btn primary" id="newArticleButton" type="button">+ Artikel Baru</button></div>
+      </div>
+      <div id="articleStatus" class="status" role="status" aria-live="polite">Memuat artikel...</div>
+      <section id="articleEditor" class="panel hidden">
+        <form id="articleForm">
+          <input type="hidden" name="id">
+          <div class="row">
+            <label style="flex:2">Judul artikel<input name="title" maxlength="220" required></label>
+            <label style="flex:1">Slug URL<input name="slug" maxlength="180" required></label>
+          </div>
+          <label>Ringkasan artikel<textarea name="excerpt" rows="2" maxlength="500" placeholder="Ringkasan singkat untuk daftar artikel dan mesin pencari."></textarea></label>
+          <label>Isi artikel<textarea name="content_markdown" rows="16" required placeholder="Tulis isi artikel di sini. Format Markdown didukung."></textarea></label>
+          <div class="row">
+            <label style="flex:2">Gambar utama (JPG, PNG, WebP · maks. 8 MB)<input name="featured_image" type="file" accept="image/jpeg,image/png,image/webp"></label>
+            <label style="flex:1">Status publikasi<select name="status"><option value="draft">Draft</option><option value="published">Terbitkan</option></select></label>
+          </div>
+          <div id="articleImagePreview" class="muted"></div>
+          <div class="row">
+            <label>SEO Title<input name="seo_title" maxlength="70" placeholder="Judul untuk hasil pencarian"></label>
+            <label>SEO Description<textarea name="seo_description" rows="2" maxlength="170" placeholder="Deskripsi untuk hasil pencarian"></textarea></label>
+          </div>
+          <div class="head-actions">
+            <button class="btn primary" type="submit">Simpan Artikel</button>
+            <button class="btn" id="saveArticleDraft" type="button">Simpan Draft</button>
+            <button class="btn" id="cancelArticleEdit" type="button">Batal</button>
+          </div>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="row" style="align-items:center;justify-content:space-between">
+          <h2 style="margin:0;font-size:18px">Daftar Artikel</h2>
+          <button class="btn" id="refreshArticles" type="button">Muat Ulang</button>
+        </div>
+        <div id="articlesTable" class="table-wrap">Memuat artikel...</div>
+      </section>
+    </section>
     <section id="accessPanel" class="panel hidden">
       <h2>Pengelolaan Akun Admin</h2>
       <p class="muted">Menu ini hanya tersedia untuk Super Admin. Buat akun melalui Supabase Authentication, lalu atur hak aksesnya di sini. Super Admin utama tetap terlindungi.</p>
@@ -140,6 +179,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
   </main>
 </div>
 </div>
+<script type="module" src="/cms-articles.js"></script>
 <script type="module" src="/dashboard.js"></script>
 <script type="module" src="/admin-commerce.js"></script>
 </body></html>

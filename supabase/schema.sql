@@ -20,7 +20,7 @@ alter table public.profiles alter column role drop default;
 alter table public.profiles drop constraint if exists profiles_role_check;
 alter table public.profiles
   add constraint profiles_role_check
-  check (role is null or role in ('admin', 'super_admin'));
+  check (role is null or role in ('customer', 'admin', 'super_admin'));
 
 alter table public.profiles enable row level security;
 
