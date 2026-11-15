@@ -117,6 +117,14 @@ function restoreEditorHistory(index) {
   updateEditorHistoryButtons();
 }
 
+function resetEditorHistory() {
+  const field=$("articleContent");
+  editorHistory=field?[getEditorState(field)]:[];
+  editorHistoryIndex=editorHistory.length?0:-1;
+  editorHistoryLastInputAt=0;
+  updateEditorHistoryButtons();
+}
+
 function undoArticleEdit() {
   if (editorHistoryIndex > 0) restoreEditorHistory(editorHistoryIndex - 1);
 }
@@ -129,6 +137,7 @@ function applyEditorEdit(value, start, end) {
   const field = $("articleContent");
   if (!field) return;
   field.setRangeText(value, start, end, "end");
+  editorHistoryLastInputAt=0;
   field.focus();
   field.dispatchEvent(new Event("input", { bubbles: true }));
   recordEditorState(true);
@@ -303,6 +312,7 @@ function resetEditor() {
   $("articleForm").reset();
   $("articleForm").elements.id.value = "";
   $("articleForm").elements.slug.dataset.manual = "false";
+  resetEditorHistory();
   $("articleImagePreview").textContent = "Belum ada gambar utama.";
   $("articleForm").querySelector('button[type="submit"]').textContent = "Simpan Artikel";
   showEditor(false);
@@ -461,6 +471,7 @@ function editArticle(article) {
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
   f.content_markdown.value = article.content_markdown || "";
+  resetEditorHistory();
   f.seo_title.value = article.seo_title || "";
   f.focus_keyphrase.value = article.focus_keyphrase || "";
   f.seo_description.value = article.seo_description || "";
