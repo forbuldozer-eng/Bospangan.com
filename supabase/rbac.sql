@@ -1,5 +1,5 @@
 -- Bos Pangan: focused CMS access rules (Super Admin, Admin, Customer only).
--- Apply after schema.sql and commerce-backend.sql.
+-- Apply after schema.sql, commerce-backend.sql, checkout.sql, and customer-accounts.sql.
 -- This migration intentionally does not introduce operational sub-roles.
 
 begin;
