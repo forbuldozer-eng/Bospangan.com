@@ -305,7 +305,7 @@ function queueArticleGalleryFiles(files) {
       setStatus("Ukuran " + file.name + " melebihi 8 MB.", true);
       continue;
     }
-    const suggestedAlt = file.name.replace(/\\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\\s+/g, " ").trim();
+    const suggestedAlt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
     articleGalleryQueue.push({ file, alt: suggestedAlt, previewUrl: URL.createObjectURL(file) });
   }
   renderArticleGalleryQueue();
@@ -335,7 +335,7 @@ async function insertArticleGallery() {
       const alt = item.alt.trim();
       if (!alt) throw new Error("Alt text wajib diisi untuk setiap foto galeri.");
       const url = await uploadGalleryImage(item.file);
-      const safeAlt = alt.replace(/\\]/g, "\\\\]").replace(/[\\r\\n]+/g, " ");
+      const safeAlt = alt.replace(/[\[\]]/g, " ").replace(/[\r\n]+/g, " ").trim();
       images.push("![" + safeAlt + "](" + url + ")");
     }
     const field = $("articleContent");
