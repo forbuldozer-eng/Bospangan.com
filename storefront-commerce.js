@@ -507,8 +507,13 @@ function openCheckout(type = "regular", initialRequest = "") {
     submit.textContent = "Mengirim...";
     status.textContent = "Mengirim pesanan ke Bos Pangan...";
     try {
-      const { data: result, error } = await db.functions.invoke("create-order", {
-        body: {
+      const response = await fetch(SUPABASE_URL.replace(/\\/+$/, "") + "/functions/v1/create-order", {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           customer_name: data.get("customer_name"),
           customer_email: data.get("customer_email"),
           customer_phone: data.get("customer_phone"),
@@ -518,21 +523,11 @@ function openCheckout(type = "regular", initialRequest = "") {
           items,
           idempotency_key: state.idempotencyKey,
           company_website: data.get("company_website"),
-        },
+        }),
       });
-
-      if (error) {
-        let detail = error.message || "Permintaan checkout gagal.";
-        try {
-          const response = error.context;
-          if (response && typeof response.json === "function") {
-            const body = await response.json();
-            if (body?.error) detail = body.error;
-          }
-        } catch {
-          // Keep the Supabase Functions error message.
-        }
-        throw new Error(detail);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result?.error || "Permintaan checkout gagal (" + response.status + ").");
       }
       if (!result?.success || !result?.order?.order_number) {
         throw new Error(result?.error || "Server tidak mengembalikan nomor transaksi.");
