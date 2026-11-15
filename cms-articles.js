@@ -86,25 +86,15 @@ function plainArticleText(markdown) {
 }
 
 function countMatches(text, phrase) {
-  if (!phrase) return 0;
-  const escaped=phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\function syncArticleMeta() {
-  const form=$("articleForm");
-  if (!form) return;
-  const f=form.elements;
-  const title=f.title.value.trim();
-  const excerpt=f.excerpt.value.trim();
-  const seoTitle=f.seo_title.value.trim() || title || "Judul artikel akan tampil di sini";
-  const seoDescription=f.seo_description.value.trim() || excerpt || "Deskripsi artikel akan tampil di sini.";
-  const content=f.content_markdown.value;
-  const words=content.trim() ? content.trim().split(/\s+/).length : 0;
-  $("articleWordCount").textContent=words+" kata · "+content.length+" karakter";
-  $("seoPreviewTitle").textContent=seoTitle;
-  $("seoPreviewDescription").textContent=seoDescription;
-  $("seoTitleMeter").style.width=Math.min(100,(f.seo_title.value.length/60)*100)+"%";
-  $("seoDescriptionMeter").style.width=Math.min(100,(f.seo_description.value.length/155)*100)+"%";
-}");
-  const matches=String(text || "").match(new RegExp("(^|[^\\p{L}\\p{N}])"+escaped+"(?=$|[^\\p{L}\\p{N}])","giu"));
-  return matches ? matches.length : 0;
+  const haystack=String(text || "").toLocaleLowerCase("id-ID");
+  const needle=String(phrase || "").toLocaleLowerCase("id-ID").trim();
+  if (!needle) return 0;
+  let count=0, index=0;
+  while ((index=haystack.indexOf(needle,index)) !== -1) {
+    count++;
+    index += needle.length;
+  }
+  return count;
 }
 
 function seoCheck(label, state, detail) {
