@@ -238,3 +238,6 @@ revoke all on function public.attach_order_to_current_customer(uuid) from public
 grant execute on function public.attach_order_to_current_customer(uuid) to authenticated;
 
 commit;
+
+-- Refresh PostgREST so the new customer RPCs are immediately discoverable.
+NOTIFY pgrst, 'reload schema';
