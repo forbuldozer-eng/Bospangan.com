@@ -4,58 +4,142 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Dashboard CMS Bos Pangan untuk Super Admin dan Admin.">
+<meta name="theme-color" content="#1b2138">
+<link rel="icon" type="image/svg+xml" href="/assets/bospangan-icon.svg">
 <title>CMS Bos Pangan</title>
 <style>
-:root{--ink:#193e34;--green:#195d43;--pale:#edf4e9;--line:#dce3d7;--muted:#64736a}
-*{box-sizing:border-box}
-body{margin:0;background:#f7f9f4;color:var(--ink);font:15px/1.5 system-ui,sans-serif}
-header{background:#a9d5f6;padding:16px max(4%,calc((100% - 1120px)/2));display:flex;justify-content:space-between;align-items:center;gap:14px}
-a{color:var(--green)}
-button,input,select,textarea{font:inherit}
-button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:9px 13px;cursor:pointer}
-button.primary{background:var(--green);color:#fff;border-color:var(--green)}
-button:disabled{opacity:.55;cursor:wait}
-main{width:min(1120px,92%);margin:28px auto 70px}
-.muted{color:var(--muted)}
-.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;margin:16px 0}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px;vertical-align:top}
-th{background:#f4f7f0}
-.table-wrap{overflow:auto}
-.status{padding:10px;border-radius:9px;background:#f2f5ed;min-height:40px}
-.hidden{display:none!important}
-input,select,textarea{border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;max-width:100%}
-@media(max-width:600px){header{align-items:flex-start;flex-direction:column}main{margin-top:18px}.panel{padding:14px}th,td{padding:8px}}
+:root{--nav:#1b2138;--nav2:#242c49;--nav3:#303954;--green:#0d8b57;--green2:#11b981;--ink:#27324a;--muted:#8490a5;--line:#e6eaf0;--canvas:#f3f6fb;--white:#fff;--shadow:0 12px 32px #17213a0c}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--canvas)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}.hidden{display:none!important}
+.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:264px;background:var(--nav);color:#aab2c3;z-index:30;display:flex;flex-direction:column;transition:transform .22s ease}
+.brand{height:76px;display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:1px solid #ffffff12;color:#fff}
+.brand img{width:42px;height:42px;object-fit:contain;background:#fff;border-radius:50%;padding:3px}.brand strong{font-size:18px;letter-spacing:.14em}.brand small{display:block;color:#aab2c3;font-size:10px;letter-spacing:.13em;text-transform:uppercase}
+.side-scroll{overflow:auto;flex:1;padding:12px 0 24px;scrollbar-width:thin;scrollbar-color:#4b5369 transparent}
+.nav-group{margin:0 0 4px}.group-toggle{width:100%;border:0;background:transparent;color:#f2f4f8;display:flex;align-items:center;justify-content:space-between;padding:15px 16px;font-weight:750;text-align:left;font-size:14px}
+.group-toggle:hover,.nav-link:hover{background:#ffffff0b}.group-toggle .left{display:flex;align-items:center;gap:12px}.group-toggle .chev{color:#aeb8c9;transition:transform .18s}.nav-group.closed .chev{transform:rotate(-90deg)}
+.group-icon{width:38px;height:38px;border-radius:6px;background:#4a5064;display:grid;place-items:center;color:#e6e9ef;font-size:17px;flex:0 0 auto}
+.nav-items{padding:0 0 8px}.nav-group.closed .nav-items{display:none}
+.nav-link{width:100%;min-height:52px;padding:8px 14px 8px 35px;border:0;background:transparent;color:#929bad;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font-weight:650;font-size:14px}
+.nav-link .nav-icon{width:40px;height:40px;border-radius:6px;background:#4a5064;color:#c5cad4;display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.nav-link.active{color:#fff;background:#ffffff0d}.nav-link.active .nav-icon{background:#0c9d72;color:#fff}
+.sidebar-bottom{padding:12px 16px;border-top:1px solid #ffffff14;font-size:11px;color:#8c96aa}
+.main{margin-left:264px;min-height:100vh}.topbar{height:76px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:sticky;top:0;z-index:20}
+.top-left{display:flex;align-items:center;gap:14px}.menu-toggle{display:none;border:0;background:#f1f4f8;border-radius:9px;width:40px;height:40px;font-size:20px;color:var(--ink)}
+.breadcrumb{color:#8a95a7;font-size:13px}.breadcrumb strong{color:#303b53}.top-actions{display:flex;align-items:center;gap:16px}.site-link{font-size:13px;color:#66738a;font-weight:650}.user-menu{display:flex;align-items:center;gap:10px}.avatar{width:38px;height:38px;border-radius:50%;background:#e4f3e9;color:#17633f;display:grid;place-items:center;font-weight:850}.user-copy{line-height:1.25}.user-copy strong{display:block;font-size:13px}.user-copy small{color:#8792a5;font-size:11px}
+.content{padding:28px 30px 60px;max-width:1600px;margin:0 auto}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 22px}.page-title{margin:0;color:#27324a;font-size:24px;letter-spacing:-.04em}.page-subtitle{margin:5px 0 0;color:#8993a5;font-size:13px}.head-actions{display:flex;gap:9px;flex-wrap:wrap}
+.btn{border:1px solid #dfe5ed;background:#fff;color:#536078;border-radius:7px;padding:9px 14px;font-weight:650}.btn.primary{background:var(--green2);border-color:var(--green2);color:#fff}.btn:hover{filter:brightness(.97)}
+.status{background:#edf7f1;color:#276448;border:1px solid #d9eddf;border-radius:8px;padding:10px 13px;min-height:40px;margin:0 0 18px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px;margin:16px 0;box-shadow:var(--shadow)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.stat-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;box-shadow:var(--shadow)}.stat-top{display:flex;align-items:center;justify-content:space-between;color:#8994a7;font-size:12px;font-weight:650}.stat-symbol{width:38px;height:38px;border-radius:9px;background:#eaf7f1;color:#0b9b6a;display:grid;place-items:center;font-size:18px}.stat-card strong{display:block;font-size:24px;letter-spacing:-.04em;margin-top:10px}.stat-card small{color:#9aa3b2}
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.quick-card{border:1px solid var(--line);border-radius:9px;padding:18px;background:#fff;text-align:left;display:flex;align-items:center;gap:14px}.quick-card:hover{border-color:#9edac1;box-shadow:var(--shadow)}.quick-icon{width:42px;height:42px;border-radius:9px;background:#eef7f2;color:#13895d;display:grid;place-items:center;font-size:19px}.quick-card strong{display:block}.quick-card small{color:#8c96a8}
+.table-wrap{overflow:auto;width:100%}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;border-bottom:1px solid #edf0f4;padding:12px 10px;vertical-align:middle}th{background:#f8fafc;color:#9aa4b5;text-transform:uppercase;letter-spacing:.06em;font-size:10px;font-weight:800}td{color:#536078}input,select,textarea{border:1px solid #dfe5ed;border-radius:7px;padding:10px 11px;color:#34415b;background:#fff;max-width:100%}input:focus,select:focus,textarea:focus{outline:2px solid #d8f1e5;border-color:#6fc9a2}label{color:#536078;font-weight:650;font-size:13px}
+#adminView .panel{box-shadow:none}#adminView h2,#adminView h3{color:#303b53}#adminView .row{display:flex;gap:12px;flex-wrap:wrap}#adminView .row>label{flex:1;min-width:180px}#adminView .tabs{display:none!important}#adminView .panel .panel{background:#fbfcfe;border-color:#edf0f4}#adminView button.primary{background:var(--green2);border-color:var(--green2);color:#fff}
+#adminView button{border-radius:7px}#adminView .muted{color:#8a95a7}
+.placeholder{min-height:280px;display:grid;place-items:center;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:36px}.placeholder .symbol{font-size:34px;color:#0b9b6a}.placeholder h2{margin:12px 0 4px}.placeholder p{max-width:560px;color:#8792a5;margin:0}
+#accessPanel{margin-top:18px}#accessPanel h2{margin-top:0}
+.scrim{display:none}
+@media(max-width:1100px){.sidebar{width:238px}.main{margin-left:238px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.sidebar{transform:translateX(-100%);width:270px}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:grid;place-items:center}.topbar{height:64px;padding:0 15px}.content{padding:20px 15px 45px}.user-copy{display:none}.scrim.show{display:block;position:fixed;inset:0;background:#0d142a88;z-index:25}.page-head{flex-direction:column}.stats{gap:10px}.stat-card{padding:14px}.quick-grid{grid-template-columns:1fr}}
+@media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.stat-card strong{font-size:20px}.top-actions{gap:8px}.site-link{font-size:11px}.content{padding-left:12px;padding-right:12px}.panel{padding:14px}}
 </style>
 </head>
 <body>
-<header>
-  <div><strong>Bos Pangan CMS</strong><div class="muted">Sistem pengelolaan website</div></div>
-  <div class="row"><a href="/">Kembali ke website</a><button id="logout" type="button">Keluar</button></div>
-</header>
-<main>
-  <section class="panel">
-    <p class="muted">DASHBOARD CMS</p>
-    <h1 id="welcome">Memeriksa akun…</h1>
-    <div id="identity" class="muted"></div>
-    <div id="roleBadge" class="status">Memeriksa hak akses…</div>
-  </section>
-  <div id="status" class="status" role="status">Menghubungkan ke Supabase…</div>
-
-  <section id="accessPanel" class="panel hidden">
-    <h2>Pengelolaan Akun Admin</h2>
-    <p class="muted">Menu ini hanya tersedia untuk Super Admin. Buat akun pengguna melalui Supabase → Authentication → Users → Add user. Setelah akun dibuat, berikan akses Admin dari tabel berikut.</p>
-    <p class="muted">Akun tanpa peran tidak dapat membuka CMS. Super Admin utama dilindungi dan tidak dapat diubah dari tabel ini.</p>
-    <div id="membersTable" class="table-wrap"><p class="muted">Memuat akun…</p></div>
-  </section>
-
-  <section id="adminView" class="hidden">
-    <h2>Pengelolaan Website</h2>
-    <p class="muted">Kelola katalog produk, stok, pajak, pesanan, transaksi khusus, dan campaign Bos Pangan.</p>
-  </section>
-</main>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="/dashboard.html"><img src="/assets/bos-pangan-logo.webp" alt="Bos Pangan"><span><strong>BOS PANGAN</strong><small>Control Center</small></span></a>
+  <nav class="side-scroll" aria-label="Menu CMS">
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Dashboard</span><span class="chev">⌄</span></button>
+      <div class="nav-items"><button class="nav-link active" data-page="overview"><span>Ringkasan</span><span class="nav-icon">▦</span></button></div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Publication</span><span class="group-icon">▤</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="news"><span>Berita / Blog</span><span class="nav-icon">▣</span></button>
+        <button class="nav-link" data-page="pages"><span>Halaman</span><span class="nav-icon">▧</span></button>
+        <button class="nav-link" data-page="feeds"><span>Feeds Timeline</span><span class="nav-icon">▤</span></button>
+        <button class="nav-link" data-page="banner"><span>Banner</span><span class="nav-icon">▧</span></button>
+        <button class="nav-link" data-page="category-order"><span>Urutan Kategori</span><span class="nav-icon">▥</span></button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Goods</span><span class="group-icon">▥</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="products"><span>Produk</span><span class="nav-icon">▥</span></button>
+        <button class="nav-link" data-page="categories"><span>Kategori Produk</span><span class="nav-icon">▦</span></button>
+        <button class="nav-link" data-page="media"><span>Media & Galeri</span><span class="nav-icon">▧</span></button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Sales</span><span class="group-icon">🛒</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="orders"><span>Pesanan / Cart</span><span class="nav-icon">🛒</span></button>
+        <button class="nav-link" data-page="special"><span>Transaksi Khusus</span><span class="nav-icon">⇄</span></button>
+        <button class="nav-link" data-page="invoice"><span>Invoice</span><span class="nav-icon">▤</span></button>
+        <button class="nav-link" data-page="customers"><span>Pelanggan</span><span class="nav-icon">♙</span></button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Report</span><span class="group-icon">▥</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="transaction-report"><span>Laporan Transaksi</span><span class="nav-icon">▥</span></button>
+        <button class="nav-link" data-page="product-report"><span>Laporan Produk</span><span class="nav-icon">▥</span></button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Promo</span><span class="group-icon">▱</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="campaigns"><span>Promosi Produk</span><span class="nav-icon">▤</span></button>
+        <button class="nav-link" data-page="coupons"><span>Kupon</span><span class="nav-icon">▤</span></button>
+      </div>
+    </div>
+    <div class="nav-group">
+      <button class="group-toggle" type="button"><span class="left">Settings</span><span class="group-icon">⚙</span></button>
+      <div class="nav-items">
+        <button class="nav-link" data-page="admins" data-super-only><span>Admin & Hak Akses</span><span class="nav-icon">♙</span></button>
+        <button class="nav-link" data-page="store-settings" data-super-only><span>Pengaturan Toko</span><span class="nav-icon">⚙</span></button>
+        <button class="nav-link" data-page="notifications"><span>Notifikasi</span><span class="nav-icon">♧</span></button>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-bottom">Bos Pangan CMS · Secure Admin Workspace</div>
+</aside>
+<div class="scrim" id="scrim"></div>
+<div class="main">
+  <header class="topbar">
+    <div class="top-left"><button class="menu-toggle" id="menuToggle" aria-label="Buka menu">☰</button><div class="breadcrumb">Bos Pangan <span> / </span><strong id="crumb">Dashboard</strong></div></div>
+    <div class="top-actions"><a class="site-link" href="/" target="_blank" rel="noopener">Lihat Website ↗</a><div class="user-menu"><div class="avatar" id="avatar">BP</div><div class="user-copy"><strong id="topName">Admin Bos Pangan</strong><small id="topRole">Administrator</small></div></div><button class="btn" id="logout" type="button">Keluar</button></div>
+  </header>
+  <main class="content">
+    <section id="overviewView">
+      <div class="page-head"><div><h1 class="page-title">Dashboard Bos Pangan</h1><p class="page-subtitle" id="welcome">Memeriksa akun…</p></div><div class="head-actions"><span class="btn" id="roleBadge">Memeriksa hak akses…</span></div></div>
+      <div id="status" class="status" role="status">Menghubungkan ke Supabase…</div>
+      <div class="stats">
+        <article class="stat-card"><div class="stat-top"><span>Manajemen Katalog</span><span class="stat-symbol">▥</span></div><strong>Produk</strong><small>Tambah, edit, stok, pajak, dan publikasi</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Penjualan</span><span class="stat-symbol">🛒</span></div><strong>Pesanan</strong><small>Kelola transaksi reguler dan khusus</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Promosi</span><span class="stat-symbol">✉</span></div><strong>Campaign</strong><small>Email dan notifikasi pelanggan</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Administrasi</span><span class="stat-symbol">⚙</span></div><strong>Kontrol akses</strong><small>Admin dan Super Admin</small></article>
+      </div>
+      <h2 style="font-size:17px;margin:26px 0 12px">Akses Cepat</h2>
+      <div class="quick-grid">
+        <button class="quick-card" data-page="products"><span class="quick-icon">▥</span><span><strong>Kelola Produk</strong><small>Katalog dan inventori</small></span></button>
+        <button class="quick-card" data-page="orders"><span class="quick-icon">🛒</span><span><strong>Pesanan Masuk</strong><small>Periksa transaksi pelanggan</small></span></button>
+        <button class="quick-card" data-page="campaigns"><span class="quick-icon">✉</span><span><strong>Campaign</strong><small>Promosi email dan push</small></span></button>
+      </div>
+    </section>
+    <section id="placeholderView" class="hidden">
+      <div class="page-head"><div><h1 class="page-title" id="placeholderTitle">Modul CMS</h1><p class="page-subtitle" id="placeholderSubtitle">Pengelolaan konten Bos Pangan</p></div></div>
+      <div class="placeholder"><div><div class="symbol">▦</div><h2 id="placeholderHeading">Modul sedang disiapkan</h2><p id="placeholderText">Tampilan menu sudah disediakan. Integrasi penyimpanan dan proses backend akan dibuat setelah struktur data modul ditentukan.</p></div></div>
+    </section>
+    <section id="accessPanel" class="panel hidden">
+      <h2>Pengelolaan Akun Admin</h2>
+      <p class="muted">Menu ini hanya tersedia untuk Super Admin. Buat akun melalui Supabase Authentication, lalu atur hak aksesnya di sini. Super Admin utama tetap terlindungi.</p>
+      <div id="membersTable" class="table-wrap"><p class="muted">Memuat akun…</p></div>
+    </section>
+    <div id="adminView" class="hidden"></div>
+  </main>
+</div>
+</div>
 <script type="module" src="/dashboard.js"></script>
 <script type="module" src="/admin-commerce.js"></script>
-</body>
-</html>
+</body></html>
