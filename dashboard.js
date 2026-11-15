@@ -8,8 +8,23 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
 }[c]));
 const status = message => { $("status").textContent = message; };
 
+const roleLabels = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  product_manager: "Product Manager",
+  warehouse_manager: "Warehouse Manager",
+  order_manager: "Order Manager",
+  customer_service: "Customer Service",
+  marketing_manager: "Marketing Manager",
+  finance_manager: "Finance Manager",
+  customer: "Pelanggan",
+  none: "Belum diberi akses"
+};
+const cmsRoles = Object.keys(roleLabels).filter(role => !["super_admin", "customer", "none"].includes(role));
+
 let currentUser = null;
 let currentRole = null;
+let currentPermissions = [];
 
 const pageInfo = {
   news:["Berita / Blog","Kelola artikel dan publikasi Bos Pangan","Modul publikasi artikel belum dihubungkan ke database CMS."],
@@ -119,12 +134,21 @@ async function loadAdminAccounts() {
           return '<tr><td>' + name + '</td><td>' + email +
             '</td><td><strong>Super Admin (terlindungi)</strong></td><td>' + date + '</td></tr>';
         }
-        const selected = profile.role === "admin" ? "admin" : profile.role === "customer" ? "customer" : "none";
+        const selected = profile.role && roleLabels[profile.role] ? profile.role : "none";
+        const options = [
+          ["none", "Belum diberi akses"],
+          ["customer", "Pelanggan (tanpa akses CMS)"],
+          ["admin", "Admin (akses penuh)"],
+          ["product_manager", "Product Manager"],
+          ["warehouse_manager", "Warehouse Manager"],
+          ["order_manager", "Order Manager"],
+          ["customer_service", "Customer Service"],
+          ["marketing_manager", "Marketing Manager"],
+          ["finance_manager", "Finance Manager"]
+        ];
         return '<tr><td>' + name + '</td><td>' + email +
           '</td><td><select data-role-user="' + esc(profile.id) + '">' +
-          '<option value="none" ' + (selected === "none" ? "selected" : "") + '>Belum ditetapkan</option>' +
-          '<option value="customer" ' + (selected === "customer" ? "selected" : "") + '>Pelanggan (tanpa akses CMS)</option>' +
-          '<option value="admin" ' + (selected === "admin" ? "selected" : "") + '>Admin</option>' +
+          options.map(([value, label]) => '<option value="' + value + '" ' + (selected === value ? "selected" : "") + '>' + label + '</option>').join("") +
           '</select></td><td>' + date + '</td></tr>';
       }).join("") +
       '</tbody></table>'
@@ -145,11 +169,7 @@ async function loadAdminAccounts() {
         return;
       }
 
-      status(select.value === "admin"
-        ? "Akses Admin berhasil diberikan."
-        : select.value === "customer"
-          ? "Akun dikembalikan ke role Pelanggan."
-          : "Akses CMS berhasil dicabut.");
+      status("Role " + (roleLabels[select.value] || "Belum diberi akses") + " berhasil diterapkan.");
       await loadAdminAccounts();
     });
   });
@@ -172,7 +192,7 @@ async function init() {
     .eq("id", currentUser.id)
     .single();
 
-  if (error || !profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (error || !profile || !["admin", "super_admin", ...cmsRoles].includes(profile.role)) {
     await supabase.auth.signOut();
     alert("Akun ini belum memiliki akses CMS Bos Pangan.");
     location.href = "/";
@@ -180,8 +200,14 @@ async function init() {
   }
 
   currentRole = profile.role;
+  const permissionResult = await supabase.rpc("get_my_permissions");
+  if (permissionResult.error) {
+    status("Gagal memeriksa hak akses. Hubungi Super Admin.");
+    throw permissionResult.error;
+  }
+  currentPermissions = permissionResult.data || [];
   const displayName = profile.display_name || currentUser.email || "Admin";
-  const roleName = currentRole === "super_admin" ? "Super Admin" : "Admin";
+  const roleName = roleLabels[currentRole] || "Admin";
   $("welcome").textContent = "Selamat datang, " + displayName + ". Pilih menu di samping untuk mulai mengelola website.";
   $("identity")?.textContent && ($("identity").textContent = profile.email || currentUser.email || "");
   $("roleBadge").textContent = "Hak akses: " + roleName;
@@ -196,7 +222,17 @@ async function init() {
     await loadAdminAccounts();
   }
 
-  status("Dashboard CMS siap.");
+  // Until each CMS module has its own permission-aware interface, custom roles
+  // receive a safe overview-only workspace rather than seeing unusable controls.
+  if (!["admin", "super_admin"].includes(currentRole)) {
+    document.querySelectorAll("[data-page]").forEach(node => {
+      if (node.dataset.page !== "overview") node.classList.add("hidden");
+    });
+    document.querySelectorAll(".quick-card").forEach(node => node.classList.add("hidden"));
+    status("Akses aktif: " + roleName + ". Antarmuka modul sesuai hak akses akan diaktifkan bertahap.");
+  } else {
+    status("Dashboard CMS siap.");
+  }
   activatePage("overview");
 }
 
