@@ -1,7 +1,7 @@
 -- Bos Pangan CMS identity and access control.
--- Only two CMS roles exist: super_admin and admin.
--- New Auth users receive a profile with NULL role and cannot access the CMS
--- until the Super Admin explicitly grants the admin role.
+-- CMS privileges are limited to super_admin and admin.
+-- Customer accounts may self-register, but the customer role never grants CMS access.
+-- Unassigned Auth users have NULL role until the account is explicitly classified.
 
 begin;
 
@@ -12,7 +12,7 @@ create table if not exists public.profiles (
   role text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint profiles_role_check check (role is null or role in ('admin', 'super_admin'))
+  constraint profiles_role_check check (role is null or role in ('customer', 'admin', 'super_admin'))
 );
 
 alter table public.profiles add column if not exists email text not null default '';
@@ -80,7 +80,7 @@ grant select on public.profiles to authenticated;
 grant update (display_name, updated_at) on public.profiles to authenticated;
 
 -- Only a Super Admin may grant or revoke Admin access.
--- p_role accepts 'admin' to grant access or 'none' to revoke access.
+-- p_role accepts 'admin', 'customer', or 'none' (unassigned).
 -- The first Super Admin is assigned separately from the Supabase SQL Editor.
 create or replace function public.admin_set_user_role(p_user_id uuid, p_role text)
 returns void
@@ -99,7 +99,7 @@ begin
     raise exception 'The Super Admin cannot change their own access here';
   end if;
 
-  if coalesce(p_role, '') not in ('admin', 'none') then
+  if coalesce(p_role, '') not in ('admin', 'customer', 'none') then
     raise exception 'Invalid CMS access role';
   end if;
 
@@ -117,7 +117,7 @@ begin
   end if;
 
   update public.profiles
-  set role = case when p_role = 'admin' then 'admin' else null end,
+  set role = case when p_role in ('admin', 'customer') then p_role else null end,
       updated_at = now()
   where id = p_user_id;
 end;
@@ -127,7 +127,8 @@ revoke all on function public.admin_set_user_role(uuid, text) from public;
 grant execute on function public.admin_set_user_role(uuid, text) to authenticated;
 
 -- Create an unprivileged profile for every account created in Supabase Auth.
--- Email is synced on account creation and email changes. No role is granted.
+-- Only the website's fixed signup marker can assign the customer role.
+-- Metadata can never assign admin or super_admin.
 create or replace function public.handle_auth_user_profile()
 returns trigger
 language plpgsql
@@ -135,11 +136,16 @@ security definer
 set search_path = ''
 as $$
 begin
-  insert into public.profiles (id, email, display_name)
+  insert into public.profiles (id, email, display_name, role)
   values (
     new.id,
     coalesce(new.email, ''),
-    coalesce(new.raw_user_meta_data ->> 'display_name', '')
+    coalesce(new.raw_user_meta_data ->> 'display_name', ''),
+    case
+      when new.raw_user_meta_data ->> 'signup_source' = 'bospangan_customer'
+        then 'customer'
+      else null
+    end
   )
   on conflict (id) do update
     set email = excluded.email,
