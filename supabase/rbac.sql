@@ -143,7 +143,7 @@ as $$
 $$;
 
 revoke all on function public.has_permission(text) from public;
-grant execute on function public.has_permission(text) to authenticated;
+grant execute on function public.has_permission(text) to anon, authenticated;
 
 -- Warehouse stock changes use a dedicated RPC so inventory users cannot
 -- alter product prices, tax, publication state, or other catalog fields.
@@ -152,7 +152,7 @@ returns void
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $rbac$
 begin
   if not public.has_permission('inventory.update') then
     raise exception 'You do not have permission to update inventory';
@@ -179,7 +179,7 @@ begin
     jsonb_build_object('new_stock', p_new_stock)
   );
 end;
-$;
+$rbac$;
 
 revoke all on function public.update_product_stock(uuid, numeric) from public;
 grant execute on function public.update_product_stock(uuid, numeric) to authenticated;
@@ -305,20 +305,23 @@ create or replace function public.enforce_product_stock_permissions()
 returns trigger
 language plpgsql
 set search_path = ''
-as $
+as $rbac$
 begin
   if not public.is_admin()
-     and new.stock is distinct from old.stock
-     and not public.has_permission('inventory.update') then
-    raise exception 'Only users with inventory.update may change product stock';
+     and not public.has_permission('inventory.update')
+     and (
+       (tg_op = 'INSERT' and new.stock <> 0)
+       or (tg_op = 'UPDATE' and new.stock is distinct from old.stock)
+     ) then
+    raise exception 'Only users with inventory.update may set or change product stock';
   end if;
   return new;
 end;
-$;
+$rbac$;
 
 drop trigger if exists trg_enforce_product_stock_permissions on public.products;
 create trigger trg_enforce_product_stock_permissions
-before update on public.products
+before insert or update on public.products
 for each row execute function public.enforce_product_stock_permissions();
 
 -- Order permissions. Public checkout remains exclusively through the server function.
@@ -344,35 +347,22 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $rbac$
 begin
   if not public.is_admin() then
     if not public.has_permission('orders.update') then
       raise exception 'You do not have permission to update orders';
     end if;
-    if new.id is distinct from old.id
-      or new.order_number is distinct from old.order_number
-      or new.customer_id is distinct from old.customer_id
-      or new.customer_name is distinct from old.customer_name
-      or new.customer_email is distinct from old.customer_email
-      or new.customer_phone is distinct from old.customer_phone
-      or new.customer_address is distinct from old.customer_address
-      or new.transaction_type is distinct from old.transaction_type
-      or new.special_request is distinct from old.special_request
-      or new.subtotal is distinct from old.subtotal
-      or new.tax_percent is distinct from old.tax_percent
-      or new.tax_amount is distinct from old.tax_amount
-      or new.total is distinct from old.total
-      or new.payment_status is distinct from old.payment_status
-      or new.admin_note is distinct from old.admin_note
-      or new.created_at is distinct from old.created_at
+    if (to_jsonb(new) - array['status','updated_at'])
+       is distinct from
+       (to_jsonb(old) - array['status','updated_at'])
     then
       raise exception 'This role may update order status only';
     end if;
   end if;
   return new;
 end;
-$;
+$rbac$;
 
 drop trigger if exists trg_enforce_order_update_permissions on public.orders;
 create trigger trg_enforce_order_update_permissions
