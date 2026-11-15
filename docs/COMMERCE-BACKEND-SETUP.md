@@ -74,15 +74,18 @@ Customer sign-ups receive only the customer role. Create CMS users separately fr
 
 ## 7. Server-side secrets and Edge Functions
 
-Set these secrets only in the new Supabase project:
+Open **Supabase → Edge Functions → Secrets** in the new project. Add custom secrets only here; never put provider keys in frontend files, GitHub, SQL, screenshots, or chat.
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY` (the new Publishable key)
-- `SUPABASE_SERVICE_ROLE_KEY` (server-side only; never expose to the browser)
-- `ALLOWED_ORIGIN` (the new Vercel deployment origin)
-- `RESEND_API_KEY` (when email delivery is enabled)
-- `EMAIL_FROM` (verified sender address)
-- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (when browser push is enabled)
+For transactional order email, set:
+
+- `RESEND_API_KEY` — a Resend API key with Sending access, preferably restricted to the verified Bos Pangan sending domain.
+- `EMAIL_FROM` — a sender identity on the verified domain, for example `Bos Pangan <pesanan@bospangan.com>`. Use this only after Resend shows `bospangan.com` as verified for sending.
+
+The `create-order` function reads the built-in `SUPABASE_URL` and the project's default server secret key from `SUPABASE_SECRET_KEYS.default`. It supports the legacy `SUPABASE_SERVICE_ROLE_KEY` as a fallback, but do not put any Supabase secret/service-role key in browser code.
+
+The function optionally reads `ALLOWED_ORIGINS` (plural, comma-separated origins). The code already includes `https://bospangan.com`, `https://www.bospangan.com`, and the current Vercel production hostname by default; add a custom origin only when needed.
+
+For browser push, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` only after the push workflow is configured.
 
 Deploy the Edge Functions to the new project:
 
@@ -90,6 +93,17 @@ Deploy the Edge Functions to the new project:
 supabase functions deploy create-order
 supabase functions deploy send-product-campaign
 ```
+
+## 8. Enable owner order-email notifications
+
+1. In Resend → Domains, confirm `bospangan.com` has a **Verified** sending status. If not, add the exact DKIM/SPF records displayed by Resend to the authoritative DNS zone at Domainesia. Do not replace existing Vercel A/CNAME records; add Resend records alongside them. Add the optional DMARC TXT record separately.
+2. In Resend → API Keys, create a dedicated key with **Sending access** and domain restriction if available. Copy it once; it starts with `re_`.
+3. In Supabase → Edge Functions → Secrets, save `RESEND_API_KEY` and `EMAIL_FROM` using the values described above.
+4. Sign in to `https://bospangan.com/cms/` as Super Admin. Open **Pengaturan**, enter the owner notification email, leave **Aktifkan notifikasi email** checked, and save.
+5. Place a low-value test order after the configuration is ready. The order email should arrive at the owner address. Check **Email & Push → Log notifikasi email pesanan** in the CMS for delivery status.
+6. If an email shows failed, inspect the recorded provider error in the CMS log and correct the sender/domain/API-key configuration before trying another order.
+
+Orders created before the Resend secrets and owner email are configured are not automatically resent by the current checkout request. The new configuration applies to subsequent orders. Do not use a real customer's order to test the email service.
 
 ## Important operational notes
 
