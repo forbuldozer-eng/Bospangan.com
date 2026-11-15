@@ -322,6 +322,10 @@ async function renderAccount() {
       ? '<div class="customer-order-list">' + orders.map((order) => {
           const statusInfo = orderStatusDetails(order.status);
           const paymentLabel = paymentStatusLabel(order.payment_status);
+          const canCancel = order.payment_status === "unpaid" && (
+            (order.transaction_type === "regular" && order.status === "new") ||
+            (order.transaction_type === "special" && order.status === "quoted")
+          );
           return `
             <article class="customer-order">
               <div><strong>${esc(order.order_number)}</strong><small>${esc(new Date(order.created_at).toLocaleDateString("id-ID"))}</small></div>
@@ -329,6 +333,7 @@ async function renderAccount() {
               <div class="customer-order-state customer-order-state--${esc(statusInfo.tone)}">${esc(statusInfo.label)}</div>
               <small class="customer-order-payment">Pembayaran: ${esc(paymentLabel)}</small>
               <p class="customer-order-description">${esc(statusInfo.description)}</p>
+              ${canCancel ? `<button type="button" class="customer-auth-secondary customer-order-cancel" data-cancel-order="${esc(order.id)}">Batalkan pesanan</button>` : ""}
             </article>
           `;
         }).join("") + '</div>'
@@ -346,8 +351,32 @@ async function renderAccount() {
     </div>
     <h3 class="customer-history-title">Riwayat pesanan</h3>
     ${orderRows}
-    ${orders?.length && !orderError ? '<p class="customer-auth-muted">Status pesanan dan informasi pembayaran mengikuti pembaruan dari Admin Bos Pangan.</p>' : ''}
+    ${orders?.length && !orderError ? '<p class="customer-auth-muted">Pesanan yang masih menunggu konfirmasi dan belum dibayar dapat dibatalkan. Setelah pembatalan berhasil, stok produk dikembalikan ke katalog.</p>' : ''}
   `);
+
+  panel.querySelectorAll("[data-cancel-order]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const orderId = button.dataset.cancelOrder;
+      if (!orderId) return;
+      const approved = confirm("Batalkan pesanan ini? Stok produk akan dikembalikan ke katalog. Pembatalan tidak dapat dibuka kembali.");
+      if (!approved) return;
+
+      button.disabled = true;
+      button.textContent = "Membatalkan...";
+      const { error } = await supabase.rpc("cancel_customer_order", { p_order_id: orderId });
+      if (error) {
+        button.disabled = false;
+        button.textContent = "Batalkan pesanan";
+        const feedback = document.createElement("small");
+        feedback.className = "customer-auth-error";
+        feedback.textContent = error.message || "Pesanan tidak dapat dibatalkan.";
+        button.insertAdjacentElement("afterend", feedback);
+        return;
+      }
+      await renderAccount();
+    });
+  });
+
   $("editCustomerName").addEventListener("click", async () => {
     const next = prompt("Nama pelanggan:", profile.display_name || "");
     if (next === null) return;
