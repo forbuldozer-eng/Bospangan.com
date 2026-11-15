@@ -220,9 +220,8 @@ function renderProducts() {
   $("more").hidden = true;
   const sectionTitle = document.querySelector("#katalog h2");
   if (sectionTitle) sectionTitle.textContent = "Produk tersedia untuk dipesan";
-  const note = document.querySelector("#katalog > small");
-  if (note) note.textContent = "Harga, stok, foto, dan pajak mengikuti katalog yang diterbitkan melalui CMS Bos Pangan.";
-  $("status").textContent = visible.length + " produk tersedia";
+  // Keep internal CMS/catalogue diagnostics out of the customer-facing storefront.
+  $("status").textContent = "";
   renderFilters();
   updateCartBadge();
 }
