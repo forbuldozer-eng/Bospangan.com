@@ -108,8 +108,7 @@ const TRANSITION_WORDS = [
 
 function highlightTransitionWords(value) {
   const words = [...TRANSITION_WORDS].sort((a, b) => b.length - a.length);
-  const pattern = words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\function markdownPreview(markdown) {
-  const sourceLines = String(markdown || "").split(/\r?\n/);")).join("|");
+  const pattern = words.join("|");
   const regex = new RegExp("(^|[^\\p{L}\\p{N}_])(" + pattern + ")(?=$|[^\\p{L}\\p{N}_])", "giu");
   return String(value).replace(regex, (match, prefix, word) =>
     prefix + '<mark class="transition-word-tag" title="Terdeteksi sebagai kata/frasa transisi" style="background:#fff1b8;color:#765300;border-bottom:2px solid #e0ae32;border-radius:3px;padding:0 2px;">' + word + "</mark>"
