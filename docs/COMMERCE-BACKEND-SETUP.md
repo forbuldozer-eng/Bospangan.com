@@ -35,8 +35,9 @@ Open SQL Editor in the **new** Supabase project and run these files in this exac
 2. `supabase/commerce-backend.sql` — products, product image Storage, tax settings, regular and special orders, email/push campaign tables, and audit log.
 3. `supabase/checkout.sql` — secure server-side checkout, stock reservation, rate limiting, and public tax lookup.
 4. `supabase/customer-accounts.sql` — customer role, customer-only profile enrollment, own-order and own-order-item read policies, and secure order-to-account linking.
+5. `supabase/order-cancellation.sql` — safe cancellation for eligible unpaid orders and one-time restoration of reserved regular-order stock.
 
-The customer migration must be run after the checkout migration. It is safe to re-run.
+The customer migration must be run after the checkout migration. The order-cancellation migration must be run after both the checkout and customer-account migrations. These migrations are safe to re-run.
 
 ## 4. Create the first Super Admin
 
