@@ -80,6 +80,7 @@ function installStyles() {
     ".bp-alert{padding:11px 13px;border-radius:10px;background:#f4f6ed;margin:10px 0}",
     ".bp-success{padding:16px;border-radius:12px;background:#edf6ed;border:1px solid #c8dfc8}",
     ".bp-honeypot{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}",
+    ".hidden{display:none!important}",
     ".bp-modal-image{display:block;width:100%;max-height:230px;object-fit:contain;background:#f8faf5;border-radius:10px;margin-bottom:12px}",
     "@media(max-width:600px){.bp-form-grid{grid-template-columns:1fr}.bp-wide{grid-column:auto}.bp-line{grid-template-columns:1fr}.bp-product-image,.bp-product-placeholder{height:130px}}",
   ].join("\n");
