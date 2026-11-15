@@ -307,7 +307,50 @@ on public.orders for update to authenticated
 using (public.has_permission('orders.update'))
 with check (public.has_permission('orders.update'));
 
+-- Custom order roles may change workflow status only; financial totals,
+-- payment status, customer data, and order snapshots remain protected.
+create or replace function public.enforce_order_update_permissions()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if not public.is_admin() then
+    if not public.has_permission('orders.update') then
+      raise exception 'You do not have permission to update orders';
+    end if;
+    if new.id is distinct from old.id
+      or new.order_number is distinct from old.order_number
+      or new.customer_id is distinct from old.customer_id
+      or new.customer_name is distinct from old.customer_name
+      or new.customer_email is distinct from old.customer_email
+      or new.customer_phone is distinct from old.customer_phone
+      or new.customer_address is distinct from old.customer_address
+      or new.transaction_type is distinct from old.transaction_type
+      or new.special_request is distinct from old.special_request
+      or new.subtotal is distinct from old.subtotal
+      or new.tax_percent is distinct from old.tax_percent
+      or new.tax_amount is distinct from old.tax_amount
+      or new.total is distinct from old.total
+      or new.payment_status is distinct from old.payment_status
+      or new.admin_note is distinct from old.admin_note
+      or new.created_at is distinct from old.created_at
+    then
+      raise exception 'This role may update order status only';
+    end if;
+  end if;
+  return new;
+end;
+$;
+
+drop trigger if exists trg_enforce_order_update_permissions on public.orders;
+create trigger trg_enforce_order_update_permissions
+before update on public.orders
+for each row execute function public.enforce_order_update_permissions();
+
 drop policy if exists "admins manage order items" on public.order_items;
+drop policy if exists "authorized users manage order items" on public.order_items;
 create policy "authorized users read order items"
 on public.order_items for select to authenticated
 using (
@@ -315,10 +358,6 @@ using (
   or public.has_permission('finance.view')
   or public.has_permission('customers.view')
 );
-create policy "authorized users manage order items"
-on public.order_items for all to authenticated
-using (public.has_permission('orders.update'))
-with check (public.has_permission('orders.update'));
 
 -- Campaigns are limited to the marketing permission.
 drop policy if exists "admins manage product campaigns" on public.product_campaigns;
