@@ -524,12 +524,21 @@ async function insertArticleGallery() {
       const safeAlt = alt.replace(/[\[\]]/g, " ").replace(/[\r\n]+/g, " ").trim();
       images.push("![" + safeAlt + "](" + url + ")");
     }
-    const field = $("articleContent");
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    const prefix = start > 0 && !field.value.slice(0, start).endsWith("\n\n") ? "\n\n" : "";
-    const suffix = end < field.value.length && !field.value.slice(end).startsWith("\n\n") ? "\n\n" : "";
-    applyEditorEdit(prefix + images.join(" ") + suffix, start, end);
+    const visual = $("articleVisualEditor");
+    if (visual) {
+      const imageHtml = images.map(markdown => {
+        const match = markdown.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+        return match ? '<img src="' + escapeHtml(match[2]) + '" alt="' + escapeHtml(match[1]) + '" style="width:100%;height:auto;max-height:320px;object-fit:cover;border-radius:9px">' : "";
+      }).join("");
+      insertVisualHtml('<div class="article-visual-gallery">' + imageHtml + '</div>');
+    } else {
+      const field = $("articleContent");
+      const start = field.selectionStart;
+      const end = field.selectionEnd;
+      const prefix = start > 0 && !field.value.slice(0, start).endsWith("\n\n") ? "\n\n" : "";
+      const suffix = end < field.value.length && !field.value.slice(end).startsWith("\n\n") ? "\n\n" : "";
+      applyEditorEdit(prefix + images.join(" ") + suffix, start, end);
+    }
     articleGalleryQueue.forEach(item => URL.revokeObjectURL(item.previewUrl));
     articleGalleryQueue = [];
     $("articleGalleryFiles").value = "";
