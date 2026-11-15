@@ -100,7 +100,24 @@ function applyVisualCommand(command) {
 }
 
 function markdownPreview(markdown) {
-  const lines = String(markdown || "").split(/\r?\n/);
+  const sourceLines = String(markdown || "").split(/\r?\n/);
+  const lines = [];
+  for (let i = 0; i < sourceLines.length; i++) {
+    const current = sourceLines[i].trim();
+    if (/^[-*]$/.test(current)) {
+      let next = i + 1;
+      while (next < sourceLines.length && !sourceLines[next].trim()) next++;
+      if (next < sourceLines.length) {
+        const following = sourceLines[next].trim();
+        if (following && !/^(#{1,6}\s|[-*]\s|\d+\.\s|>|---+$)/.test(following)) {
+          lines.push(current + " " + following);
+          i = next;
+          continue;
+        }
+      }
+    }
+    lines.push(sourceLines[i]);
+  }
   const html = [];
   let listType = null;
   const closeList = () => { if (listType) { html.push(listType === "ol" ? "</ol>" : "</ul>"); listType = null; } };
