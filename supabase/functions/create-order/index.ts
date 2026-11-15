@@ -199,6 +199,11 @@ Deno.serve(async (req) => {
       const resendKey = Deno.env.get("RESEND_API_KEY");
       const emailFrom = Deno.env.get("EMAIL_FROM");
       const queueFilter = "notification_queue?id=eq." + encodeURIComponent(queueItem.id);
+      // Older settings may have been double-serialized into JSONB. Remove
+      // surrounding quote characters before passing the recipient to Resend.
+      const recipientEmail = String(queueItem.recipient_email ?? "")
+        .trim()
+        .replace(/^["']+|["']+$/g, "");
 
       if (!emailEnabled) {
         await databaseRequest(queueFilter, {
@@ -209,6 +214,13 @@ Deno.serve(async (req) => {
         emailStatus = "disabled";
       } else if (!resendKey || !emailFrom) {
         emailStatus = "pending_configuration";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+        await databaseRequest(queueFilter, {
+          method: "PATCH",
+          body: { status: "failed", last_error: "Alamat email penerima owner tidak valid." },
+          prefer: "return=minimal",
+        });
+        emailStatus = "failed";
       } else {
         await databaseRequest(queueFilter, {
           method: "PATCH",
@@ -252,7 +264,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               from: emailFrom,
-              to: [queueItem.recipient_email],
+              to: [recipientEmail],
               subject: queueItem.subject,
               html,
             }),
