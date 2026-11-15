@@ -349,12 +349,6 @@ function resetPasswordForm() {
   });
 }
 
-accountButton?.addEventListener("click", (event) => {
-  if (accountButton.onclick) {
-    event.preventDefault();
-    open();
-  }
-});
 accountButton.textContent = "Masuk / Daftar";
 accountButton.onclick = open;
 
