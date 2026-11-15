@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const allowedOrigins = new Set([
   "https://bospangancom-theta.vercel.app",
   "https://bospangan.com",
@@ -15,7 +13,7 @@ function headersFor(req: Request) {
 
   return {
     "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "apikey, x-client-info, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
@@ -52,6 +50,47 @@ async function fingerprintIp(req: Request): Promise<string | null> {
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+let projectUrl = "";
+let secretApiKey = "";
+
+function databaseUrl(path: string) {
+  return projectUrl.replace(/\/+$/, "") + "/rest/v1/" + path;
+}
+
+// Use the new Supabase secret key only in the apikey header. Do not send it
+// as Authorization: Bearer because sb_secret_* values are not JWTs.
+async function databaseRequest(path: string, options: { method?: string; body?: unknown; prefer?: string } = {}) {
+  const headers: Record<string, string> = {
+    apikey: secretApiKey,
+    "Content-Type": "application/json",
+  };
+  if (options.prefer) headers.Prefer = options.prefer;
+
+  const response = await fetch(databaseUrl(path), {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+
+  const raw = await response.text();
+  let data: any = null;
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = raw;
+    }
+  }
+
+  if (!response.ok) {
+    const detail = typeof data === "object" && data
+      ? data.message ?? data.msg ?? data.error ?? JSON.stringify(data)
+      : String(data ?? response.statusText);
+    throw new Error("Database request failed (" + response.status + "): " + detail);
+  }
+  return data;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 204, headers: headersFor(req) });
   if (req.method !== "POST") return json(req, { error: "Method not allowed" }, 405);
@@ -61,23 +100,19 @@ Deno.serve(async (req) => {
     return json(req, { error: "Origin tidak diizinkan." }, 403);
   }
 
-  const url = Deno.env.get("SUPABASE_URL");
-  let serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!serviceKey) {
-    try {
-      const secretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
-      serviceKey = typeof secretKeys === "string"
-        ? secretKeys
-        : String(secretKeys.default ?? "");
-    } catch {
-      serviceKey = "";
-    }
-  }
-  if (!url || !serviceKey) {
-    return json(req, { error: "Kunci server Supabase belum tersedia pada Edge Function." }, 500);
+  projectUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  try {
+    const configuredSecretKeys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    secretApiKey = String(configuredSecretKeys.default ?? "");
+  } catch {
+    secretApiKey = "";
   }
 
-  const db = createClient(url, serviceKey, { auth: { persistSession: false } });
+  // Backward-compatible fallback for projects still exposing the legacy key.
+  if (!secretApiKey) secretApiKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!projectUrl || !secretApiKey) {
+    return json(req, { error: "Kunci server Supabase belum tersedia pada Edge Function." }, 500);
+  }
 
   try {
     const raw = await req.text();
@@ -121,58 +156,71 @@ Deno.serve(async (req) => {
       return json(req, { error: "Jelaskan kebutuhan transaksi khusus minimal 10 karakter." }, 400);
     }
 
-    const { data: result, error: orderError } = await db.rpc("submit_storefront_order", {
-      p_customer_name: name,
-      p_customer_email: email,
-      p_customer_phone: phone,
-      p_customer_address: address,
-      p_transaction_type: kind,
-      p_special_request: specialRequest,
-      p_items: normalizedItems,
-      p_idempotency_key: idempotencyKey,
-      p_request_fingerprint: await fingerprintIp(req),
+    const result = await databaseRequest("rpc/submit_storefront_order", {
+      method: "POST",
+      body: {
+        p_customer_name: name,
+        p_customer_email: email,
+        p_customer_phone: phone,
+        p_customer_address: address,
+        p_transaction_type: kind,
+        p_special_request: specialRequest,
+        p_items: normalizedItems,
+        p_idempotency_key: idempotencyKey,
+        p_request_fingerprint: await fingerprintIp(req),
+      },
     });
 
-    if (orderError) throw orderError;
     const order = result?.order;
     if (!order?.id || !order?.order_number) {
       throw new Error("Database tidak mengembalikan nomor transaksi.");
     }
 
     let emailStatus = "not_queued";
-    const { data: queueItem, error: queueReadError } = await db
-      .from("notification_queue")
-      .select("id,recipient_email,subject,status")
-      .eq("event_type", "new_order")
-      .in("status", ["pending", "failed"])
-      .eq("payload->>order_id", order.id)
-      .maybeSingle();
+    const queueParams = new URLSearchParams({
+      select: "id,recipient_email,subject,status",
+      event_type: "eq.new_order",
+      status: "in.(pending,failed)",
+      limit: "1",
+    });
+    queueParams.set("payload->>order_id", "eq." + order.id);
 
-    if (queueReadError) {
-      console.error("Notification queue lookup failed:", queueReadError.message);
-      emailStatus = "queued";
-    } else if (queueItem) {
-      const { data: settings } = await db.from("store_settings")
-        .select("key,value")
-        .in("key", ["email_notifications_enabled"]);
+    const queueRows = await databaseRequest("notification_queue?" + queueParams.toString());
+    const queueItem = Array.isArray(queueRows) ? queueRows[0] : null;
+
+    if (queueItem) {
+      const settingsParams = new URLSearchParams({
+        select: "key,value",
+        key: "in.(email_notifications_enabled)",
+      });
+      const settings = await databaseRequest("store_settings?" + settingsParams.toString());
       const config = Object.fromEntries((settings ?? []).map((row: any) => [row.key, row.value]));
       const emailEnabled = config.email_notifications_enabled !== false;
       const resendKey = Deno.env.get("RESEND_API_KEY");
       const emailFrom = Deno.env.get("EMAIL_FROM");
+      const queueFilter = "notification_queue?id=eq." + encodeURIComponent(queueItem.id);
 
       if (!emailEnabled) {
-        await db.from("notification_queue")
-          .update({ status: "failed", last_error: "Notifikasi email dinonaktifkan di pengaturan toko." })
-          .eq("id", queueItem.id);
+        await databaseRequest(queueFilter, {
+          method: "PATCH",
+          body: { status: "failed", last_error: "Notifikasi email dinonaktifkan di pengaturan toko." },
+          prefer: "return=minimal",
+        });
         emailStatus = "disabled";
       } else if (!resendKey || !emailFrom) {
         emailStatus = "pending_configuration";
       } else {
-        await db.from("notification_queue").update({ status: "processing" }).eq("id", queueItem.id);
+        await databaseRequest(queueFilter, {
+          method: "PATCH",
+          body: { status: "processing" },
+          prefer: "return=minimal",
+        });
 
-        const { data: lines } = await db.from("order_items")
-          .select("sku_snapshot,product_name_snapshot,quantity,unit_price,line_subtotal,tax_percent,tax_amount")
-          .eq("order_id", order.id);
+        const itemParams = new URLSearchParams({
+          select: "sku_snapshot,product_name_snapshot,quantity,unit_price,line_subtotal,tax_percent,tax_amount",
+          order_id: "eq." + order.id,
+        });
+        const lines = await databaseRequest("order_items?" + itemParams.toString());
 
         const itemHtml = (lines ?? []).map((line: any) =>
           "<li>" + escapeHtml(line.product_name_snapshot) + " (" + escapeHtml(line.sku_snapshot) +
@@ -216,17 +264,18 @@ Deno.serve(async (req) => {
         }
 
         if (sentOk) {
-          await db.from("notification_queue").update({
-            status: "sent",
-            sent_at: new Date().toISOString(),
-            last_error: null,
-          }).eq("id", queueItem.id);
+          await databaseRequest(queueFilter, {
+            method: "PATCH",
+            body: { status: "sent", sent_at: new Date().toISOString(), last_error: null },
+            prefer: "return=minimal",
+          });
           emailStatus = "sent";
         } else {
-          await db.from("notification_queue").update({
-            status: "failed",
-            last_error: providerError || "Email provider error",
-          }).eq("id", queueItem.id);
+          await databaseRequest(queueFilter, {
+            method: "PATCH",
+            body: { status: "failed", last_error: providerError || "Email provider error" },
+            prefer: "return=minimal",
+          });
           console.error("Order email provider error:", providerError);
           emailStatus = "failed";
         }
