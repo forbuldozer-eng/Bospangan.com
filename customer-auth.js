@@ -42,6 +42,63 @@ function migrationHint() {
   return "Fitur akun pelanggan belum diaktifkan pada database. Super Admin perlu menjalankan supabase/customer-accounts.sql di Supabase SQL Editor.";
 }
 
+const ORDER_STATUS_DETAILS = {
+  new: {
+    label: "Menunggu konfirmasi Admin",
+    description: "Admin sedang memeriksa ketersediaan produk, harga akhir, dan ongkos kirim.",
+    tone: "pending",
+  },
+  quoted: {
+    label: "Menunggu penawaran Admin",
+    description: "Permintaan khusus sedang ditinjau. Admin akan menghubungi Anda untuk detail penawaran.",
+    tone: "pending",
+  },
+  confirmed: {
+    label: "Pesanan dikonfirmasi",
+    description: "Pesanan telah dikonfirmasi oleh Admin Bos Pangan. Ikuti informasi selanjutnya dari Admin.",
+    tone: "confirmed",
+  },
+  processing: {
+    label: "Sedang diproses",
+    description: "Pesanan sedang disiapkan oleh Bos Pangan.",
+    tone: "processing",
+  },
+  shipped: {
+    label: "Dalam pengiriman",
+    description: "Pesanan telah diserahkan untuk pengiriman. Hubungi Admin untuk informasi pengiriman lebih lanjut.",
+    tone: "shipped",
+  },
+  completed: {
+    label: "Pesanan selesai",
+    description: "Pesanan telah ditandai selesai oleh Admin Bos Pangan.",
+    tone: "completed",
+  },
+  cancelled: {
+    label: "Pesanan dibatalkan",
+    description: "Pesanan ini telah dibatalkan dan tidak akan diproses. Hubungi Admin apabila Anda memerlukan bantuan.",
+    tone: "cancelled",
+  },
+};
+
+const PAYMENT_STATUS_LABELS = {
+  unpaid: "Belum dibayar",
+  pending: "Menunggu pembayaran",
+  paid: "Lunas",
+  refunded: "Dana dikembalikan",
+};
+
+function orderStatusDetails(status) {
+  return ORDER_STATUS_DETAILS[status] || {
+    label: "Status: " + String(status || "Belum diketahui"),
+    description: "Silakan hubungi Admin Bos Pangan untuk memastikan perkembangan pesanan.",
+    tone: "pending",
+  };
+}
+
+function paymentStatusLabel(status) {
+  return PAYMENT_STATUS_LABELS[status] || String(status || "Belum diketahui");
+}
+
 function loginForm(notice = "") {
   show("Masuk sebagai pelanggan", `
     <p class="customer-auth-intro">Masuk untuk mengelola informasi akun dan melihat riwayat pesanan Bos Pangan.</p>
@@ -262,13 +319,19 @@ async function renderAccount() {
   const orderRows = orderError
     ? '<p class="customer-auth-muted">Riwayat pesanan belum tersedia. Pastikan migrasi customer-accounts.sql sudah dijalankan.</p>'
     : orders?.length
-      ? '<div class="customer-order-list">' + orders.map((order) => `
-          <article class="customer-order">
-            <div><strong>${esc(order.order_number)}</strong><small>${esc(new Date(order.created_at).toLocaleDateString("id-ID"))}</small></div>
-            <div><span>${order.transaction_type === "special" ? "Permintaan khusus" : "Pesanan reguler"}</span><strong>Rp${Number(order.total || 0).toLocaleString("id-ID")}</strong></div>
-            <small>Status: ${esc(order.status)} · Pembayaran: ${esc(order.payment_status)}</small>
-          </article>
-        `).join("") + '</div>'
+      ? '<div class="customer-order-list">' + orders.map((order) => {
+          const statusInfo = orderStatusDetails(order.status);
+          const paymentLabel = paymentStatusLabel(order.payment_status);
+          return `
+            <article class="customer-order">
+              <div><strong>${esc(order.order_number)}</strong><small>${esc(new Date(order.created_at).toLocaleDateString("id-ID"))}</small></div>
+              <div><span>${order.transaction_type === "special" ? "Permintaan khusus" : "Pesanan reguler"}</span><strong>Rp${Number(order.total || 0).toLocaleString("id-ID")}</strong></div>
+              <div class="customer-order-state customer-order-state--${esc(statusInfo.tone)}">${esc(statusInfo.label)}</div>
+              <small class="customer-order-payment">Pembayaran: ${esc(paymentLabel)}</small>
+              <p class="customer-order-description">${esc(statusInfo.description)}</p>
+            </article>
+          `;
+        }).join("") + '</div>'
       : '<p class="customer-auth-muted">Belum ada pesanan yang tercatat di akun ini.</p>';
 
   show("Akun pelanggan", `
@@ -283,7 +346,7 @@ async function renderAccount() {
     </div>
     <h3 class="customer-history-title">Riwayat pesanan</h3>
     ${orderRows}
-    <p class="customer-auth-muted">Pesanan menunggu konfirmasi Admin. Pembayaran dilakukan setelah Admin menghubungi Anda.</p>
+    ${orders?.length && !orderError ? '<p class="customer-auth-muted">Status pesanan dan informasi pembayaran mengikuti pembaruan dari Admin Bos Pangan.</p>' : ''}
   `);
   $("editCustomerName").addEventListener("click", async () => {
     const next = prompt("Nama pelanggan:", profile.display_name || "");
