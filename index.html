@@ -173,6 +173,13 @@
 .customer-order{display:grid;gap:5px;padding:11px;border:1px solid var(--line);border-radius:10px}
 .customer-order>div{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .customer-order small{color:#64766a}
+.customer-order-state{display:inline-flex;align-self:start;width:fit-content;max-width:100%;padding:4px 9px;border-radius:999px;font-size:12px;line-height:1.4;font-weight:750;background:#f5f1dc;color:#755515}
+.customer-order-state--confirmed,.customer-order-state--processing{background:#e8f2eb;color:#17633f}
+.customer-order-state--shipped{background:#e8f1f8;color:#245d86}
+.customer-order-state--completed{background:#e5f3e8;color:#17633f}
+.customer-order-state--cancelled{background:#faeaea;color:#a12626}
+.customer-order-payment{font-size:12px;color:#64766a}
+.customer-order-description{margin:0;font-size:12px;line-height:1.55;color:#52675a}
 .customer-auth-link{color:#fff;background:var(--green);text-decoration:none}
 @media(max-width:420px){#customerAuthBox{width:96vw}.customer-auth-shell{padding:16px}.customer-auth-head h2{font-size:20px}}
 </style>
