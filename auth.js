@@ -42,8 +42,11 @@ function loginForm(notice = "") {
       <label>Email Admin
         <input name="email" type="email" autocomplete="username" maxlength="254" required>
       </label>
-      <label>Password
-        <input name="password" type="password" autocomplete="current-password" required>
+      <label>Password Admin
+        <div class="password-field">
+          <input id="adminPassword" name="password" type="password" autocomplete="current-password" required>
+          <button id="toggleAdminPassword" class="toggle-password" type="button" aria-pressed="false">Tampilkan</button>
+        </div>
       </label>
       <p id="authStatus" class="auth-error" role="status">${esc(notice)}</p>
       <button class="primary full" type="submit">Masuk ke CMS</button>
@@ -86,6 +89,14 @@ function loginForm(notice = "") {
     } finally {
       submit.disabled = false;
     }
+  };
+
+  $("toggleAdminPassword").onclick = () => {
+    const input = $("adminPassword");
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    $("toggleAdminPassword").textContent = visible ? "Sembunyikan" : "Tampilkan";
+    $("toggleAdminPassword").setAttribute("aria-pressed", String(visible));
   };
 
   $("forgot").onclick = async () => {
@@ -156,12 +167,23 @@ function resetPassword() {
   show("Buat Password Baru", `
     <form id="resetForm" class="auth-form">
       <label>Password baru
-        <input name="password" type="password" minlength="8" autocomplete="new-password" required>
+        <div class="password-field">
+          <input id="resetPasswordInput" name="password" type="password" minlength="8" autocomplete="new-password" required>
+          <button id="toggleResetPassword" class="toggle-password" type="button" aria-pressed="false">Tampilkan</button>
+        </div>
       </label>
       <p id="authStatus" role="status"></p>
       <button class="primary full" type="submit">Simpan Password</button>
     </form>
   `);
+
+  $("toggleResetPassword").onclick = () => {
+    const input = $("resetPasswordInput");
+    const visible = input.type === "password";
+    input.type = visible ? "text" : "password";
+    $("toggleResetPassword").textContent = visible ? "Sembunyikan" : "Tampilkan";
+    $("toggleResetPassword").setAttribute("aria-pressed", String(visible));
+  };
 
   $("resetForm").onsubmit = async event => {
     event.preventDefault();
@@ -184,8 +206,8 @@ window.TWSAuth = { open };
 
 const accountButton = $("accountTop");
 if (accountButton) {
-  accountButton.textContent = "Login Admin";
-  accountButton.onclick = () => { location.href = "/cms/"; };
+  accountButton.textContent = "Masuk / Daftar";
+  accountButton.onclick = () => window.BPCustomerAuth?.open();
 }
 
 if (ready) {
