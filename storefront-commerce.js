@@ -475,6 +475,19 @@ function openCheckout(type = "regular", initialRequest = "") {
   form.append(nameLabel, emailLabel, phoneLabel, addressLabel, typeLabel, requestLabel, summary, note, honeypot, status, submit);
   panel.append(form);
 
+  // Prefill customer identity when a customer is signed in. The email is kept
+  // fixed so the order can be securely attached to that same customer account.
+  db.auth.getSession().then(({ data }) => {
+    const sessionUser = data?.session?.user;
+    if (!sessionUser) return;
+    nameInput.value = sessionUser.user_metadata?.display_name || nameInput.value;
+    emailInput.value = sessionUser.email || "";
+    emailInput.readOnly = true;
+    emailInput.title = "Email mengikuti akun pelanggan yang sedang login.";
+    const hint = el("small", "bp-muted", "Pesanan ini akan ditautkan ke akun pelanggan Anda.");
+    emailLabel.append(hint);
+  }).catch((error) => console.warn("Customer session lookup:", error));
+
   const updateFields = () => {
     const isRegular = typeSelect.value === "regular";
     addressInput.required = isRegular;
@@ -534,6 +547,17 @@ function openCheckout(type = "regular", initialRequest = "") {
         throw new Error(result?.error || "Server tidak mengembalikan nomor transaksi.");
       }
 
+      // Link the accepted order to the signed-in customer only after the
+      // database verifies that the order email matches the Auth email.
+      const { data: customerSession } = await db.auth.getSession();
+      if (customerSession?.session?.user && result.order?.id) {
+        const { error: linkError } = await db.rpc("attach_order_to_current_customer", {
+          p_order_id: result.order.id,
+        });
+        result.customer_order_linked = !linkError;
+        if (linkError) console.warn("Customer order linking:", linkError.message);
+      }
+
       state.cart = {};
       saveStorage(cartStorageKey, state.cart);
       updateCartBadge();
@@ -559,6 +583,11 @@ function showOrderSuccess(result) {
   success.append(el("p", "", "Subtotal: " + rupiah(order.subtotal)));
   success.append(el("p", "", "Pajak: " + rupiah(order.tax_amount)));
   success.append(el("p", "", "Total perkiraan: " + rupiah(order.total)));
+  if (result.customer_order_linked === true) {
+    success.append(el("p", "bp-muted", "Pesanan ini sudah ditautkan ke akun pelanggan Anda dan dapat dilihat dari menu Akun Pelanggan."));
+  } else if (result.customer_order_linked === false) {
+    success.append(el("p", "bp-muted", "Pesanan sudah tersimpan. Namun, pesanan belum tertaut ke riwayat akun pelanggan. Hubungi Admin Bos Pangan untuk bantuan."));
+  }
   if (result.email_status === "sent") {
     success.append(el("p", "bp-muted", "Notifikasi email sudah dikirim ke tim Bos Pangan."));
   } else if (result.email_status === "pending_configuration") {
