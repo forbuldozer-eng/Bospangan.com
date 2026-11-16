@@ -181,7 +181,7 @@ begin
   if p_old_quantity=0 then return round(p_incoming_unit_cost,2); end if;
   return round(((p_old_quantity*p_old_average_cost)+(p_incoming_quantity*p_incoming_unit_cost))/(p_old_quantity+p_incoming_quantity),2);
 end;
-$;
+$$;
 revoke all on function public.calculate_moving_average_cost(numeric,numeric,numeric,numeric) from public;
 
 -- Create a draft purchase order and its item snapshots atomically.
