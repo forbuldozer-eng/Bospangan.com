@@ -41,7 +41,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 @media(max-width:1100px){.sidebar{width:238px}.main{margin-left:238px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.sidebar{transform:translateX(-100%);width:270px}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.menu-toggle{display:grid;place-items:center}.topbar{height:64px;padding:0 15px}.content{padding:20px 15px 45px}.user-copy{display:none}.scrim.show{display:block;position:fixed;inset:0;background:#0d142a88;z-index:25}.page-head{flex-direction:column}.stats{gap:10px}.stat-card{padding:14px}.quick-grid{grid-template-columns:1fr}}
 @media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.stat-card strong{font-size:20px}.top-actions{gap:8px}.site-link{font-size:11px}.content{padding-left:12px;padding-right:12px}.panel{padding:14px}}
-</style>
+.report-filters,.report-table-filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.report-filters label,.report-table-filters label{display:flex;flex-direction:column;gap:5px;min-width:150px;flex:1}.report-chart{display:flex;align-items:stretch;gap:12px;min-height:190px;padding:22px 4px 0;overflow:auto}.report-bar-item{min-width:55px;flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}.report-bar-value{font-size:10px;color:#7c8799;white-space:nowrap}.report-bar-track{height:120px;width:100%;display:flex;align-items:end;background:#f4f7fa;border-radius:7px 7px 0 0;overflow:hidden}.report-bar{width:100%;min-height:3px;background:linear-gradient(180deg,#11b981,#0d8b57);border-radius:6px 6px 0 0}.report-bar-item small,.report-sub{font-size:10px;color:#8993a5}.report-sub{display:block;margin-top:3px}.report-empty{padding:26px;text-align:center;color:#8993a5}.report-pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#f1f5f9;color:#536078;font-size:11px;white-space:nowrap}.report-stats-small{grid-template-columns:repeat(2,minmax(0,1fr))}@media print{.sidebar,.topbar,.head-actions,.report-filters,.report-table-filters,#reportSearch{display:none!important}.main{margin:0}.content{padding:0}.panel,.stat-card{box-shadow:none;break-inside:avoid}}</style>
 </head>
 <body>
 <div class="app">
@@ -170,6 +170,31 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
         <div id="articlesTable" class="table-wrap">Memuat artikel...</div>
       </section>
     </section>
+    <section id="transactionReportView" class="hidden">
+      <div class="page-head"><div><h1 class="page-title">Laporan Transaksi</h1><p class="page-subtitle">Analisis penjualan, pembayaran, dan pesanan Bos Pangan.</p></div><div class="head-actions"><button class="btn" id="reportPrint" type="button">Cetak / PDF</button><button class="btn primary" id="reportExport" type="button">Export CSV</button></div></div>
+      <div id="reportStatus" class="status" role="status" aria-live="polite">Menyiapkan laporan…</div>
+      <section class="panel report-filters">
+        <label>Periode cepat<select id="reportPreset"><option value="30">30 hari terakhir</option><option value="today">Hari ini</option><option value="7">7 hari terakhir</option><option value="month">Bulan ini</option></select></label>
+        <label>Dari tanggal<input id="reportStart" type="date"></label><label>Sampai tanggal<input id="reportEnd" type="date"></label>
+        <button class="btn primary" id="reportApply" type="button">Terapkan</button><button class="btn" id="reportRefresh" type="button">Muat ulang</button>
+      </section>
+      <div class="stats report-stats">
+        <article class="stat-card"><div class="stat-top"><span>Omzet Dibayar</span><span class="stat-symbol">Rp</span></div><strong id="reportRevenue">Rp0</strong><small>Pesanan tidak dibatalkan dan pembayaran lunas</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Total Pesanan</span><span class="stat-symbol">▤</span></div><strong id="reportCount">0</strong><small>Semua status pesanan</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Transaksi Lunas</span><span class="stat-symbol">✓</span></div><strong id="reportPaid">0</strong><small>Pembayaran berhasil</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Menunggu Pembayaran</span><span class="stat-symbol">◷</span></div><strong id="reportWaiting">0</strong><small>Belum dibayar atau pending</small></article>
+      </div>
+      <section class="panel"><div class="row" style="align-items:center;justify-content:space-between"><div><h2 style="margin:0">Tren omzet</h2><p class="page-subtitle">Omzet transaksi lunas per hari</p></div><strong id="reportRowsInfo">0 transaksi</strong></div><div id="reportChart" class="report-chart"></div></section>
+      <div class="stats report-stats report-stats-small">
+        <article class="stat-card"><div class="stat-top"><span>Pesanan Selesai & Lunas</span></div><strong id="reportCompleted">0</strong></article>
+        <article class="stat-card"><div class="stat-top"><span>Pesanan Dibatalkan</span></div><strong id="reportCancelled">0</strong></article>
+      </div>
+      <section class="panel"><h2 style="margin-top:0">Produk terlaris</h2><div id="reportTopProducts"></div></section>
+      <section class="panel"><div class="row" style="align-items:end;justify-content:space-between"><div><h2 style="margin:0">Rincian transaksi</h2><p class="page-subtitle">Cari dan filter daftar pesanan</p></div><input id="reportSearch" placeholder="Cari nomor pesanan / pelanggan"></div>
+        <div class="row report-table-filters"><label>Jenis<select id="reportType"><option value="all">Semua</option><option value="regular">Reguler</option><option value="special">Khusus</option></select></label><label>Status pesanan<select id="reportStatus"><option value="all">Semua</option><option value="new">Baru</option><option value="confirmed">Dikonfirmasi</option><option value="processing">Diproses</option><option value="shipped">Dikirim</option><option value="completed">Selesai</option><option value="cancelled">Dibatalkan</option><option value="quoted">Penawaran</option></select></label><label>Pembayaran<select id="reportPayment"><option value="all">Semua</option><option value="unpaid">Belum dibayar</option><option value="pending">Pending</option><option value="paid">Lunas</option><option value="refunded">Refund</option></select></label></div>
+        <div id="reportTable"></div>
+      </section>
+    </section>
     <section id="accessPanel" class="panel hidden">
       <h2>Pengelolaan Akun Admin</h2>
       <p class="muted">Menu ini hanya tersedia untuk Super Admin. Buat akun melalui Supabase Authentication, lalu atur hak aksesnya di sini. Super Admin utama tetap terlindungi.</p>
@@ -180,6 +205,6 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 </div>
 </div>
 <script type="module" src="/cms-articles.js"></script>
-<script type="module" src="/dashboard.js"></script>
+<script type="module" src="/dashboard.js"></script>\n<script type="module" src="/transaction-report.js"></script>
 <script type="module" src="/admin-commerce.js"></script>
 </body></html>
