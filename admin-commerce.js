@@ -201,7 +201,7 @@ function renderCurrentImages(urls = []) {
   note.textContent = "Foto baru akan ditambahkan; total maksimal 5 foto. Klik foto untuk membuka ukuran penuh.";
   root.append(note);
 }
-function editProduct(p){
+async function editProduct(p){
   editingId=p.id;const f=$("productForm").elements;
   await loadProductCategoryOptions(p.category);
   for(const key of ["name","sku","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
