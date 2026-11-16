@@ -131,7 +131,7 @@ function downloadCsv(filename, rows) {
 }
 
 function normalizeHeader(value) {
-  const key = String(value ?? "").replace(/^\\uFEFF/, "").trim().toLowerCase()
+  const key = String(value ?? "").replace(String.fromCharCode(0xFEFF), "").trim().toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[\s./-]+/g, "_").replace(/^_+|_+$/g, "");
   const aliases = {
