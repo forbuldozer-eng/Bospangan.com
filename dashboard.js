@@ -28,7 +28,7 @@ const pageInfo = {
   categories:["Kategori Produk","Kelola kategori katalog Bos Pangan","Kategori produk yang aktif saat ini mengikuti daftar kategori pada katalog. Pengelolaan dinamis memerlukan tabel kategori."],
   media:["Media & Galeri","Kelola foto dan video aset website","Pusat penyimpanan gambar dan video website Bos Pangan."],
   invoice:["Invoice","Dokumen transaksi dan tagihan pelanggan","Backend saat ini menyimpan pesanan dan rincian transaksi; pembuatan invoice PDF belum tersedia."],
-  customers:["Pelanggan","Data pelanggan dan preferensi komunikasi","Daftar pelanggan berbasis akun dan izin notifikasi belum disatukan ke satu modul CRM."],
+  customers:["Pelanggan","Database pelanggan, kontak, dan riwayat transaksi","Kelola pelanggan dari akun terdaftar, transaksi, dan import CSV."],
   "transaction-report":["Laporan Transaksi","Ringkasan penjualan dan status pesanan","Laporan analitik belum dibuat. Data transaksi tersedia di menu Pesanan."],
   "product-report":["Laporan Produk","Ringkasan katalog dan inventori","Laporan stok dan performa produk belum dibuat. Data produk tersedia di menu Produk."],
   coupons:["Kupon & Voucher","Kelola kode promosi dan potongan harga","Sistem kupon belum tersedia pada backend saat ini."],
@@ -54,6 +54,7 @@ function activatePage(page){
   closeMobileMenu();
   if (page !== "media") $("mediaAdminPanel")?.classList.add("hidden");
   if (page !== "invoice") $("invoiceAdminPanel")?.classList.add("hidden");
+  if (page !== "customers") $("customerDatabasePanel")?.classList.add("hidden");
 
   if(page === "overview"){
     showOnly("overviewView");
@@ -121,6 +122,19 @@ function activatePage(page){
     $("mediaAdminPanel")?.classList.add("hidden");
     $("invoiceAdminPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:invoice-open"));
+    return;
+  }
+  if(page === "customers"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    $("mediaAdminPanel")?.classList.add("hidden");
+    $("invoiceAdminPanel")?.classList.add("hidden");
+    $("customerDatabasePanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:customers-open"));
     return;
   }
   if(page === "news"){
