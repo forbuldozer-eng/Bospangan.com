@@ -46,7 +46,7 @@ function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
-    overview:"Dashboard",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
+    overview:"Dashboard",pages:"Landing Page",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
     campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
     notifications:"Log Notifikasi"
   };
@@ -55,6 +55,11 @@ function activatePage(page){
 
   if(page === "overview"){
     showOnly("overviewView");
+    return;
+  }
+  if(page === "pages"){
+    showOnly("adminView");
+    window.dispatchEvent(new CustomEvent("cms:landing-pages-open"));
     return;
   }
   if(page === "news"){
