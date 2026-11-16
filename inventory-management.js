@@ -74,8 +74,13 @@ function addPurchaseLine(){
  root.append(row);
 }
 async function loadProducts(){
- const {data,error}=await db.from("products").select("id,sku,name,unit,price,stock,cost_price,cost_initialized,is_published").order("name");
- if(error)throw error;products=data||[];
+ const {data,error}=await db.from("products").select("id,sku,name,unit,price,stock,is_published").order("name");
+ if(error)throw error;
+ const ids=(data||[]).map(product=>product.id);
+ const {data:costRows,error:costError}=ids.length?await db.from("product_inventory_costs").select("product_id,average_cost,cost_initialized").in("product_id",ids):{data:[],error:null};
+ if(costError)throw costError;
+ const costByProduct=new Map((costRows||[]).map(row=>[row.product_id,row]));
+ products=(data||[]).map(product=>{const cost=costByProduct.get(product.id);return {...product,cost_price:Number(cost?.average_cost||0),cost_initialized:Boolean(cost?.cost_initialized)};});
  const qty=products.reduce((sum,p)=>sum+Number(p.stock||0),0),value=products.reduce((sum,p)=>sum+Number(p.stock||0)*Number(p.cost_price||0),0);
  $("invProductCount").textContent=products.length.toLocaleString("id-ID");
  $("invStockQty").textContent=qty.toLocaleString("id-ID");
