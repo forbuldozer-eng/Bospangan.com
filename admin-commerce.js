@@ -130,8 +130,12 @@ async function loadProductCategoryOptions(selected = ""){
 }
 async function loadProducts(){
   await loadProductCategoryOptions(editingId ? $("productForm")?.elements?.category?.value : "");
-  const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});
+  const {data:productRows,error}=await db.from("products").select("*").order("created_at",{ascending:false});
   if(error)throw error;
+  const {data:costRows,error:costError}=await db.from("product_inventory_costs").select("product_id,average_cost,cost_initialized");
+  if(costError)throw costError;
+  const costByProduct=new Map((costRows||[]).map(row=>[row.product_id,row]));
+  const data=(productRows||[]).map(product=>{const cost=costByProduct.get(product.id);return {...product,cost_price:Number(cost?.average_cost||0),cost_initialized:Boolean(cost?.cost_initialized)};});
   $("productsTable").innerHTML=data.length?'<table><thead><tr><th>Produk</th><th>SKU</th><th>Kategori</th><th>Harga jual</th><th>HPP rata-rata</th><th>Stok</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+
     data.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.sku)+'</td><td>'+esc(p.category)+'</td><td>'+money(p.price)+'</td><td>'+money(p.cost_price)+'</td><td>'+Number(p.stock||0).toLocaleString("id-ID")+' '+esc(p.unit)+'</td><td>'+(p.is_published?"Tayang":"Draft")+'</td><td><button data-edit="'+p.id+'">Edit</button> <button data-delete="'+p.id+'">Hapus</button></td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada produk dari dashboard.</p>';
   $("campaignProduct").innerHTML=data.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.sku)+'</option>').join("");
