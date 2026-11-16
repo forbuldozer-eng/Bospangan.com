@@ -222,6 +222,8 @@ declare
   v_new_cost numeric(14,2);
   v_old_stock numeric(14,3);
   v_old_cost numeric(14,2);
+  v_line_index integer := 0;
+  v_allocated_total numeric(14,2) := 0;
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
   select * into v_po from public.purchase_orders where id=p_purchase_order_id for update;
@@ -235,11 +237,15 @@ begin
   loop
     select * into v_product from public.products where id=v_item.product_id for update;
     if not found then raise exception 'Produk % tidak ditemukan',v_item.product_name_snapshot; end if;
-    if v_po.subtotal > 0 then
+    v_line_index := v_line_index + 1;
+    if v_line_index = v_line_count then
+      v_allocated := v_po.additional_cost - v_allocated_total;
+    elsif v_po.subtotal > 0 then
       v_allocated := round(v_po.additional_cost*(v_item.line_subtotal/v_po.subtotal),2);
     else
       v_allocated := round(v_po.additional_cost/v_line_count,2);
     end if;
+    v_allocated_total := v_allocated_total + v_allocated;
     v_landed_unit := round(v_item.unit_cost + (v_allocated/v_item.quantity),2);
     v_old_stock := v_product.stock;
     v_old_cost := v_product.cost_price;
