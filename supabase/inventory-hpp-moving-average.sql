@@ -172,7 +172,7 @@ create or replace function public.calculate_moving_average_cost(
   p_incoming_unit_cost numeric
 ) returns numeric
 language plpgsql immutable set search_path = ''
-as $
+as $$
 begin
   if coalesce(p_old_quantity,-1)<0 or coalesce(p_incoming_quantity,0)<=0
      or coalesce(p_old_average_cost,-1)<0 or coalesce(p_incoming_unit_cost,-1)<0 then
