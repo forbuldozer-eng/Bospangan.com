@@ -131,9 +131,9 @@ function downloadCsv(filename, rows) {
 }
 
 function normalizeHeader(value) {
-  const key = String(value ?? "").trim().toLowerCase()
-    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-    .replace(/[\\s.-]+/g, "_");
+  const key = String(value ?? "").replace(/^\\uFEFF/, "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s./-]+/g, "_").replace(/^_+|_+$/g, "");
   const aliases = {
     email: "email", e_mail: "email", alamat_email: "email",
     nama: "nama", name: "nama", customer_name: "nama", nama_pelanggan: "nama",
