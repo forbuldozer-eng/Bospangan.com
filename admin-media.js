@@ -73,6 +73,9 @@ function panelMarkup() {
     <div id="mediaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
   `;
   $("adminView").append(panel);
+  // The first cms:media-open event may fire before this panel exists.
+  // Remove the initial hidden class here so the newly mounted panel is visible immediately.
+  panel.classList.remove("hidden");
   $("mediaRefresh").addEventListener("click", loadMedia);
   $("mediaSearch").addEventListener("input", renderMedia);
   $("mediaTypeFilter").addEventListener("change", renderMedia);
