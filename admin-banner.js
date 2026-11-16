@@ -68,7 +68,7 @@ function updatePreview() {
   $("bannerPreviewCta").textContent = f.elements.cta_label.value || "Tombol";
   const preview = $("bannerLivePreview");
   preview.style.backgroundColor = color;
-  const url = $("bannerImagePreview").dataset.url || "";
+  const url = $("bannerImagePreview").dataset.previewUrl || $("bannerImagePreview").dataset.url || "";
   preview.style.backgroundImage = url ? "linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.08)),url('" + url.replace(/['()\\]/g,"") + "')" : "none";
 }
 function bind() {
@@ -90,6 +90,7 @@ function bind() {
     $("bannerImagePreview").src = url;
     $("bannerImagePreview").style.display = "block";
     $("bannerImagePreview").dataset.local = "1";
+    $("bannerImagePreview").dataset.previewUrl = url;
     $("bannerImageState").textContent = file.name;
     updatePreview();
     $("bannerLivePreview").style.backgroundImage = "linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.08)),url('" + url + "')";
