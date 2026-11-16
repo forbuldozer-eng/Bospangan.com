@@ -15,7 +15,7 @@ alter table public.product_inventory_costs enable row level security;
 drop policy if exists "admins read product inventory costs" on public.product_inventory_costs;
 create policy "admins read product inventory costs" on public.product_inventory_costs
   for select to authenticated using (public.is_admin());
-revoke all on public.product_inventory_costs from anon,authenticated;
+revoke all on public.product_inventory_costs from public,anon,authenticated;
 grant select on public.product_inventory_costs to authenticated;
 
 -- The CMS loads categories dynamically from product_categories. Remove the old
@@ -199,7 +199,7 @@ declare
   v_po_id uuid;
   v_line jsonb;
   v_product public.products%rowtype;
-  v_qty numeric(14,3);
+  v_qty numeric;
   v_cost numeric(14,2);
   v_subtotal numeric(14,2) := 0;
   v_additional numeric(14,2) := greatest(coalesce(p_additional_cost,0),0);
@@ -208,15 +208,18 @@ begin
   if not exists(select 1 from public.suppliers where id=p_supplier_id and is_active) then
     raise exception 'Supplier tidak ditemukan atau tidak aktif';
   end if;
-  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items)=0 then
-    raise exception 'Minimal satu item pembelian harus diisi';
+  if coalesce(jsonb_typeof(p_items),'') <> 'array' then
+    raise exception 'Daftar item pembelian tidak valid';
   end if;
+  if jsonb_array_length(p_items)=0 then raise exception 'Minimal satu item pembelian harus diisi'; end if;
   if v_additional <> coalesce(p_additional_cost,0) then raise exception 'Biaya tambahan tidak valid'; end if;
 
   for v_line in select value from jsonb_array_elements(p_items) loop
     v_qty := (v_line->>'quantity')::numeric;
     v_cost := (v_line->>'unit_cost')::numeric;
-    if v_qty <= 0 or v_cost < 0 then raise exception 'Kuantitas atau harga beli tidak valid'; end if;
+    if v_qty <= 0 or round(v_qty,3)<>v_qty or v_cost < 0 or round(v_cost,2)<>v_cost then
+      raise exception 'Kuantitas (maksimal 3 desimal) atau harga beli (maksimal 2 desimal) tidak valid';
+    end if;
     select * into v_product from public.products where id=(v_line->>'product_id')::uuid;
     if not found then raise exception 'Produk pembelian tidak ditemukan'; end if;
     v_subtotal := v_subtotal + round(v_qty*v_cost,2);
@@ -329,7 +332,7 @@ declare
   v_new_paid numeric(14,2);
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
-  if coalesce(p_amount,0)<=0 then raise exception 'Nominal pembayaran harus lebih dari nol'; end if;
+  if coalesce(p_amount,0)<=0 or round(p_amount,2)<>p_amount then raise exception 'Nominal pembayaran harus lebih dari nol dengan maksimal 2 desimal'; end if;
   select * into v_po from public.purchase_orders where id=p_purchase_order_id for update;
   if not found or v_po.status<>'received' then raise exception 'Pembelian belum diterima atau tidak ditemukan'; end if;
   if p_amount>v_po.balance_due then raise exception 'Pembayaran melebihi sisa hutang'; end if;
@@ -403,7 +406,7 @@ declare
   v_movement text;
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
-  if coalesce(p_quantity_delta,0)=0 then raise exception 'Perubahan stok tidak boleh nol'; end if;
+  if coalesce(p_quantity_delta,0)=0 or round(p_quantity_delta,3)<>p_quantity_delta then raise exception 'Perubahan stok wajib bukan nol dan maksimal 3 desimal'; end if;
   if p_quantity_delta>0 and coalesce(p_unit_cost,-1)<0 then raise exception 'Harga modal wajib diisi untuk stok masuk'; end if;
   if coalesce(trim(p_reason),'')='' then raise exception 'Alasan penyesuaian wajib diisi'; end if;
   select * into v_product from public.products where id=p_product_id for update;
