@@ -4,7 +4,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const categories = ["Daging sapi","Ikan","Ayam","Sayuran","Minyak","Beras","Bumbu dapur","Buah"];
+let categories = ["Daging sapi","Ikan","Ayam","Sayuran","Minyak","Beras","Bumbu dapur","Buah","Bebek"];
 const money = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
 let user, role, editingId = null;
 
@@ -112,7 +112,21 @@ async function uploadImages(files, oldUrls=[]){
   if(urls.length>5) throw new Error("Total foto produk maksimal 5.");
   return urls;
 }
+async function loadProductCategoryOptions(selected = ""){
+  const select = $("productForm")?.elements?.category;
+  if (!select) return;
+  const {data,error} = await db.from("product_categories").select("name").eq("is_active",true).order("sort_order",{ascending:true});
+  if (error) {
+    message("Kategori produk belum dapat dimuat: " + error.message);
+    return;
+  }
+  categories = (data || []).map(row => row.name);
+  if (selected && !categories.includes(selected)) categories.push(selected);
+  select.innerHTML = categories.map(name => '<option value="' + esc(name) + '">' + esc(name) + '</option>').join("");
+  if (selected) select.value = selected;
+}
 async function loadProducts(){
+  await loadProductCategoryOptions(editingId ? $("productForm")?.elements?.category?.value : "");
   const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});
   if(error)throw error;
   $("productsTable").innerHTML=data.length?'<table><thead><tr><th>Produk</th><th>SKU</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+
@@ -189,6 +203,7 @@ function renderCurrentImages(urls = []) {
 }
 function editProduct(p){
   editingId=p.id;const f=$("productForm").elements;
+  await loadProductCategoryOptions(p.category);
   for(const key of ["name","sku","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
   f.is_published.checked=p.is_published;f.is_featured.checked=p.is_featured;
   $("productFormTitle").textContent="Edit produk · "+p.sku;
