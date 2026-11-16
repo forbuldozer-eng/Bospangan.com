@@ -3,33 +3,46 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const hero = document.getElementById("homeHero");
+
 if (hero) {
-  db.from("site_banners").select("eyebrow,title,description,cta_label,cta_url,background_color,background_image_url,is_active").eq("id","home").maybeSingle()
-    .then(({data,error}) => {
-      if (error || !data) return;\n      if (data.is_active === false) { hero.hidden = true; return; }\n      hero.hidden = false;
+  db.from("site_banners")
+    .select("background_image_url,is_active")
+    .eq("id", "home")
+    .maybeSingle()
+    .then(({ data, error }) => {
+      if (error || !data) return;
+      if (data.is_active === false) {
+        hero.hidden = true;
+        return;
+      }
+
+      hero.hidden = false;
+      const imageUrl = data.background_image_url;
       const eyebrow = document.getElementById("homeHeroEyebrow");
       const title = document.getElementById("homeHeroTitle");
       const description = document.getElementById("homeHeroDescription");
       const cta = document.getElementById("homeHeroCta");
-      if (eyebrow) eyebrow.textContent = data.eyebrow || "";
-      if (title) { title.textContent = data.title || ""; title.style.whiteSpace = "pre-line"; }
-      if (description) description.textContent = data.description || "";
-      if (cta) {
-        cta.textContent = data.cta_label || "Lihat katalog";
-        cta.href = data.cta_url || "/#katalog";
-        cta.hidden = !data.cta_label;
-      }
-      hero.style.setProperty("background-color", data.background_color || "#cf1b1d", "important");
-      if (data.background_image_url) {
-        const safeUrl = new URL(data.background_image_url, location.origin);
-        if (safeUrl.protocol === "https:" || safeUrl.origin === location.origin) {
-          hero.style.setProperty("background-image", "linear-gradient(90deg,rgba(0,0,0,.48),rgba(0,0,0,.08)),url('" + safeUrl.href.replace(/['()\\]/g,"") + "')", "important");
-          hero.style.setProperty("background-position", "center", "important");
-          hero.style.setProperty("background-size", "cover", "important");
+
+      if (imageUrl) {
+        [eyebrow, title, description, cta].forEach(node => {
+          if (node) node.hidden = true;
+        });
+        let image = document.getElementById("homeHeroBannerImage");
+        if (!image) {
+          image = document.createElement("img");
+          image.id = "homeHeroBannerImage";
+          image.alt = "Banner utama Bos Pangan";
+          image.loading = "eager";
+          image.decoding = "async";
+          hero.prepend(image);
         }
-      } else {
-        hero.style.setProperty("background-image", "none", "important");
+        image.src = imageUrl;
+        image.style.cssText = "display:block;width:100%;height:auto;max-height:560px;object-fit:cover;border-radius:inherit;";
+        hero.style.setProperty("padding", "0", "important");
+        hero.style.setProperty("overflow", "hidden", "important");
+        hero.style.setProperty("background", "transparent", "important");
+        hero.style.setProperty("border", "0", "important");
       }
     })
-    .catch(error => console.error("Bos Pangan banner:",error));
+    .catch(error => console.error("Bos Pangan banner:", error));
 }
