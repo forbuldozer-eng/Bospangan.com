@@ -102,7 +102,7 @@ function normalizeRecord(record, rowNumber) {
   const name = String(record.nama || record.name || record.customer_name || importedName || record.perusahaan || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email tidak valid pada baris " + rowNumber + ".");
   if (name.length < 2 || name.length > 120) throw new Error("Nama wajib 2–120 karakter pada baris " + rowNumber + ".");
-  const phone = String(record.telepon || record.telepon_perusahaan || record.phone || "").trim();
+  const phone = String(record.telepon || record.telepon_perusahaan || record.mobile_phone_number || record.whatsapp_phone_number || record.phone || "").trim();
   const cityCountry = [record.kota, record.negara].filter(Boolean).join(", ");
   const address = String(record.alamat || record.address || cityCountry).trim();
   const importedNotes = [
@@ -111,7 +111,10 @@ function normalizeRecord(record, rowNumber) {
     record.status_marketing ? "Marketing contact status: " + record.status_marketing : "",
     record.pemilik_kontak ? "Contact owner: " + record.pemilik_kontak : "",
     record.industri ? "Industri: " + record.industri : "",
-    record.tanggal_dibuat ? "Tanggal dibuat: " + record.tanggal_dibuat : ""
+    record.tanggal_dibuat ? "Tanggal dibuat: " + record.tanggal_dibuat : "",
+    record.marketing_contact_status ? "Marketing contact status: " + record.marketing_contact_status : "",
+    record.message ? "Pesan: " + record.message : "",
+    record.boleh_blast_whatsapp ? "Boleh Blast Whatsapp: " + record.boleh_blast_whatsapp : ""
   ].filter(Boolean).join(" | ");
   const notes = [String(record.catatan || record.notes || "").trim(), importedNotes].filter(Boolean).join(" | ");
   if (phone.length > 32 || address.length > 1000 || notes.length > 2000) throw new Error("Data terlalu panjang pada baris " + rowNumber + ".");
@@ -139,11 +142,11 @@ function normalizeHeader(value) {
     nama: "nama", name: "nama", customer_name: "nama", nama_pelanggan: "nama",
     first_name: "first_name", firstname: "first_name", last_name: "last_name", lastname: "last_name",
     telepon: "telepon", phone: "telepon", no_hp: "telepon", nomor_telepon: "telepon",
-    phone_number: "telepon", phone_number_1: "telepon_perusahaan",
+    phone_number: "telepon", phone_number_1: "telepon_perusahaan", mobile_phone_number: "mobile_phone_number", whatsapp_phone_number: "whatsapp_phone_number",
     alamat: "alamat", address: "alamat", city: "kota", country_region: "negara",
     company_name: "perusahaan", lead_status: "status_lead",
     marketing_contact_status: "status_marketing", contact_owner: "pemilik_kontak",
-    industry: "industri", create_date: "tanggal_dibuat"
+    industry: "industri", create_date: "tanggal_dibuat", record_id: "record_id"
   };
   return aliases[key] || key;
 }
@@ -163,11 +166,40 @@ async function readImportFile(file) {
   const firstSheet = workbook.SheetNames[0];
   if (!firstSheet) throw new Error("File Excel tidak memiliki worksheet.");
   const sheet = workbook.Sheets[firstSheet];
-  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false, blankrows: false });
-  if (!rows.length) throw new Error("Worksheet Excel kosong atau tidak memiliki baris data.");
-  return rows.map(record => Object.fromEntries(
-    Object.entries(record).map(([key, value]) => [normalizeHeader(key), String(value ?? "").trim()])
-  ));
+  const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false, blankrows: false });
+  if (!matrix.length) throw new Error("Worksheet Excel kosong atau tidak memiliki baris data.");
+
+  const hasEmailHeader = row => row.some(cell => normalizeHeader(cell) === "email");
+  const headerIndex = matrix.findIndex(row =>
+    hasEmailHeader(row) && row.some(cell => ["first_name", "last_name", "nama", "name"].includes(normalizeHeader(cell)))
+  );
+
+  if (headerIndex >= 0) {
+    const headers = matrix[headerIndex].map(normalizeHeader);
+    return matrix.slice(headerIndex + 1).map(row => Object.fromEntries(
+      headers.map((key, index) => [key, String(row[index] ?? "").trim()])
+    )).filter(record => Object.values(record).some(Boolean));
+  }
+
+  // HubSpot "Readable Version" split files omit the column header row.
+  // Their 23-column layout follows the standard HubSpot export order.
+  const hubSpotTitle = String(matrix[0]?.[0] ?? "").trim().toLowerCase();
+  if (hubSpotTitle.includes("hubspot contacts export")) {
+    const headers = [
+      "record_id", "first_name", "last_name", "email", "phone_number",
+      "company_name", "lead_status", "marketing_contact_status", "create_date",
+      "contact_owner", "last_activity_date", "contact_second_owner",
+      "mobile_phone_number", "whatsapp_phone_number", "fax_number",
+      "terakhir_di_blast", "message", "boleh_blast_whatsapp", "email_domain",
+      "associated_company", "primary_associated_company_id",
+      "associated_company_1", "associated_company_ids"
+    ].map(normalizeHeader);
+    return matrix.slice(1).map(row => Object.fromEntries(
+      headers.map((key, index) => [key, String(row[index] ?? "").trim()])
+    )).filter(record => Object.values(record).some(Boolean));
+  }
+
+  throw new Error("Header kolom tidak ditemukan. Pastikan file memiliki kolom Email dan First Name/Last Name, atau berasal dari ekspor HubSpot Contacts.");
 }
 
 function downloadExcel(filename, rows, sheetName = "Pelanggan") {
