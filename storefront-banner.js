@@ -6,7 +6,7 @@ const hero = document.getElementById("homeHero");
 if (hero) {
   db.from("site_banners").select("eyebrow,title,description,cta_label,cta_url,background_color,background_image_url,is_active").eq("id","home").maybeSingle()
     .then(({data,error}) => {
-      if (error || !data || data.is_active === false) return;
+      if (error || !data) return;\n      if (data.is_active === false) { hero.hidden = true; return; }\n      hero.hidden = false;
       const eyebrow = document.getElementById("homeHeroEyebrow");
       const title = document.getElementById("homeHeroTitle");
       const description = document.getElementById("homeHeroDescription");
