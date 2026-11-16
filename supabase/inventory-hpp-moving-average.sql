@@ -525,6 +525,7 @@ declare
   v_before_return numeric(14,3);
   v_old_cost numeric(14,2);
   v_new_cost numeric(14,2);
+  v_cost_initialized boolean;
 begin
   if old.status is distinct from new.status
      and new.status='cancelled'
@@ -534,17 +535,22 @@ begin
       select * into v_product from public.products where id=v_item.product_id for update;
       if not found then continue; end if;
       select * into v_cost from public.product_inventory_costs where product_id=v_item.product_id for update;
-      v_old_cost:=case when found then v_cost.average_cost else 0 end;
-      v_return_cost:=coalesce(v_item.unit_cost_snapshot,v_old_cost);
-      v_before_return:=greatest(v_product.stock-v_item.quantity,0);
-      if v_product.stock>0 then
-        v_new_cost:=public.calculate_moving_average_cost(v_before_return,v_old_cost,v_item.quantity,v_return_cost);
+      v_cost_initialized := found and v_cost.cost_initialized;
+      v_old_cost := case when v_cost_initialized then v_cost.average_cost else 0 end;
+      v_before_return := greatest(v_product.stock-v_item.quantity,0);
+      if v_item.unit_cost_snapshot is not null then
+        v_return_cost := v_item.unit_cost_snapshot;
+        v_new_cost := public.calculate_moving_average_cost(v_before_return,v_old_cost,v_item.quantity,v_return_cost);
+        v_cost_initialized := true;
       else
-        v_new_cost:=v_return_cost;
+        -- Legacy orders have no reliable historical cost snapshot. Restore
+        -- quantity but keep the product explicitly unvalued until admin review.
+        v_return_cost := v_old_cost;
+        v_new_cost := v_old_cost;
       end if;
       insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
-      values(v_product.id,v_new_cost,true,null,now())
-      on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=true,updated_at=now();
+      values(v_product.id,v_new_cost,v_cost_initialized,null,now())
+      on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=excluded.cost_initialized,updated_at=now();
       insert into public.inventory_movements(
         product_id,movement_type,quantity_in,unit_cost,balance_quantity,balance_cost,
         reference_type,reference_id,notes,actor_id
