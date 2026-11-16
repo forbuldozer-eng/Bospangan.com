@@ -218,7 +218,7 @@ function downloadExcel(filename, rows, sheetName = "Pelanggan") {
 function downloadExcelTemplate() {
   downloadExcel("template-database-pelanggan-bospangan.xlsx", [
     ["email","nama","telepon","alamat","catatan"],
-    ["pelanggan@example.com","Nama Pelanggan","081234567890","Alamat pelanggan","Catatan internal"]
+    ["","Nama Pelanggan","081234567890","Alamat pelanggan","Email boleh kosong jika nomor telepon tersedia"]
   ], "Template Import");
 }
 
@@ -245,6 +245,7 @@ async function importCsv() {
     const unique = new Map();
     let duplicateInFile = 0;
     let skippedInvalid = 0;
+    const failedRows = [];
     records.forEach((record, index) => {
       try {
         const item = normalizeRecord(record, index + 2);
@@ -253,6 +254,7 @@ async function importCsv() {
         unique.set(identity, item);
       } catch (error) {
         skippedInvalid++;
+        failedRows.push({ row: index + 2, reason: error.message || "Data tidak valid." });
       }
     });
     const payload = [...unique.values()];
@@ -268,10 +270,20 @@ async function importCsv() {
       inserted += Number(data?.inserted || 0);
       updated += Number(data?.updated || 0);
       rejected += Number(data?.invalid || 0);
+      (data?.invalid_rows || []).forEach(item => failedRows.push({
+        row: "Batch " + (Math.floor(i / 250) + 1) + " / data ke-" + item.row,
+        reason: item.reason || "Ditolak oleh database."
+      }));
     }
     $("customerCsvFile").value = "";
     await loadCustomers();
-    status("Import selesai: " + inserted + " kontak baru, " + updated + " diperbarui, " + duplicateInFile + " duplikat dalam file, dan " + (skippedInvalid + rejected) + " baris gagal. File: " + file.name + ".");
+    if (failedRows.length) {
+      downloadExcel("laporan-baris-gagal-" + new Date().toISOString().slice(0,10) + ".xlsx", [
+        ["Baris sumber / referensi","Alasan gagal"],
+        ...failedRows.map(item => [item.row, item.reason])
+      ], "Baris Gagal");
+    }
+    status("Import selesai: " + inserted + " kontak baru, " + updated + " diperbarui, " + duplicateInFile + " duplikat dalam file, dan " + (skippedInvalid + rejected) + " baris gagal. " + (failedRows.length ? "Laporan baris gagal telah diunduh. " : "") + "File: " + file.name + ".");
   } catch (error) {
     status("Import gagal: " + (error?.message || error), true);
   } finally {
