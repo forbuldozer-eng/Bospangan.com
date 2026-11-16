@@ -404,7 +404,7 @@ alter table public.order_items
   add column if not exists line_cost_snapshot numeric(14,2) check (line_cost_snapshot >= 0);
 
 create or replace function public.snapshot_order_item_hpp()
-returns trigger language plpgsql security definer set search_path = public
+returns trigger language plpgsql security definer set search_path = ''
 as $
 declare
   v_order public.orders%rowtype;
@@ -435,7 +435,7 @@ before insert on public.order_items
 for each row execute function public.snapshot_order_item_hpp();
 
 create or replace function public.record_inventory_sale_movement()
-returns trigger language plpgsql security definer set search_path = public
+returns trigger language plpgsql security definer set search_path = ''
 as $
 declare
   v_order public.orders%rowtype;
@@ -466,7 +466,7 @@ for each row execute function public.record_inventory_sale_movement();
 -- runs alphabetically after trg_restore_stock_for_cancelled_order, then values
 -- the returned goods at their original issue cost and updates moving average.
 create or replace function public.record_inventory_cancel_return()
-returns trigger language plpgsql security definer set search_path = public
+returns trigger language plpgsql security definer set search_path = ''
 as $
 declare
   v_item public.order_items%rowtype;
