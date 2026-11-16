@@ -13,7 +13,7 @@ const messageNode = document.querySelector("[data-landing-message]");
 
 function showError(message) {
   document.title = "Halaman tidak ditemukan | Bos Pangan";
-  if (messageNode) messageNode.textContent = message;
+  if (messageNode) { messageNode.textContent = message; messageNode.classList.remove("hidden"); }
   document.querySelector("[data-landing-page]")?.classList.remove("hidden");
 }
 async function render() {
@@ -28,7 +28,7 @@ async function render() {
   excerptNode.textContent = data.excerpt || "";
   if (data.hero_image_url) { imageNode.src = data.hero_image_url; imageNode.alt = data.title; imageNode.hidden=false; }
   contentNode.innerHTML = DOMPurify.sanitize(data.content_html || "", {USE_PROFILES:{html:true}});
-  messageNode.textContent = "";
+  messageNode.textContent = ""; messageNode.classList.add("hidden");
   document.querySelector("[data-landing-page]")?.classList.remove("hidden");
 }
 render().catch(() => showError("Halaman gagal dimuat. Silakan coba kembali."));
