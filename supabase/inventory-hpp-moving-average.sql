@@ -165,6 +165,25 @@ create policy "admins read product cost history" on public.product_cost_history
   for select to authenticated using (public.is_admin());
 grant select on public.product_cost_history to authenticated;
 
+create or replace function public.calculate_moving_average_cost(
+  p_old_quantity numeric,
+  p_old_average_cost numeric,
+  p_incoming_quantity numeric,
+  p_incoming_unit_cost numeric
+) returns numeric
+language plpgsql immutable set search_path = ''
+as $
+begin
+  if coalesce(p_old_quantity,-1)<0 or coalesce(p_incoming_quantity,0)<=0
+     or coalesce(p_old_average_cost,-1)<0 or coalesce(p_incoming_unit_cost,-1)<0 then
+    raise exception 'Input perhitungan moving average tidak valid';
+  end if;
+  if p_old_quantity=0 then return round(p_incoming_unit_cost,2); end if;
+  return round(((p_old_quantity*p_old_average_cost)+(p_incoming_quantity*p_incoming_unit_cost))/(p_old_quantity+p_incoming_quantity),2);
+end;
+$;
+revoke all on function public.calculate_moving_average_cost(numeric,numeric,numeric,numeric) from public;
+
 -- Create a draft purchase order and its item snapshots atomically.
 create or replace function public.create_inventory_purchase(
   p_supplier_id uuid,
@@ -272,9 +291,9 @@ begin
     v_new_stock := v_old_stock + v_item.quantity;
     if v_new_stock <= 0 then raise exception 'Stok akhir tidak valid'; end if;
     if v_old_stock=0 then
-      v_new_cost := v_landed_unit;
+      v_new_cost := public.calculate_moving_average_cost(v_old_stock,v_old_cost,v_item.quantity,v_landed_unit);
     else
-      v_new_cost := round(((v_old_stock*v_old_cost)+(v_item.quantity*v_landed_unit))/v_new_stock,2);
+      v_new_cost := public.calculate_moving_average_cost(v_old_stock,v_old_cost,v_item.quantity,v_landed_unit);
     end if;
 
     insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
@@ -350,7 +369,7 @@ begin
   if not found then raise exception 'Produk tidak ditemukan'; end if;
   if v_product.stock<=0 then raise exception 'Produk tidak memiliki stok awal untuk dinilai'; end if;
   select * into v_cost from public.product_inventory_costs where product_id=p_product_id for update;
-  if (found and v_cost.cost_initialized) or exists(select 1 from public.inventory_movements where product_id=p_product_id) then
+  if (coalesce(v_cost.cost_initialized,false)) or exists(select 1 from public.inventory_movements where product_id=p_product_id) then
     raise exception 'Harga modal awal sudah pernah ditetapkan; gunakan penyesuaian persediaan';
   end if;
   insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
@@ -397,9 +416,7 @@ begin
   v_new_stock:=v_old_stock+p_quantity_delta;
   if v_new_stock<0 then raise exception 'Stok tidak mencukupi untuk penyesuaian keluar'; end if;
   if p_quantity_delta>0 then
-    if v_old_stock=0 then v_new_cost:=round(p_unit_cost,2);
-    else v_new_cost:=round(((v_old_stock*v_old_cost)+(p_quantity_delta*p_unit_cost))/v_new_stock,2);
-    end if;
+    v_new_cost:=public.calculate_moving_average_cost(v_old_stock,v_old_cost,p_quantity_delta,p_unit_cost);
     v_movement:='adjustment_in';
   else
     v_new_cost:=v_old_cost;
@@ -416,6 +433,7 @@ begin
 end;
 $$;
 
+revoke all on function public.calculate_moving_average_cost(numeric,numeric,numeric,numeric) from public;
 revoke all on function public.set_product_opening_cost(uuid,numeric,text) from public;
 revoke all on function public.create_inventory_purchase(uuid,date,date,numeric,text,jsonb) from public;
 revoke all on function public.receive_inventory_purchase(uuid) from public;
@@ -520,7 +538,7 @@ begin
       v_return_cost:=coalesce(v_item.unit_cost_snapshot,v_old_cost);
       v_before_return:=greatest(v_product.stock-v_item.quantity,0);
       if v_product.stock>0 then
-        v_new_cost:=round(((v_before_return*v_old_cost)+(v_item.quantity*v_return_cost))/v_product.stock,2);
+        v_new_cost:=public.calculate_moving_average_cost(v_before_return,v_old_cost,v_item.quantity,v_return_cost);
       else
         v_new_cost:=v_return_cost;
       end if;
@@ -559,5 +577,7 @@ revoke all on function public.record_inventory_cancel_return() from public;
 revoke insert, update, delete on public.purchase_orders,public.purchase_order_items,public.supplier_payments,public.inventory_movements,public.product_cost_history from anon,authenticated;
 revoke all on public.purchase_orders,public.purchase_order_items,public.supplier_payments,public.inventory_movements,public.product_cost_history from anon;
 grant select on public.purchase_orders,public.purchase_order_items,public.supplier_payments,public.inventory_movements,public.product_cost_history to authenticated;
+
+notify pgrst, 'reload schema';
 
 commit;
