@@ -36,7 +36,7 @@ function mount() {
     </div>
     <div class="panel" style="margin:0 0 16px">
       <h2 style="font-size:17px;margin:0 0 8px">Import & Export Database</h2>
-      <p class="muted">Import file Excel <strong>.xlsx / .xls</strong> atau CSV. Kolom wajib <strong>email</strong> dan <strong>nama</strong>; kolom opsional: telepon, alamat, catatan. Data dengan email sama akan diperbarui, bukan digandakan.</p>
+      <p class="muted">Import file Excel <strong>.xlsx / .xls</strong> atau CSV, termasuk ekspor CRM dengan kolom <strong>Email, First Name, Last Name, Phone Number, Company name, City</strong>. Baris tanpa email dilewati; data dengan email sama diperbarui.</p>
       <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
         <label style="flex:2;min-width:240px">Pilih file Excel / CSV<input id="customerCsvFile" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="width:100%"></label>
         <button class="btn primary" id="customerImportBtn" type="button">Import Excel / CSV</button>
@@ -98,12 +98,22 @@ function parseCsv(text) {
 
 function normalizeRecord(record, rowNumber) {
   const email = String(record.email || "").trim().toLowerCase();
-  const name = String(record.nama || record.name || record.customer_name || "").trim();
+  const importedName = [record.first_name, record.last_name].filter(Boolean).join(" ").trim();
+  const name = String(record.nama || record.name || record.customer_name || importedName || record.perusahaan || "").trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email tidak valid pada baris " + rowNumber + ".");
   if (name.length < 2 || name.length > 120) throw new Error("Nama wajib 2–120 karakter pada baris " + rowNumber + ".");
-  const phone = String(record.telepon || record.phone || "").trim();
-  const address = String(record.alamat || record.address || "").trim();
-  const notes = String(record.catatan || record.notes || "").trim();
+  const phone = String(record.telepon || record.telepon_perusahaan || record.phone || "").trim();
+  const cityCountry = [record.kota, record.negara].filter(Boolean).join(", ");
+  const address = String(record.alamat || record.address || cityCountry).trim();
+  const importedNotes = [
+    record.perusahaan ? "Perusahaan: " + record.perusahaan : "",
+    record.status_lead ? "Lead status: " + record.status_lead : "",
+    record.status_marketing ? "Marketing contact status: " + record.status_marketing : "",
+    record.pemilik_kontak ? "Contact owner: " + record.pemilik_kontak : "",
+    record.industri ? "Industri: " + record.industri : "",
+    record.tanggal_dibuat ? "Tanggal dibuat: " + record.tanggal_dibuat : ""
+  ].filter(Boolean).join(" | ");
+  const notes = [String(record.catatan || record.notes || "").trim(), importedNotes].filter(Boolean).join(" | ");
   if (phone.length > 32 || address.length > 1000 || notes.length > 2000) throw new Error("Data terlalu panjang pada baris " + rowNumber + ".");
   return { email, customer_name: name, phone, address, notes, source: "import", updated_at: new Date().toISOString() };
 }
@@ -127,9 +137,13 @@ function normalizeHeader(value) {
   const aliases = {
     email: "email", e_mail: "email", alamat_email: "email",
     nama: "nama", name: "nama", customer_name: "nama", nama_pelanggan: "nama",
+    first_name: "first_name", firstname: "first_name", last_name: "last_name", lastname: "last_name",
     telepon: "telepon", phone: "telepon", no_hp: "telepon", nomor_telepon: "telepon",
-    alamat: "alamat", address: "alamat",
-    catatan: "catatan", notes: "catatan", keterangan: "catatan"
+    phone_number: "telepon", phone_number_1: "telepon_perusahaan",
+    alamat: "alamat", address: "alamat", city: "kota", country_region: "negara",
+    company_name: "perusahaan", lead_status: "status_lead",
+    marketing_contact_status: "status_marketing", contact_owner: "pemilik_kontak",
+    industry: "industri", create_date: "tanggal_dibuat"
   };
   return aliases[key] || key;
 }
@@ -188,15 +202,25 @@ async function importCsv() {
     if (records.length > 5000) throw new Error("Maksimal 5.000 baris per proses import.");
     if (!records.length) throw new Error("Tidak ada data pelanggan pada file.");
     const headers = Object.keys(records[0] || {});
-    if (!headers.includes("email") || !headers.includes("nama")) {
-      throw new Error("Kolom wajib: email dan nama. Unduh template Excel untuk contoh format.");
+    const hubspotFormat = headers.includes("email") && (headers.includes("first_name") || headers.includes("last_name"));
+    if (!headers.includes("email") || (!headers.includes("nama") && !headers.includes("name") && !headers.includes("customer_name") && !hubspotFormat)) {
+      throw new Error("Kolom wajib: email dan nama, atau format ekspor kontak yang memiliki Email, First Name, dan Last Name.");
     }
     const unique = new Map();
+    let skippedNoEmail = 0;
+    let skippedInvalid = 0;
     records.forEach((record, index) => {
-      const item = normalizeRecord(record, index + 2);
-      unique.set(item.email, item);
+      if (!String(record.email || "").trim()) { skippedNoEmail++; return; }
+      try {
+        const item = normalizeRecord(record, index + 2);
+        unique.set(item.email, item);
+      } catch (error) {
+        skippedInvalid++;
+      }
     });
     const payload = [...unique.values()];
+    if (!payload.length) throw new Error("Tidak ada kontak dengan email valid untuk diimpor.");
+    
     const approved = confirm("Import " + payload.length + " kontak unik dari " + file.name + "? Email yang sudah ada akan diperbarui. Izin marketing tidak akan diaktifkan.");
     if (!approved) return;
     let count = 0;
@@ -207,7 +231,7 @@ async function importCsv() {
     }
     $("customerCsvFile").value = "";
     await loadCustomers();
-    status("Import berhasil. " + count + " kontak diproses dari " + file.name + ".");
+    status("Import selesai: " + count + " kontak berhasil diproses. " + skippedNoEmail + " baris tanpa email dan " + skippedInvalid + " baris tidak valid dilewati. File: " + file.name + ".");
   } catch (error) {
     status("Import gagal: " + (error?.message || error), true);
   } finally {
