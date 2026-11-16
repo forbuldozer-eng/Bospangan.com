@@ -312,7 +312,7 @@ create or replace function public.set_product_opening_cost(
   p_notes text
 ) returns void
 language plpgsql security definer set search_path = ''
-as $
+as $$
 declare
   v_product public.products%rowtype;
 begin
@@ -331,7 +331,7 @@ begin
   insert into public.product_cost_history(product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,notes,actor_id)
   values(p_product_id,0,round(p_unit_cost,2),v_product.stock,v_product.stock,'opening_valuation',p_notes,(select auth.uid()));
 end;
-$;
+$$;
 
 -- Record opening stock or a controlled stock adjustment; direct browser writes
 -- to products.stock/cost_price are not granted by this migration.
