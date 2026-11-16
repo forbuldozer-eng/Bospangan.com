@@ -301,6 +301,35 @@ begin
 end;
 $$;
 
+-- Seed the valuation of pre-existing on-hand stock exactly once. The quantity is
+-- not changed; the administrator supplies the verified opening unit cost.
+create or replace function public.set_product_opening_cost(
+  p_product_id uuid,
+  p_unit_cost numeric,
+  p_notes text
+) returns void
+language plpgsql security definer set search_path = ''
+as $
+declare
+  v_product public.products%rowtype;
+begin
+  if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
+  if coalesce(p_unit_cost,-1)<0 then raise exception 'Harga modal awal tidak valid'; end if;
+  if coalesce(trim(p_notes),'')='' then raise exception 'Catatan sumber harga modal wajib diisi'; end if;
+  select * into v_product from public.products where id=p_product_id for update;
+  if not found then raise exception 'Produk tidak ditemukan'; end if;
+  if v_product.stock<=0 then raise exception 'Produk tidak memiliki stok awal untuk dinilai'; end if;
+  if v_product.cost_price>0 or exists(select 1 from public.inventory_movements where product_id=p_product_id) then
+    raise exception 'Harga modal awal sudah pernah ditetapkan; gunakan penyesuaian persediaan';
+  end if;
+  update public.products set cost_price=round(p_unit_cost,2),updated_at=now() where id=p_product_id;
+  insert into public.inventory_movements(product_id,movement_type,quantity_in,unit_cost,balance_quantity,balance_cost,reference_type,notes,actor_id)
+  values(p_product_id,'opening',v_product.stock,round(p_unit_cost,2),v_product.stock,round(p_unit_cost,2),'opening_valuation',p_notes,(select auth.uid()));
+  insert into public.product_cost_history(product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,notes,actor_id)
+  values(p_product_id,0,round(p_unit_cost,2),v_product.stock,v_product.stock,'opening_valuation',p_notes,(select auth.uid()));
+end;
+$;
+
 -- Record opening stock or a controlled stock adjustment; direct browser writes
 -- to products.stock/cost_price are not granted by this migration.
 create or replace function public.adjust_inventory_stock(
@@ -345,10 +374,12 @@ begin
 end;
 $$;
 
+revoke all on function public.set_product_opening_cost(uuid,numeric,text) from public;
 revoke all on function public.create_inventory_purchase(uuid,date,date,numeric,text,jsonb) from public;
 revoke all on function public.receive_inventory_purchase(uuid) from public;
 revoke all on function public.record_supplier_payment(uuid,numeric,text,text,text) from public;
 revoke all on function public.adjust_inventory_stock(uuid,numeric,numeric,text) from public;
+grant execute on function public.set_product_opening_cost(uuid,numeric,text) to authenticated;
 grant execute on function public.create_inventory_purchase(uuid,date,date,numeric,text,jsonb) to authenticated;
 grant execute on function public.receive_inventory_purchase(uuid) to authenticated;
 grant execute on function public.record_supplier_payment(uuid,numeric,text,text,text) to authenticated;
