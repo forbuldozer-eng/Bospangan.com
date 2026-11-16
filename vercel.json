@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/landingpage/:slug",
+      "destination": "/landingpage/index.html?slug=:slug"
+    },
+    {
+      "source": "/landingpage/:slug/",
+      "destination": "/landingpage/index.html?slug=:slug"
+    },
+    {
       "source": "/blog/:slug/",
       "destination": "/blog/article.html?slug=:slug"
     }
