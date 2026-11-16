@@ -381,6 +381,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
         <article class="stat-card"><div class="stat-top"><span>Penjualan Sebelum Pajak</span><span class="stat-symbol">▤</span></div><strong id="financeNetSales">Rp0</strong><small>Subtotal pesanan lunas</small></article>
         <article class="stat-card"><div class="stat-top"><span>Pajak Terkumpul</span><span class="stat-symbol">%</span></div><strong id="financeTax">Rp0</strong><small>Pajak pada pesanan lunas</small></article>
         <article class="stat-card"><div class="stat-top"><span>Piutang / Belum Dibayar</span><span class="stat-symbol">◷</span></div><strong id="financeOutstanding">Rp0</strong><small>Pesanan aktif unpaid atau pending</small></article>
+        <article class="stat-card"><div class="stat-top"><span>HPP Penjualan Lunas</span><span class="stat-symbol">▤</span></div><strong id="financeCogs">Rp0</strong><small id="financeCogsCoverage">Menunggu data HPP</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Laba Kotor</span><span class="stat-symbol">Rp</span></div><strong id="financeGrossProfit">Rp0</strong><small>Penjualan reguler sebelum pajak dikurangi HPP</small></article>
       </div>
       <div class="stats finance-stats finance-stats-secondary">
         <article class="stat-card"><div class="stat-top"><span>Transaksi Lunas</span></div><strong id="financePaidCount">0</strong><small>Pesanan tidak dibatalkan dan lunas</small></article>
@@ -406,7 +408,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
           <div><span>Biaya operasional</span><strong>Belum tersedia</strong></div>
           <div class="finance-total finance-warning"><span>Laba bersih</span><strong>Belum dapat dihitung</strong></div>
         </div>
-        <p class="finance-note">Laporan ini menghitung penjualan dan penerimaan berdasarkan data pesanan. HPP, biaya operasional, nominal refund aktual, serta saldo kas/bank belum dicatat dalam database, sehingga laba bersih dan laporan neraca belum dapat dihitung secara akurat.</p>
+        <p id="financeCogsNote" class="finance-note">HPP akan dihitung dari snapshot modal setelah modul persediaan diaktifkan.</p>
       </section>
       <section class="panel">
         <div class="row" style="align-items:center;justify-content:space-between"><div><h2 style="margin:0">Rincian transaksi keuangan</h2><p class="page-subtitle">Subtotal, pajak, total pesanan, dan status pembayaran</p></div><input id="financeSearch" placeholder="Cari nomor pesanan / pelanggan"></div>
