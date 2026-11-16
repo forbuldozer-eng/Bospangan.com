@@ -126,6 +126,20 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 @media(max-width:900px){.finance-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.sidebar,.topbar,.head-actions,.finance-filters,#financeSearch{display:none!important}.main{margin:0}.content{padding:0}.panel,.stat-card{box-shadow:none;break-inside:avoid}}
 
+
+.inventory-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.inventory-tabs button{border:1px solid #dce3ec;background:#fff;border-radius:8px;padding:9px 14px;cursor:pointer}
+.inventory-tabs button.active{background:#0d8b57;color:#fff;border-color:#0d8b57}
+.inventory-form{display:grid;gap:12px}
+.inventory-form label{display:flex;flex-direction:column;gap:5px;flex:1;min-width:150px}
+.inventory-form input,.inventory-form select,.inventory-form textarea{width:100%;box-sizing:border-box}
+.inventory-line{display:grid;grid-template-columns:minmax(180px,2fr) minmax(100px,.7fr) minmax(150px,1fr) auto;gap:10px;align-items:end;padding:12px;border:1px solid #e6ebf1;border-radius:9px;margin:8px 0}
+.inventory-line label{display:flex;flex-direction:column;gap:5px}
+.inventory-warning{display:inline-block;padding:4px 8px;border-radius:6px;background:#fff4d6;color:#865b00;font-size:11px}
+.inventory-empty{padding:24px;text-align:center;color:#8993a5}
+.inventory-stats{grid-template-columns:repeat(3,minmax(0,1fr));margin:14px 0}
+@media(max-width:850px){.inventory-line{grid-template-columns:1fr 1fr}.inventory-line label:first-child{grid-column:1/-1}.inventory-stats{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -151,6 +165,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
       <button class="group-toggle" type="button"><span class="left">Goods</span><span class="group-icon">▥</span></button>
       <div class="nav-items">
         <button class="nav-link" data-page="products"><span>Produk</span><span class="nav-icon">▥</span></button>
+        <button class="nav-link" data-page="inventory"><span>Persediaan & HPP</span><span class="nav-icon">▤</span></button>
         <button class="nav-link" data-page="categories"><span>Kategori Produk</span><span class="nav-icon">▦</span></button>
         <button class="nav-link" data-page="media"><span>Media & Galeri</span><span class="nav-icon">▧</span></button>
       </div>
@@ -412,6 +427,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <script type="module" src="/transaction-report.js"></script>
 <script type="module" src="/financial-report.js"></script>
 <script type="module" src="/admin-commerce.js"></script>
+<script type="module" src="/inventory-management.js"></script>
 <script type="module" src="/admin-landing-pages.js"></script>
 <script type="module" src="/admin-banner.js"></script>
 <script type="module" src="/admin-category-order.js"></script>
