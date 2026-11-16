@@ -53,6 +53,7 @@ function activatePage(page){
   $("crumb").textContent = labels[page] || pageInfo[page]?.[0] || "Dashboard";
   closeMobileMenu();
   if (page !== "media") $("mediaAdminPanel")?.classList.add("hidden");
+  if (page !== "invoice") $("invoiceAdminPanel")?.classList.add("hidden");
 
   if(page === "overview"){
     showOnly("overviewView");
@@ -108,6 +109,18 @@ function activatePage(page){
     $("productCategoriesPanel")?.classList.add("hidden");
     $("mediaAdminPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:media-open"));
+    return;
+  }
+  if(page === "invoice"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    $("mediaAdminPanel")?.classList.add("hidden");
+    $("invoiceAdminPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:invoice-open"));
     return;
   }
   if(page === "news"){
