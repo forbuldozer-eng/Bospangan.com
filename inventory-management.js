@@ -74,14 +74,14 @@ function addPurchaseLine(){
  root.append(row);
 }
 async function loadProducts(){
- const {data,error}=await db.from("products").select("id,sku,name,unit,price,stock,cost_price,is_published").order("name");
+ const {data,error}=await db.from("products").select("id,sku,name,unit,price,stock,cost_price,cost_initialized,is_published").order("name");
  if(error)throw error;products=data||[];
  const qty=products.reduce((sum,p)=>sum+Number(p.stock||0),0),value=products.reduce((sum,p)=>sum+Number(p.stock||0)*Number(p.cost_price||0),0);
  $("invProductCount").textContent=products.length.toLocaleString("id-ID");
  $("invStockQty").textContent=qty.toLocaleString("id-ID");
  $("invStockValue").textContent=money(value);
  $("invStockTable").innerHTML=products.length?'<table><thead><tr><th>Produk</th><th>SKU</th><th>Stok</th><th>Harga jual</th><th>HPP rata-rata</th><th>Nilai stok</th><th>Aksi</th></tr></thead><tbody>'+products.map(p=>{
-  const valuationMissing=Number(p.stock)>0&&Number(p.cost_price)===0;
+  const valuationMissing=Number(p.stock)>0&&!p.cost_initialized;
   return '<tr><td>'+esc(p.name)+'</td><td>'+esc(p.sku)+'</td><td>'+Number(p.stock||0).toLocaleString("id-ID")+' '+esc(p.unit)+'</td><td>'+money(p.price)+'</td><td>'+(valuationMissing?'<span class="inventory-warning">Belum dinilai</span>':money(p.cost_price))+'</td><td>'+money(Number(p.stock||0)*Number(p.cost_price||0))+'</td><td>'+(valuationMissing?'<button type="button" data-opening-cost="'+esc(p.id)+'">Tetapkan HPP awal</button> ':'')+'<button type="button" data-adjust-stock="'+esc(p.id)+'">Koreksi stok</button></td></tr>';
  }).join("")+'</tbody></table>':'<div class="inventory-empty">Belum ada produk.</div>';
  $("invStockTable").querySelectorAll("[data-opening-cost]").forEach(button=>button.addEventListener("click",async()=>{
