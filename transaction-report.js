@@ -1,0 +1,120 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
+
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const money = value => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(value||0));
+const esc = value => String(value ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dateText = value => value ? new Date(value).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"}) : "—";
+let rows = [];
+let loaded = false;
+
+function dateInputValue(date){return new Date(date.getTime()-date.getTimezoneOffset()*60000).toISOString().slice(0,10);}
+function setDefaultDates(){
+  const end = new Date(), start = new Date(); start.setDate(start.getDate()-29);
+  $("reportStart").value = dateInputValue(start);
+  $("reportEnd").value = dateInputValue(end);
+}
+function isRevenueOrder(order){return order.status !== "cancelled" && order.payment_status === "paid";}
+function statusLabel(value){
+  return ({new:"Baru",confirmed:"Dikonfirmasi",processing:"Diproses",shipped:"Dikirim",completed:"Selesai",cancelled:"Dibatalkan",quoted:"Penawaran",unpaid:"Belum dibayar",pending:"Menunggu",paid:"Lunas",refunded:"Dikembalikan"})[value] || value || "—";
+}
+function filteredRows(){
+  const q = $("reportSearch").value.trim().toLowerCase();
+  const type = $("reportType").value, status = $("reportStatus").value, payment = $("reportPayment").value;
+  return rows.filter(r=>{
+    const hay = [r.order_number,r.customer_name,r.customer_email,r.customer_phone].join(" ").toLowerCase();
+    return (!q || hay.includes(q)) && (type==="all" || r.transaction_type===type) &&
+      (status==="all" || r.status===status) && (payment==="all" || r.payment_status===payment);
+  });
+}
+function renderChart(data){
+  const days = new Map();
+  data.forEach(order=>{
+    if(!isRevenueOrder(order)) return;
+    const key = new Date(order.created_at).toLocaleDateString("id-ID",{day:"2-digit",month:"short"});
+    days.set(key,(days.get(key)||0)+Number(order.total||0));
+  });
+  const entries = [...days.entries()].slice(-14);
+  if(!entries.length){$("reportChart").innerHTML='<div class="report-empty">Belum ada transaksi lunas pada periode ini.</div>';return;}
+  const max = Math.max(...entries.map(x=>x[1]),1);
+  $("reportChart").innerHTML = entries.map(([label,value])=>'<div class="report-bar-item"><div class="report-bar-value">'+esc(money(value))+'</div><div class="report-bar-track"><div class="report-bar" style="height:'+Math.max(4,value/max*100)+'%"></div></div><small>'+esc(label)+'</small></div>').join("");
+}
+function renderTopProducts(data){
+  const products = new Map();
+  data.forEach(order=>(order.order_items||[]).forEach(item=>{
+    const key = item.product_name_snapshot || "Produk dihapus";
+    const current = products.get(key)||{name:key,quantity:0,revenue:0};
+    current.quantity += Number(item.quantity||0);
+    current.revenue += Number(item.line_subtotal||0)+Number(item.tax_amount||0);
+    products.set(key,current);
+  }));
+  const top=[...products.values()].sort((a,b)=>b.quantity-a.quantity).slice(0,5);
+  $("reportTopProducts").innerHTML = top.length ? '<div class="table-wrap"><table><thead><tr><th>Produk</th><th>Terjual</th><th>Nilai item</th></tr></thead><tbody>'+top.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+p.quantity.toLocaleString("id-ID")+'</td><td>'+money(p.revenue)+'</td></tr>').join("")+'</tbody></table></div>' : '<div class="report-empty">Belum ada rincian produk.</div>';
+}
+function render(){
+  const data=filteredRows();
+  const paid=data.filter(isRevenueOrder);
+  const revenue=paid.reduce((sum,r)=>sum+Number(r.total||0),0);
+  const completed=paid.filter(r=>r.status==="completed").length;
+  const waiting=data.filter(r=>["unpaid","pending"].includes(r.payment_status) && r.status!=="cancelled").length;
+  const cancelled=data.filter(r=>r.status==="cancelled").length;
+  $("reportRevenue").textContent=money(revenue);
+  $("reportCount").textContent=data.length.toLocaleString("id-ID");
+  $("reportPaid").textContent=paid.length.toLocaleString("id-ID");
+  $("reportWaiting").textContent=waiting.toLocaleString("id-ID");
+  $("reportCancelled").textContent=cancelled.toLocaleString("id-ID");
+  $("reportCompleted").textContent=completed.toLocaleString("id-ID");
+  $("reportRowsInfo").textContent=data.length.toLocaleString("id-ID")+" transaksi ditampilkan";
+  renderChart(data); renderTopProducts(data);
+  $("reportTable").innerHTML=data.length?'<div class="table-wrap"><table><thead><tr><th>Tanggal</th><th>No. Pesanan</th><th>Pelanggan</th><th>Jenis</th><th>Status</th><th>Pembayaran</th><th>Total</th></tr></thead><tbody>'+data.map(r=>'<tr><td>'+esc(dateText(r.created_at))+'</td><td><strong>'+esc(r.order_number)+'</strong></td><td>'+esc(r.customer_name)+'<small class="report-sub">'+esc(r.customer_email)+'</small></td><td>'+ (r.transaction_type==="special"?"Khusus":"Reguler")+'</td><td><span class="report-pill">'+esc(statusLabel(r.status))+'</span></td><td><span class="report-pill">'+esc(statusLabel(r.payment_status))+'</span></td><td><strong>'+money(r.total)+'</strong></td></tr>').join("")+'</tbody></table></div>':'<div class="report-empty">Tidak ada transaksi yang cocok dengan filter.</div>';
+}
+async function load(){
+  const start=$("reportStart").value, end=$("reportEnd").value;
+  if(!start||!end||start>end){$("reportStatus").textContent="Rentang tanggal tidak valid.";return;}
+  $("reportStatus").textContent="Mengambil data transaksi dari Supabase…";
+  $("reportRefresh").disabled=true;
+  try{
+    const from=new Date(start+"T00:00:00").toISOString(), to=new Date(end+"T23:59:59.999").toISOString();
+    const all=[]; let offset=0, batch=[];
+    do{
+      const result=await db.from("orders").select("id,order_number,customer_name,customer_email,customer_phone,transaction_type,subtotal,tax_amount,total,status,payment_status,created_at,order_items(sku_snapshot,product_name_snapshot,unit_price,quantity,line_subtotal,tax_percent,tax_amount)").gte("created_at",from).lte("created_at",to).order("created_at",{ascending:false}).range(offset,offset+999);
+      if(result.error) throw result.error;
+      batch=result.data||[]; all.push(...batch); offset+=batch.length;
+    }while(batch.length===1000);
+    rows=all; loaded=true; render();
+    $("reportStatus").textContent="Data diperbarui. "+rows.length.toLocaleString("id-ID")+" transaksi ditemukan untuk periode yang dipilih.";
+  }catch(error){
+    console.error("Laporan transaksi:",error);
+    $("reportStatus").textContent="Gagal memuat laporan: "+(error.message||"Kesalahan database");
+  }finally{$("reportRefresh").disabled=false;}
+}
+function exportCsv(){
+  const data=filteredRows();
+  const headers=["Tanggal","Nomor Pesanan","Pelanggan","Email","Telepon","Jenis Transaksi","Status Pesanan","Status Pembayaran","Subtotal","Pajak","Total"];
+  const values=data.map(r=>[r.created_at,r.order_number,r.customer_name,r.customer_email,r.customer_phone,r.transaction_type,r.status,r.payment_status,r.subtotal,r.tax_amount,r.total]);
+  const csv=[headers,...values].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const blob=new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url;a.download="laporan-transaksi-bos-pangan-"+$("reportStart").value+"-"+$("reportEnd").value+".csv";a.click();URL.revokeObjectURL(url);
+}
+function init(){
+  if(loaded)return;
+  setDefaultDates();
+  $("reportRefresh").addEventListener("click",load);
+  $("reportExport").addEventListener("click",exportCsv);
+  $("reportPrint").addEventListener("click",()=>window.print());
+  ["reportSearch","reportType","reportStatus","reportPayment"].forEach(id=>$(id).addEventListener(id==="reportSearch"?"input":"change",render));
+  $("reportApply").addEventListener("click",load);
+  $("reportPreset").addEventListener("change",()=>{
+    const now=new Date(), start=new Date(now);
+    if($("reportPreset").value==="today")start.setHours(0,0,0,0);
+    if($("reportPreset").value==="7")start.setDate(start.getDate()-6);
+    if($("reportPreset").value==="30")start.setDate(start.getDate()-29);
+    if($("reportPreset").value==="month")start.setDate(1);
+    $("reportStart").value=dateInputValue(start);$("reportEnd").value=dateInputValue(now);
+    load();
+  });
+  load();
+}
+window.addEventListener("cms:transaction-report-open",init);
