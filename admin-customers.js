@@ -36,7 +36,7 @@ function mount() {
     </div>
     <div class="panel" style="margin:0 0 16px">
       <h2 style="font-size:17px;margin:0 0 8px">Import & Export Database</h2>
-      <p class="muted">Import file Excel <strong>.xlsx / .xls</strong> atau CSV, termasuk ekspor CRM dengan kolom <strong>Email, First Name, Last Name, Phone Number, Company name, City</strong>. Baris tanpa email dilewati; data dengan email sama diperbarui.</p>
+      <p class="muted">Import file Excel <strong>.xlsx / .xls</strong> atau CSV. <strong>Nama wajib</strong>; email boleh kosong jika nomor telepon tersedia. Kontak dicocokkan berdasarkan email, atau nomor telepon jika email tidak tersedia. Kontak yang cocok diperbarui, bukan digandakan.</p>
       <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
         <label style="flex:2;min-width:240px">Pilih file Excel / CSV<input id="customerCsvFile" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="width:100%"></label>
         <button class="btn primary" id="customerImportBtn" type="button">Import Excel / CSV</button>
@@ -97,12 +97,15 @@ function parseCsv(text) {
 }
 
 function normalizeRecord(record, rowNumber) {
-  const email = String(record.email || "").trim().toLowerCase();
+  const rawEmail = String(record.email || "").trim().toLowerCase();
+  const email = rawEmail || null;
   const importedName = [record.first_name, record.last_name].filter(Boolean).join(" ").trim();
   const name = String(record.nama || record.name || record.customer_name || importedName || record.perusahaan || "").trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email tidak valid pada baris " + rowNumber + ".");
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Email tidak valid pada baris " + rowNumber + ".");
   if (name.length < 2 || name.length > 120) throw new Error("Nama wajib 2–120 karakter pada baris " + rowNumber + ".");
   const phone = String(record.telepon || record.telepon_perusahaan || record.mobile_phone_number || record.whatsapp_phone_number || record.phone || "").trim();
+  const phoneDigits = phone.replace(/\D/g, "");
+  if (!email && phoneDigits.length < 8) throw new Error("Email atau nomor telepon minimal 8 digit wajib diisi pada baris " + rowNumber + ".");
   const cityCountry = [record.kota, record.negara].filter(Boolean).join(", ");
   const address = String(record.alamat || record.address || cityCountry).trim();
   const importedNotes = [
@@ -234,36 +237,41 @@ async function importCsv() {
     if (records.length > 5000) throw new Error("Maksimal 5.000 baris per proses import.");
     if (!records.length) throw new Error("Tidak ada data pelanggan pada file.");
     const headers = Object.keys(records[0] || {});
-    const hubspotFormat = headers.includes("email") && (headers.includes("first_name") || headers.includes("last_name"));
-    if (!headers.includes("email") || (!headers.includes("nama") && !headers.includes("name") && !headers.includes("customer_name") && !hubspotFormat)) {
-      throw new Error("Kolom wajib: email dan nama, atau format ekspor kontak yang memiliki Email, First Name, dan Last Name.");
+    const hasNameColumn = headers.some(key => ["nama","name","customer_name","first_name","last_name","perusahaan"].includes(key));
+    const hasPhoneColumn = headers.some(key => ["telepon","telepon_perusahaan","mobile_phone_number","whatsapp_phone_number"].includes(key));
+    if (!hasNameColumn || (!headers.includes("email") && !hasPhoneColumn)) {
+      throw new Error("Kolom wajib: Nama dan minimal salah satu kolom Email atau Nomor Telepon.");
     }
     const unique = new Map();
-    let skippedNoEmail = 0;
+    let duplicateInFile = 0;
     let skippedInvalid = 0;
     records.forEach((record, index) => {
-      if (!String(record.email || "").trim()) { skippedNoEmail++; return; }
       try {
         const item = normalizeRecord(record, index + 2);
-        unique.set(item.email, item);
+        const identity = item.email ? "email:" + item.email : "phone:" + item.phone.replace(/\D/g, "");
+        if (unique.has(identity)) duplicateInFile++;
+        unique.set(identity, item);
       } catch (error) {
         skippedInvalid++;
       }
     });
     const payload = [...unique.values()];
-    if (!payload.length) throw new Error("Tidak ada kontak dengan email valid untuk diimpor.");
-    
-    const approved = confirm("Import " + payload.length + " kontak unik dari " + file.name + "? Email yang sudah ada akan diperbarui. Izin marketing tidak akan diaktifkan.");
+    if (!payload.length) throw new Error("Tidak ada kontak valid. Setiap baris harus memiliki nama dan email atau nomor telepon minimal 8 digit.");
+    const approved = confirm("Import " + payload.length + " kontak unik dari " + file.name + "? Kontak dicocokkan berdasarkan email atau nomor telepon dan data yang cocok akan diperbarui. Izin marketing tidak akan diaktifkan.");
     if (!approved) return;
-    let count = 0;
+    let inserted = 0, updated = 0, rejected = 0;
     for (let i = 0; i < payload.length; i += 250) {
-      const { error } = await db.from("customer_directory").upsert(payload.slice(i, i + 250), { onConflict: "email" });
+      const { data, error } = await db.rpc("import_customer_directory_contacts", {
+        p_contacts: payload.slice(i, i + 250)
+      });
       if (error) throw error;
-      count += payload.slice(i, i + 250).length;
+      inserted += Number(data?.inserted || 0);
+      updated += Number(data?.updated || 0);
+      rejected += Number(data?.invalid || 0);
     }
     $("customerCsvFile").value = "";
     await loadCustomers();
-    status("Import selesai: " + count + " kontak berhasil diproses. " + skippedNoEmail + " baris tanpa email dan " + skippedInvalid + " baris tidak valid dilewati. File: " + file.name + ".");
+    status("Import selesai: " + inserted + " kontak baru, " + updated + " diperbarui, " + duplicateInFile + " duplikat dalam file, dan " + (skippedInvalid + rejected) + " baris gagal. File: " + file.name + ".");
   } catch (error) {
     status("Import gagal: " + (error?.message || error), true);
   } finally {
@@ -304,7 +312,7 @@ function render() {
     return;
   }
   root.innerHTML = '<table><thead><tr><th>Pelanggan</th><th>Kontak</th><th>Sumber</th><th>Pesanan</th><th>Total transaksi</th><th>Terakhir transaksi</th></tr></thead><tbody>' +
-    visible.map(c => '<tr><td><strong>' + esc(c.customer_name || "—") + '</strong><br><small>' + esc(c.email) + '</small></td>' +
+    visible.map(c => '<tr><td><strong>' + esc(c.customer_name || "—") + '</strong><br><small>' + esc(c.email || "Tanpa email") + '</small></td>' +
       '<td>' + esc(c.phone || "—") + '<br><small>' + esc(c.address || "") + '</small></td>' +
       '<td>' + (c.has_account ? '<span class="badge">Akun</span> ' : '') + esc(c.source_label) + '</td>' +
       '<td>' + Number(c.order_count || 0).toLocaleString("id-ID") + '</td><td>' + money(c.total_spent) + '</td>' +
@@ -339,8 +347,10 @@ async function loadCustomers() {
   const map = new Map();
   (directoryRows || []).forEach(row => {
     const email = String(row.email || "").toLowerCase();
-    if (email) map.set(email, {
-      email, customer_name: row.customer_name || "", phone: row.phone || "", address: row.address || "",
+    const phone = String(row.phone || "");
+    const key = email ? "email:" + email : "phone:" + phone.replace(/\D/g, "");
+    if (email || phone.replace(/\D/g, "").length >= 8) map.set(key, {
+      email, customer_name: row.customer_name || "", phone, address: row.address || "",
       notes: row.notes || "", source: row.source || "order", has_account: false,
       order_count: 0, total_spent: 0, last_order_at: null
     });
@@ -348,19 +358,19 @@ async function loadCustomers() {
   (profileRows || []).forEach(row => {
     const email = String(row.email || "").toLowerCase();
     if (!email) return;
-    const current = map.get(email) || {
+    const current = map.get("email:" + email) || {
       email, customer_name: "", phone: "", address: "", notes: "", source: "account",
       has_account: false, order_count: 0, total_spent: 0, last_order_at: null
     };
     current.has_account = true;
     if (!current.customer_name) current.customer_name = row.display_name || "";
     current.source = current.source === "order" ? "order" : "account";
-    map.set(email, current);
+    map.set("email:" + email, current);
   });
   (orderRows || []).forEach(order => {
     const email = String(order.customer_email || "").toLowerCase();
     if (!email) return;
-    const current = map.get(email) || {
+    const current = map.get("email:" + email) || {
       email, customer_name: "", phone: "", address: "", notes: "", source: "order",
       has_account: false, order_count: 0, total_spent: 0, last_order_at: null
     };
@@ -372,7 +382,7 @@ async function loadCustomers() {
       current.phone = current.phone || order.customer_phone || "";
       current.address = current.address || order.customer_address || "";
     }
-    map.set(email, current);
+    map.set("email:" + email, current);
   });
   customers = [...map.values()].map(c => ({
     ...c,
