@@ -1,5 +1,5 @@
 -- Bos Pangan inventory, suppliers, purchasing and moving-average HPP.
--- Apply after supabase/schema.sql, commerce-backend.sql, and checkout.sql.
+-- Apply after schema.sql, commerce-backend.sql, checkout.sql, and order-cancellation.sql.
 -- All stock/cost mutations are performed through SECURITY DEFINER RPCs.
 begin;
 
