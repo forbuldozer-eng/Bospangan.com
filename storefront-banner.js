@@ -57,7 +57,7 @@ if (hero) {
         if (!description) {
           description = document.createElement("p");
           description.className = "home-banner-description";
-          description.style.cssText = "font-size:clamp(15px,2vw,22px);line-height:1.5;margin:0 0 16px;max-width:650px";
+          description.style.cssText = "font-size:30pt;line-height:1.35;margin:0 0 16px;max-width:900px";
           content.append(description);
         }
         description.textContent = data.description || "";
