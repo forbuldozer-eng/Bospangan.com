@@ -28,6 +28,7 @@ function resetForm() {
   $("productCategoryForm").reset();
   $("categoryFormTitle").textContent = "Tambah kategori";
   $("categorySlug").value = "";
+  delete $("categorySlug").dataset.manual;
   $("cancelCategoryEdit").classList.add("hidden");
 }
 function render() {
