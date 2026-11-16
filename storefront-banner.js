@@ -12,7 +12,7 @@ if (hero) {
       const description = document.getElementById("homeHeroDescription");
       const cta = document.getElementById("homeHeroCta");
       if (eyebrow) eyebrow.textContent = data.eyebrow || "";
-      if (title) title.textContent = data.title || "";
+      if (title) { title.textContent = data.title || ""; title.style.whiteSpace = "pre-line"; }
       if (description) description.textContent = data.description || "";
       if (cta) {
         cta.textContent = data.cta_label || "Lihat katalog";
