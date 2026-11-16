@@ -157,12 +157,12 @@ function wireForms(){
  $("invRefreshStock").addEventListener("click",refreshAll);
 }
 async function init(){
- if(initialized)return;initialized=true;
+ if(initialized)return;initialized=true;panelMarkup();
  if(previewMode){$("inventoryStatus").textContent="Mode pratinjau aman: seluruh operasi database dinonaktifkan agar preview tidak menulis ke Supabase production. Terapkan migrasi dan konfigurasi Supabase staging sebelum pengujian interaktif.";return;}
  const {data:{session}}=await db.auth.getSession();if(!session){status("Sesi admin tidak ditemukan. Silakan login ulang.");return;}
  const {data:profile,error}=await db.from("profiles").select("role").eq("id",session.user.id).single();
  if(error||!["admin","super_admin"].includes(profile?.role)){status("Akses modul persediaan hanya untuk Admin dan Super Admin.");return;}
- panelMarkup();$("inventoryStatus").textContent="Menghubungkan ke database persediaan...";
+ $("inventoryStatus").textContent="Menghubungkan ke database persediaan...";
  $("purchaseForm").elements.purchase_date.value=dateInput();wireForms();addPurchaseLine();
  try{await refreshAll();status("Modul persediaan siap. Metode HPP: Moving Average.");}
  catch(error){status("Backend persediaan belum siap: "+error.message+". Pastikan migration supabase/inventory-hpp-moving-average.sql sudah diterapkan pada database staging.");}
