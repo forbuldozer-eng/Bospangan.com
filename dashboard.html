@@ -106,6 +106,26 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .report-stats-small{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media print{.sidebar,.topbar,.head-actions,.report-filters,.report-table-filters,#reportSearch{display:none!important}.main{margin:0}.content{padding:0}.panel,.stat-card{box-shadow:none;break-inside:avoid}}
 
+
+.finance-filters{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.finance-filters label{display:flex;flex-direction:column;gap:5px;min-width:145px;flex:1}
+.finance-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.finance-stats-secondary{margin-top:14px}
+.finance-chart{display:flex;align-items:stretch;gap:12px;min-height:190px;padding:22px 4px 0;overflow:auto}
+.finance-bar-item{min-width:60px;flex:1;display:flex;flex-direction:column;align-items:center;gap:7px}
+.finance-bar-value{font-size:10px;color:#7c8799;white-space:nowrap}
+.finance-bar-track{height:120px;width:100%;display:flex;align-items:end;background:#f4f7fa;border-radius:7px 7px 0 0;overflow:hidden}
+.finance-bar{width:100%;min-height:3px;background:linear-gradient(180deg,#11b981,#0d8b57);border-radius:6px 6px 0 0}
+.finance-bar-item small{font-size:10px;color:#8993a5}
+.finance-statement{max-width:760px;display:grid;gap:0}
+.finance-statement>div{display:flex;justify-content:space-between;gap:18px;padding:12px 4px;border-bottom:1px solid #edf0f5}
+.finance-statement .finance-total{font-weight:700;background:#f7faf9;padding:14px 10px}
+.finance-statement .finance-warning{color:#9a6700;background:#fff9e9}
+.finance-note{margin:14px 0 0;padding:12px 14px;border-radius:8px;background:#fff9e9;color:#805b17;font-size:12px;line-height:1.6}
+.finance-empty{padding:26px;text-align:center;color:#8993a5}
+@media(max-width:900px){.finance-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.sidebar,.topbar,.head-actions,.finance-filters,#financeSearch{display:none!important}.main{margin:0}.content{padding:0}.panel,.stat-card{box-shadow:none;break-inside:avoid}}
+
 </style>
 </head>
 <body>
@@ -148,6 +168,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
       <button class="group-toggle" type="button"><span class="left">Report</span><span class="group-icon">▥</span></button>
       <div class="nav-items">
         <button class="nav-link" data-page="transaction-report"><span>Laporan Transaksi</span><span class="nav-icon">▥</span></button>
+        <button class="nav-link" data-page="financial-report"><span>Laporan Keuangan</span><span class="nav-icon">▤</span></button>
         <button class="nav-link" data-page="product-report"><span>Laporan Produk</span><span class="nav-icon">▥</span></button>
       </div>
     </div>
@@ -330,6 +351,53 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
         <div id="reportTable"></div>
       </section>
     </section>
+    <section id="financialReportView" class="hidden">
+      <div class="page-head"><div><h1 class="page-title">Laporan Keuangan</h1><p class="page-subtitle">Ringkasan penerimaan, penjualan sebelum pajak, pajak, dan kewajiban pembayaran Bos Pangan.</p></div><div class="head-actions"><button class="btn" id="financePrint" type="button">Cetak / PDF</button><button class="btn primary" id="financeExport" type="button">Export CSV</button></div></div>
+      <div id="financeLoadStatus" class="status" role="status" aria-live="polite">Menyiapkan laporan keuangan…</div>
+      <section class="panel finance-filters">
+        <label>Periode cepat<select id="financePreset"><option value="30">30 hari terakhir</option><option value="today">Hari ini</option><option value="7">7 hari terakhir</option><option value="month">Bulan ini</option></select></label>
+        <label>Dari tanggal<input id="financeStart" type="date"></label>
+        <label>Sampai tanggal<input id="financeEnd" type="date"></label>
+        <button class="btn primary" id="financeApply" type="button">Terapkan</button>
+        <button class="btn" id="financeRefresh" type="button">Muat ulang</button>
+      </section>
+      <div class="stats finance-stats">
+        <article class="stat-card"><div class="stat-top"><span>Penerimaan Bruto</span><span class="stat-symbol">Rp</span></div><strong id="financeGross">Rp0</strong><small>Total pembayaran berstatus lunas</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Penjualan Sebelum Pajak</span><span class="stat-symbol">▤</span></div><strong id="financeNetSales">Rp0</strong><small>Subtotal pesanan lunas</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Pajak Terkumpul</span><span class="stat-symbol">%</span></div><strong id="financeTax">Rp0</strong><small>Pajak pada pesanan lunas</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Piutang / Belum Dibayar</span><span class="stat-symbol">◷</span></div><strong id="financeOutstanding">Rp0</strong><small>Pesanan aktif unpaid atau pending</small></article>
+      </div>
+      <div class="stats finance-stats finance-stats-secondary">
+        <article class="stat-card"><div class="stat-top"><span>Transaksi Lunas</span></div><strong id="financePaidCount">0</strong><small>Pesanan tidak dibatalkan dan lunas</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Pesanan Dibatalkan</span></div><strong id="financeCancelledCount">0</strong><small id="financeCancelledValue">Nilai referensi Rp0</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Pesanan Refund</span></div><strong id="financeRefundCount">0</strong><small>Nominal refund aktual belum tersedia</small></article>
+        <article class="stat-card"><div class="stat-top"><span>Total Pesanan</span></div><strong id="financeOrderCount">0</strong><small>Semua status dalam periode</small></article>
+      </div>
+      <section class="panel">
+        <div class="row" style="align-items:center;justify-content:space-between"><div><h2 style="margin:0">Arus kas masuk</h2><p class="page-subtitle">Penerimaan dari pesanan yang sudah lunas per hari</p></div><strong id="financeChartInfo">0 transaksi lunas</strong></div>
+        <div id="financeChart" class="finance-chart"></div>
+      </section>
+      <section class="panel">
+        <h2 style="margin-top:0">Ringkasan berdasarkan jenis transaksi</h2>
+        <div id="financeTypeBreakdown"></div>
+      </section>
+      <section class="panel">
+        <h2 style="margin-top:0">Ringkasan laba rugi</h2>
+        <div class="finance-statement">
+          <div><span>Penjualan sebelum pajak</span><strong id="financeStatementSales">Rp0</strong></div>
+          <div><span>Pajak terkumpul (dipisahkan dari penjualan)</span><strong id="financeStatementTax">Rp0</strong></div>
+          <div class="finance-total"><span>Penerimaan bruto dari pesanan lunas</span><strong id="financeStatementGross">Rp0</strong></div>
+          <div><span>Harga Pokok Penjualan (HPP)</span><strong>Belum tersedia</strong></div>
+          <div><span>Biaya operasional</span><strong>Belum tersedia</strong></div>
+          <div class="finance-total finance-warning"><span>Laba bersih</span><strong>Belum dapat dihitung</strong></div>
+        </div>
+        <p class="finance-note">Laporan ini menghitung penjualan dan penerimaan berdasarkan data pesanan. HPP, biaya operasional, nominal refund aktual, serta saldo kas/bank belum dicatat dalam database, sehingga laba bersih dan laporan neraca belum dapat dihitung secara akurat.</p>
+      </section>
+      <section class="panel">
+        <div class="row" style="align-items:center;justify-content:space-between"><div><h2 style="margin:0">Rincian transaksi keuangan</h2><p class="page-subtitle">Subtotal, pajak, total pesanan, dan status pembayaran</p></div><input id="financeSearch" placeholder="Cari nomor pesanan / pelanggan"></div>
+        <div id="financeTable"></div>
+      </section>
+    </section>
     <section id="accessPanel" class="panel hidden">
       <h2>Pengelolaan Akun Admin</h2>
       <p class="muted">Menu ini hanya tersedia untuk Super Admin. Buat akun melalui Supabase Authentication, lalu atur hak aksesnya di sini. Super Admin utama tetap terlindungi.</p>
@@ -342,6 +410,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <script type="module" src="/cms-articles.js"></script>
 <script type="module" src="/dashboard.js"></script>
 <script type="module" src="/transaction-report.js"></script>
+<script type="module" src="/financial-report.js"></script>
 <script type="module" src="/admin-commerce.js"></script>
 <script type="module" src="/admin-landing-pages.js"></script>
 <script type="module" src="/admin-banner.js"></script>
