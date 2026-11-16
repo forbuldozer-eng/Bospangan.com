@@ -7,10 +7,9 @@ alter table public.products
   add column if not exists cost_price numeric(14,2) not null default 0
   check (cost_price >= 0);
 
--- Keep the category constraint aligned with the CMS category list (including Bebek).
+-- The CMS loads categories dynamically from product_categories. Remove the old
+-- hard-coded check so active categories (including Bebek) are not rejected.
 alter table public.products drop constraint if exists products_category_check;
-alter table public.products add constraint products_category_check
-  check (category in ('Daging sapi','Ikan','Ayam','Sayuran','Minyak','Beras','Bumbu dapur','Buah','Bebek'));
 
 create table if not exists public.suppliers (
   id uuid primary key default gen_random_uuid(),
