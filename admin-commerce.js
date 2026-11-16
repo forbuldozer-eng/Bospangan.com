@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const isProductionHost = location.hostname === "bospangan.com" || location.hostname === "www.bospangan.com";
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let categories = ["Daging sapi","Ikan","Ayam","Sayuran","Minyak","Beras","Bumbu dapur","Buah","Bebek"];
@@ -135,7 +136,7 @@ async function loadProducts(){
     data.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.sku)+'</td><td>'+esc(p.category)+'</td><td>'+money(p.price)+'</td><td>'+money(p.cost_price)+'</td><td>'+Number(p.stock||0).toLocaleString("id-ID")+' '+esc(p.unit)+'</td><td>'+(p.is_published?"Tayang":"Draft")+'</td><td><button data-edit="'+p.id+'">Edit</button> <button data-delete="'+p.id+'">Hapus</button></td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada produk dari dashboard.</p>';
   $("campaignProduct").innerHTML=data.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.sku)+'</option>').join("");
   $("productsTable").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editProduct(data.find(p=>p.id===b.dataset.edit)));
-  $("productsTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!confirm("Hapus produk ini? Riwayat transaksi akan tetap menyimpan snapshot produk."))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)message(error.message);else{message("Produk dihapus.");await loadProducts();}});
+  $("productsTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!isProductionHost){message("Mode preview: penghapusan produk dinonaktifkan agar Supabase production tidak berubah.");return;}if(!confirm("Hapus produk ini? Riwayat transaksi akan tetap menyimpan snapshot produk."))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)message(error.message);else{message("Produk dihapus.");await loadProducts();}});
 }
 function renderCurrentImages(urls = []) {
   const root = $("currentImages");
@@ -247,6 +248,7 @@ async function loadOrders(){
     const order=data.find(x=>x.id===sel.dataset.orderStatus);
     sel.value=order.status;
     sel.onchange=async()=>{
+      if(!isProductionHost){message("Mode preview: perubahan status pesanan dinonaktifkan.");sel.value=order.status;return;}
       const nextStatus=sel.value;
       if(nextStatus==="cancelled" && !canCancel(order)){
         message("Pesanan ini tidak dapat dibatalkan dari status atau pembayaran saat ini.");
@@ -276,6 +278,7 @@ async function loadOrders(){
 
   $("ordersTable").querySelectorAll("[data-cancel-order]").forEach(button=>{
     button.onclick=async()=>{
+      if(!isProductionHost){message("Mode preview: pembatalan pesanan dinonaktifkan.");return;}
       const order=data.find(x=>x.id===button.dataset.cancelOrder);
       if(!order || !canCancel(order))return;
       if(!confirm("Batalkan pesanan "+order.order_number+"? Stok produk yang dipesan akan dikembalikan."))return;
@@ -300,7 +303,7 @@ async function loadCampaigns(){
   if(error)throw error;
   $("campaignsTable").innerHTML=data.length?'<table><thead><tr><th>Campaign</th><th>Channel / Target</th><th>Status</th><th>Jadwal</th><th>Aksi</th></tr></thead><tbody>'+
    data.map(c=>'<tr><td>'+esc(c.title)+'<br><small>'+esc(c.subject)+'</small></td><td>'+esc(c.channel)+' / '+esc(c.audience)+'</td><td>'+esc(c.status)+'</td><td>'+esc(c.scheduled_at||"—")+'</td><td>'+(c.status==="draft"||c.status==="scheduled"?'<button data-send-campaign="'+c.id+'">Kirim sekarang</button>':"—")+'</td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada campaign.</p>';
-  $("campaignsTable").querySelectorAll("[data-send-campaign]").forEach(b=>b.onclick=async()=>{if(!confirm("Kirim campaign ini kepada pelanggan yang sudah memberi izin?"))return;b.disabled=true;const {data:{session}}=await db.auth.getSession();const response=await fetch(SUPABASE_URL+"/functions/v1/send-product-campaign",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({campaign_id:b.dataset.sendCampaign})});const result=await response.json().catch(()=>({}));message(response.ok?"Campaign diproses. "+(result.sent??0)+" email terkirim.":(result.error||"Gagal mengirim campaign."));b.disabled=false;await loadCampaigns();});
+  $("campaignsTable").querySelectorAll("[data-send-campaign]").forEach(b=>b.onclick=async()=>{if(!isProductionHost){message("Mode preview: pengiriman campaign dinonaktifkan.");return;}if(!confirm("Kirim campaign ini kepada pelanggan yang sudah memberi izin?"))return;b.disabled=true;const {data:{session}}=await db.auth.getSession();const response=await fetch(SUPABASE_URL+"/functions/v1/send-product-campaign",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({campaign_id:b.dataset.sendCampaign})});const result=await response.json().catch(()=>({}));message(response.ok?"Campaign diproses. "+(result.sent??0)+" email terkirim.":(result.error||"Gagal mengirim campaign."));b.disabled=false;await loadCampaigns();});
 }
 async function loadNotificationQueue(){
   const target=$("notificationQueueTable");
@@ -343,6 +346,7 @@ async function loadSettings(){
 }
 $("commerceAdmin")?.addEventListener("submit",()=>{});
 function wireForms(){
+  if(!isProductionHost){message("Mode preview: penyimpanan katalog, transaksi, dan campaign dinonaktifkan.");return;}
   $("refreshNotificationQueue")?.addEventListener("click",async()=>{
     const button=$("refreshNotificationQueue");
     button.disabled=true;
