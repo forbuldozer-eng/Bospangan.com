@@ -66,7 +66,7 @@ function updatePreview() {
   $("bannerPreviewTitle").textContent = f.elements.title.value || "Judul banner";
   $("bannerPreviewDescription").textContent = f.elements.description.value || "";
   $("bannerPreviewCta").textContent = f.elements.cta_label.value || "Tombol";
-  const preview = $("bannerLivePreview");
+  $("bannerPreviewTitle").style.whiteSpace = "pre-line";\n  const preview = $("bannerLivePreview");
   preview.style.backgroundColor = color;
   const url = $("bannerImagePreview").dataset.previewUrl || $("bannerImagePreview").dataset.url || "";
   preview.style.backgroundImage = url ? "linear-gradient(90deg,rgba(0,0,0,.45),rgba(0,0,0,.08)),url('" + url.replace(/['()\\]/g,"") + "')" : "none";
