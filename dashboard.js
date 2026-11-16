@@ -57,8 +57,19 @@ function activatePage(page){
     showOnly("overviewView");
     return;
   }
+  if(page === "categories"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:categories-open"));
+    return;
+  }
   if(page === "category-order"){
     showOnly("adminView");
+    $("productCategoriesPanel")?.classList.add("hidden");
     $("commerceAdmin")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.add("hidden");
@@ -72,6 +83,7 @@ function activatePage(page){
     $("commerceAdmin")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.add("hidden");
     $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:banner-open"));
     return;
@@ -81,6 +93,7 @@ function activatePage(page){
     $("commerceAdmin")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.add("hidden");
     $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:landing-pages-open"));
     return;
@@ -102,6 +115,7 @@ function activatePage(page){
     $("siteBannerPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.add("hidden");
     $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
     $("commerceAdmin")?.classList.remove("hidden");
     const tab = document.querySelector('#commerceAdmin [data-tab="'+commerceTabs[page]+'"]');
     if(tab) tab.click();
@@ -121,6 +135,7 @@ function activatePage(page){
   const info = pageInfo[page];
   if(info){
     $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
     showOnly("placeholderView");
     $("placeholderTitle").textContent = info[0];
     $("placeholderSubtitle").textContent = info[1];
