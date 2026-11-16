@@ -40,7 +40,7 @@ function closeMobileMenu(){
   $("scrim").classList.remove("show");
 }
 function showOnly(id){
-  ["overviewView","placeholderView","articleView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
+  ["overviewView","placeholderView","articleView","transactionReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
@@ -62,7 +62,7 @@ function activatePage(page){
     window.dispatchEvent(new CustomEvent("cms:articles-open"));
     return;
   }
-  if(page === "admins"){
+  if(page === "transaction-report"){\n    showOnly("transactionReportView");\n    window.dispatchEvent(new CustomEvent("cms:transaction-report-open"));\n    return;\n  }\n  if(page === "admins"){
     if(currentRole !== "super_admin") return;
     showOnly("accessPanel");
     return;
