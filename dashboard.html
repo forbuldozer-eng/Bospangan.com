@@ -307,7 +307,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 
     <section id="transactionReportView" class="hidden">
       <div class="page-head"><div><h1 class="page-title">Laporan Transaksi</h1><p class="page-subtitle">Analisis penjualan, pembayaran, dan pesanan Bos Pangan.</p></div><div class="head-actions"><button class="btn" id="reportPrint" type="button">Cetak / PDF</button><button class="btn primary" id="reportExport" type="button">Export CSV</button></div></div>
-      <div id="reportStatus" class="status" role="status" aria-live="polite">Menyiapkan laporan…</div>
+      <div id="reportLoadStatus" class="status" role="status" aria-live="polite">Menyiapkan laporan…</div>
       <section class="panel report-filters">
         <label>Periode cepat<select id="reportPreset"><option value="30">30 hari terakhir</option><option value="today">Hari ini</option><option value="7">7 hari terakhir</option><option value="month">Bulan ini</option></select></label>
         <label>Dari tanggal<input id="reportStart" type="date"></label><label>Sampai tanggal<input id="reportEnd" type="date"></label>
@@ -326,7 +326,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
       </div>
       <section class="panel"><h2 style="margin-top:0">Produk terlaris</h2><div id="reportTopProducts"></div></section>
       <section class="panel"><div class="row" style="align-items:end;justify-content:space-between"><div><h2 style="margin:0">Rincian transaksi</h2><p class="page-subtitle">Cari dan filter daftar pesanan</p></div><input id="reportSearch" placeholder="Cari nomor pesanan / pelanggan"></div>
-        <div class="row report-table-filters"><label>Jenis<select id="reportType"><option value="all">Semua</option><option value="regular">Reguler</option><option value="special">Khusus</option></select></label><label>Status pesanan<select id="reportStatus"><option value="all">Semua</option><option value="new">Baru</option><option value="confirmed">Dikonfirmasi</option><option value="processing">Diproses</option><option value="shipped">Dikirim</option><option value="completed">Selesai</option><option value="cancelled">Dibatalkan</option><option value="quoted">Penawaran</option></select></label><label>Pembayaran<select id="reportPayment"><option value="all">Semua</option><option value="unpaid">Belum dibayar</option><option value="pending">Pending</option><option value="paid">Lunas</option><option value="refunded">Refund</option></select></label></div>
+        <div class="row report-table-filters"><label>Jenis<select id="reportType"><option value="all">Semua</option><option value="regular">Reguler</option><option value="special">Khusus</option></select></label><label>Status pesanan<select id="reportOrderStatus"><option value="all">Semua</option><option value="new">Baru</option><option value="confirmed">Dikonfirmasi</option><option value="processing">Diproses</option><option value="shipped">Dikirim</option><option value="completed">Selesai</option><option value="cancelled">Dibatalkan</option><option value="quoted">Penawaran</option></select></label><label>Pembayaran<select id="reportPayment"><option value="all">Semua</option><option value="unpaid">Belum dibayar</option><option value="pending">Pending</option><option value="paid">Lunas</option><option value="refunded">Refund</option></select></label></div>
         <div id="reportTable"></div>
       </section>
     </section>
