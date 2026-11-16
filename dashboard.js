@@ -59,6 +59,11 @@ function activatePage(page){
   }
   if(page === "banner"){
     showOnly("adminView");
+    // The commerce module also mounts inside #adminView. Hide it when
+    // the dedicated banner editor is selected so its product form cannot
+    // cover the banner module.
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:banner-open"));
     return;
   }
@@ -81,6 +86,8 @@ function activatePage(page){
   const commerceTabs = {products:"products",orders:"orders",special:"orders",campaigns:"campaigns","store-settings":"settings",notifications:"campaigns"};
   if(commerceTabs[page]){
     showOnly("adminView");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("commerceAdmin")?.classList.remove("hidden");
     const tab = document.querySelector('#commerceAdmin [data-tab="'+commerceTabs[page]+'"]');
     if(tab) tab.click();
     if(page === "special"){
