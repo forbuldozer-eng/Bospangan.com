@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
@@ -35,12 +36,12 @@ function mount() {
     </div>
     <div class="panel" style="margin:0 0 16px">
       <h2 style="font-size:17px;margin:0 0 8px">Import & Export Database</h2>
-      <p class="muted">Gunakan CSV UTF-8 dengan kolom wajib <strong>email</strong> dan <strong>nama</strong>. Kolom opsional: telepon, alamat, catatan. Import memperbarui kontak berdasarkan email yang sama.</p>
+      <p class="muted">Import file Excel <strong>.xlsx / .xls</strong> atau CSV. Kolom wajib <strong>email</strong> dan <strong>nama</strong>; kolom opsional: telepon, alamat, catatan. Data dengan email sama akan diperbarui, bukan digandakan.</p>
       <div class="row" style="gap:10px;align-items:end;flex-wrap:wrap">
-        <label style="flex:2;min-width:220px">Pilih file CSV<input id="customerCsvFile" type="file" accept=".csv,text/csv" style="width:100%"></label>
-        <button class="btn primary" id="customerImportBtn" type="button">Import CSV</button>
-        <button class="btn" id="customerExportBtn" type="button">Export CSV</button>
-        <button class="btn" id="customerTemplateBtn" type="button">Unduh Template</button>
+        <label style="flex:2;min-width:240px">Pilih file Excel / CSV<input id="customerCsvFile" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="width:100%"></label>
+        <button class="btn primary" id="customerImportBtn" type="button">Import Excel / CSV</button>
+        <button class="btn" id="customerExportBtn" type="button">Export Excel</button>
+        <button class="btn" id="customerTemplateBtn" type="button">Unduh Template Excel</button>
       </div>
       <small class="muted">Import hanya menambahkan/memperbarui data kontak CRM. Import tidak membuat akun login, tidak mengubah password, dan tidak memberi izin email/push marketing.</small>
     </div>
@@ -64,8 +65,8 @@ function mount() {
   $("customerDbSearch").addEventListener("input", render);
   $("customerDbFilter").addEventListener("change", render);
   $("customerImportBtn").addEventListener("click", importCsv);
-  $("customerExportBtn").addEventListener("click", exportCsv);
-  $("customerTemplateBtn").addEventListener("click", downloadTemplate);
+  $("customerExportBtn").addEventListener("click", exportExcel);
+  $("customerTemplateBtn").addEventListener("click", downloadExcelTemplate);
 }
 
 function parseCsv(text) {
@@ -119,27 +120,76 @@ function downloadCsv(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
-function downloadTemplate() {
-  downloadCsv("template-database-pelanggan-bospangan.csv", [
+function normalizeHeader(value) {
+  const key = String(value ?? "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+    .replace(/[\\s-]+/g, "_");
+  const aliases = {
+    email: "email", e_mail: "email", alamat_email: "email",
+    nama: "nama", name: "nama", customer_name: "nama", nama_pelanggan: "nama",
+    telepon: "telepon", phone: "telepon", no_hp: "telepon", nomor_telepon: "telepon",
+    alamat: "alamat", address: "alamat",
+    catatan: "catatan", notes: "catatan", keterangan: "catatan"
+  };
+  return aliases[key] || key;
+}
+
+async function readImportFile(file) {
+  const extension = file.name.toLowerCase().split(".").pop();
+  if (extension === "csv") {
+    const records = parseCsv(await file.text());
+    return records.map(record => Object.fromEntries(
+      Object.entries(record).map(([key, value]) => [normalizeHeader(key), value])
+    ));
+  }
+  if (extension !== "xlsx" && extension !== "xls") {
+    throw new Error("Format tidak didukung. Gunakan file .xlsx, .xls, atau .csv.");
+  }
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
+  const firstSheet = workbook.SheetNames[0];
+  if (!firstSheet) throw new Error("File Excel tidak memiliki worksheet.");
+  const sheet = workbook.Sheets[firstSheet];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false, blankrows: false });
+  if (!rows.length) throw new Error("Worksheet Excel kosong atau tidak memiliki baris data.");
+  return rows.map(record => Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [normalizeHeader(key), String(value ?? "").trim()])
+  ));
+}
+
+function downloadExcel(filename, rows, sheetName = "Pelanggan") {
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  worksheet["!cols"] = rows[0].map((_, index) => ({
+    wch: Math.min(40, Math.max(14, ...rows.slice(0, 100).map(row => String(row[index] ?? "").length + 2)))
+  }));
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  XLSX.writeFile(workbook, filename, { compression: true });
+}
+
+function downloadExcelTemplate() {
+  downloadExcel("template-database-pelanggan-bospangan.xlsx", [
     ["email","nama","telepon","alamat","catatan"],
     ["pelanggan@example.com","Nama Pelanggan","081234567890","Alamat pelanggan","Catatan internal"]
-  ]);
+  ], "Template Import");
 }
 
 async function importCsv() {
   const file = $("customerCsvFile").files?.[0];
-  if (!file) return status("Pilih file CSV terlebih dahulu.", true);
-  if (!file.name.toLowerCase().endsWith(".csv") || file.size > 2 * 1024 * 1024) {
-    return status("File harus berformat CSV dan maksimal 2 MB.", true);
+  if (!file) return status("Pilih file Excel atau CSV terlebih dahulu.", true);
+  const extension = file.name.toLowerCase().split(".").pop();
+  const maxSize = extension === "csv" ? 2 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (!["csv","xlsx","xls"].includes(extension) || file.size > maxSize) {
+    return status("Gunakan .xlsx/.xls maksimal 10 MB atau .csv maksimal 2 MB.", true);
   }
   const button = $("customerImportBtn");
   button.disabled = true;
   try {
-    const records = parseCsv(await file.text());
+    const records = await readImportFile(file);
     if (records.length > 5000) throw new Error("Maksimal 5.000 baris per proses import.");
+    if (!records.length) throw new Error("Tidak ada data pelanggan pada file.");
     const headers = Object.keys(records[0] || {});
-    if (!headers.includes("email") || !headers.some(key => ["nama","name","customer_name"].includes(key))) {
-      throw new Error("Header wajib: email dan nama (atau name). Unduh template untuk contoh format.");
+    if (!headers.includes("email") || !headers.includes("nama")) {
+      throw new Error("Kolom wajib: email dan nama. Unduh template Excel untuk contoh format.");
     }
     const unique = new Map();
     records.forEach((record, index) => {
@@ -147,7 +197,7 @@ async function importCsv() {
       unique.set(item.email, item);
     });
     const payload = [...unique.values()];
-    const approved = confirm("Import " + payload.length + " kontak unik? Kontak dengan email sama akan diperbarui. Izin marketing tidak akan diaktifkan.");
+    const approved = confirm("Import " + payload.length + " kontak unik dari " + file.name + "? Email yang sudah ada akan diperbarui. Izin marketing tidak akan diaktifkan.");
     if (!approved) return;
     let count = 0;
     for (let i = 0; i < payload.length; i += 250) {
@@ -157,7 +207,7 @@ async function importCsv() {
     }
     $("customerCsvFile").value = "";
     await loadCustomers();
-    status("Import berhasil. " + count + " kontak diproses; duplikat email digabung berdasarkan email.");
+    status("Import berhasil. " + count + " kontak diproses dari " + file.name + ".");
   } catch (error) {
     status("Import gagal: " + (error?.message || error), true);
   } finally {
@@ -165,7 +215,7 @@ async function importCsv() {
   }
 }
 
-function exportCsv() {
+function exportExcel() {
   const rows = [
     ["email","nama","telepon","alamat","catatan","sumber","akun_terdaftar","jumlah_pesanan","total_transaksi","pesanan_terakhir"],
     ...customers.map(c => [
@@ -174,8 +224,8 @@ function exportCsv() {
       c.last_order_at ? new Date(c.last_order_at).toISOString() : ""
     ])
   ];
-  downloadCsv("database-pelanggan-bospangan-" + new Date().toISOString().slice(0,10) + ".csv", rows);
-  status("Export selesai. " + customers.length + " kontak diunduh sebagai CSV.");
+  downloadExcel("database-pelanggan-bospangan-" + new Date().toISOString().slice(0,10) + ".xlsx", rows);
+  status("Export Excel selesai. " + customers.length + " kontak diunduh.");
 }
 
 function render() {
