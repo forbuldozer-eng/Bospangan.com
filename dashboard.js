@@ -24,7 +24,7 @@ const pageInfo = {
   pages:["Halaman Website","Kelola halaman informasi seperti Tentang Kami dan Kontak","Modul halaman statis memerlukan struktur konten dan workflow publikasi tersendiri."],
   feeds:["Feeds Timeline","Kelola konten timeline dan feed","Modul feeds belum memiliki tabel penyimpanan pada backend saat ini."],
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
-  "category-order":["Urutan Kategori","Atur urutan kategori produk pada website","Modul pengurutan kategori belum tersedia di backend saat ini."],
+  "category-order":["Urutan Kategori","Atur urutan kategori produk pada website","Atur posisi dan visibilitas kategori yang tampil pada halaman utama."],
   categories:["Kategori Produk","Kelola kategori katalog Bos Pangan","Kategori produk yang aktif saat ini mengikuti daftar kategori pada katalog. Pengelolaan dinamis memerlukan tabel kategori."],
   media:["Media & Galeri","Kelola foto produk dan aset website","Foto produk saat ini dikelola melalui form Produk dan disimpan di Supabase Storage."],
   invoice:["Invoice","Dokumen transaksi dan tagihan pelanggan","Backend saat ini menyimpan pesanan dan rincian transaksi; pembuatan invoice PDF belum tersedia."],
@@ -57,11 +57,21 @@ function activatePage(page){
     showOnly("overviewView");
     return;
   }
+  if(page === "category-order"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:category-order-open"));
+    return;
+  }
   if(page === "banner"){
     showOnly("adminView");
     // All CMS modules mount inside #adminView; show only the selected module.
     $("commerceAdmin")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:banner-open"));
     return;
@@ -70,6 +80,7 @@ function activatePage(page){
     showOnly("adminView");
     $("commerceAdmin")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:landing-pages-open"));
     return;
@@ -90,6 +101,7 @@ function activatePage(page){
     showOnly("adminView");
     $("siteBannerPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
     $("commerceAdmin")?.classList.remove("hidden");
     const tab = document.querySelector('#commerceAdmin [data-tab="'+commerceTabs[page]+'"]');
     if(tab) tab.click();
@@ -108,6 +120,7 @@ function activatePage(page){
 
   const info = pageInfo[page];
   if(info){
+    $("categoryOrderPanel")?.classList.add("hidden");
     showOnly("placeholderView");
     $("placeholderTitle").textContent = info[0];
     $("placeholderSubtitle").textContent = info[1];
