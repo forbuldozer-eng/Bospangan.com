@@ -26,7 +26,7 @@ const pageInfo = {
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
   "category-order":["Urutan Kategori","Atur urutan kategori produk pada website","Atur posisi dan visibilitas kategori yang tampil pada halaman utama."],
   categories:["Kategori Produk","Kelola kategori katalog Bos Pangan","Kategori produk yang aktif saat ini mengikuti daftar kategori pada katalog. Pengelolaan dinamis memerlukan tabel kategori."],
-  media:["Media & Galeri","Kelola foto produk dan aset website","Foto produk saat ini dikelola melalui form Produk dan disimpan di Supabase Storage."],
+  media:["Media & Galeri","Kelola foto dan video aset website","Pusat penyimpanan gambar dan video website Bos Pangan."],
   invoice:["Invoice","Dokumen transaksi dan tagihan pelanggan","Backend saat ini menyimpan pesanan dan rincian transaksi; pembuatan invoice PDF belum tersedia."],
   customers:["Pelanggan","Data pelanggan dan preferensi komunikasi","Daftar pelanggan berbasis akun dan izin notifikasi belum disatukan ke satu modul CRM."],
   "transaction-report":["Laporan Transaksi","Ringkasan penjualan dan status pesanan","Laporan analitik belum dibuat. Data transaksi tersedia di menu Pesanan."],
@@ -52,6 +52,7 @@ function activatePage(page){
   };
   $("crumb").textContent = labels[page] || pageInfo[page]?.[0] || "Dashboard";
   closeMobileMenu();
+  if (page !== "media") $("mediaAdminPanel")?.classList.add("hidden");
 
   if(page === "overview"){
     showOnly("overviewView");
@@ -96,6 +97,17 @@ function activatePage(page){
     $("productCategoriesPanel")?.classList.add("hidden");
     $("landingPagesPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:landing-pages-open"));
+    return;
+  }
+  if(page === "media"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    $("mediaAdminPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:media-open"));
     return;
   }
   if(page === "news"){
