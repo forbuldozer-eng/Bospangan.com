@@ -3,10 +3,20 @@
 -- All stock/cost mutations are performed through SECURITY DEFINER RPCs.
 begin;
 
-alter table public.products
-  add column if not exists cost_price numeric(14,2) not null default 0
-  check (cost_price >= 0),
-  add column if not exists cost_initialized boolean not null default false;
+-- HPP lives outside the publicly readable products table.
+create table if not exists public.product_inventory_costs (
+  product_id uuid primary key references public.products(id) on delete cascade,
+  average_cost numeric(14,2) not null default 0 check (average_cost >= 0),
+  cost_initialized boolean not null default false,
+  updated_by uuid references public.profiles(id),
+  updated_at timestamptz not null default now()
+);
+alter table public.product_inventory_costs enable row level security;
+drop policy if exists "admins read product inventory costs" on public.product_inventory_costs;
+create policy "admins read product inventory costs" on public.product_inventory_costs
+  for select to authenticated using (public.is_admin());
+revoke all on public.product_inventory_costs from anon,authenticated;
+grant select on public.product_inventory_costs to authenticated;
 
 -- The CMS loads categories dynamically from product_categories. Remove the old
 -- hard-coded check so active categories (including Bebek) are not rejected.
@@ -125,6 +135,9 @@ create table if not exists public.inventory_movements (
     (quantity_out > 0 and quantity_in = 0)
   )
 );
+alter table public.inventory_movements drop constraint if exists inventory_movements_movement_type_check;
+alter table public.inventory_movements add constraint inventory_movements_movement_type_check
+  check (movement_type in ('opening','purchase_in','adjustment_in','adjustment_out','sale_out','sale_return'));
 create index if not exists inventory_movements_product_date_idx on public.inventory_movements(product_id,created_at desc);
 alter table public.inventory_movements enable row level security;
 drop policy if exists "admins read inventory movements" on public.inventory_movements;
@@ -215,15 +228,17 @@ declare
   v_po public.purchase_orders%rowtype;
   v_item public.purchase_order_items%rowtype;
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
   v_line_count integer;
+  v_line_index integer := 0;
   v_allocated numeric(14,2);
+  v_allocated_total numeric(14,2) := 0;
   v_landed_unit numeric(14,2);
   v_new_stock numeric(14,3);
   v_new_cost numeric(14,2);
   v_old_stock numeric(14,3);
   v_old_cost numeric(14,2);
-  v_line_index integer := 0;
-  v_allocated_total numeric(14,2) := 0;
+  v_cost_initialized boolean;
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
   select * into v_po from public.purchase_orders where id=p_purchase_order_id for update;
@@ -233,7 +248,7 @@ begin
   if v_line_count=0 then raise exception 'Pembelian tidak memiliki item'; end if;
 
   for v_item in
-    select * from public.purchase_order_items where purchase_order_id=v_po.id order by product_id for update
+    select * from public.purchase_order_items where purchase_order_id=v_po.id order by product_id,id for update
   loop
     select * into v_product from public.products where id=v_item.product_id for update;
     if not found then raise exception 'Produk % tidak ditemukan',v_item.product_name_snapshot; end if;
@@ -248,24 +263,29 @@ begin
     v_allocated_total := v_allocated_total + v_allocated;
     v_landed_unit := round(v_item.unit_cost + (v_allocated/v_item.quantity),2);
     v_old_stock := v_product.stock;
-    v_old_cost := v_product.cost_price;
-    v_new_stock := v_old_stock + v_item.quantity;
-    if v_new_stock <= 0 then raise exception 'Stok akhir tidak valid'; end if;
-    if v_old_stock>0 and not v_product.cost_initialized then
+    select * into v_cost from public.product_inventory_costs where product_id=v_product.id for update;
+    v_cost_initialized := found and v_cost.cost_initialized;
+    v_old_cost := case when v_cost_initialized then v_cost.average_cost else 0 end;
+    if v_old_stock>0 and not v_cost_initialized then
       raise exception 'Tetapkan HPP awal stok produk sebelum menerima pembelian tambahan: %',v_product.name;
     end if;
+    v_new_stock := v_old_stock + v_item.quantity;
+    if v_new_stock <= 0 then raise exception 'Stok akhir tidak valid'; end if;
     if v_old_stock=0 then
       v_new_cost := v_landed_unit;
     else
       v_new_cost := round(((v_old_stock*v_old_cost)+(v_item.quantity*v_landed_unit))/v_new_stock,2);
     end if;
 
-    update public.products set stock=v_new_stock,cost_price=v_new_cost,cost_initialized=true,updated_at=now() where id=v_product.id;
+    insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
+    values(v_product.id,v_new_cost,true,(select auth.uid()),now())
+    on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=true,updated_by=excluded.updated_by,updated_at=now();
+    update public.products set stock=v_new_stock,updated_at=now() where id=v_product.id;
     update public.purchase_order_items set received_quantity=quantity where id=v_item.id;
     insert into public.inventory_movements(product_id,movement_type,quantity_in,unit_cost,balance_quantity,balance_cost,reference_type,reference_id,notes,actor_id)
-    values(v_product.id,'purchase_in',v_item.quantity,v_landed_unit,v_new_stock,v_new_cost,'purchase_order',v_po.id,'Penerimaan '+v_po.purchase_number,(select auth.uid()));
+    values(v_product.id,'purchase_in',v_item.quantity,v_landed_unit,v_new_stock,v_new_cost,'purchase_order',v_po.id,'Penerimaan '||v_po.purchase_number,(select auth.uid()));
     insert into public.product_cost_history(product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,source_id,notes,actor_id)
-    values(v_product.id,v_old_cost,v_new_cost,v_old_stock,v_new_stock,'purchase',v_po.id,'Moving average dari '+v_po.purchase_number,(select auth.uid()));
+    values(v_product.id,v_old_cost,v_new_cost,v_old_stock,v_new_stock,'purchase',v_po.id,'Moving average dari '||v_po.purchase_number,(select auth.uid()));
   end loop;
 
   update public.purchase_orders set status='received',received_at=now(),updated_at=now() where id=v_po.id;
@@ -321,6 +341,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
   if coalesce(p_unit_cost,-1)<0 then raise exception 'Harga modal awal tidak valid'; end if;
@@ -328,10 +349,13 @@ begin
   select * into v_product from public.products where id=p_product_id for update;
   if not found then raise exception 'Produk tidak ditemukan'; end if;
   if v_product.stock<=0 then raise exception 'Produk tidak memiliki stok awal untuk dinilai'; end if;
-  if v_product.cost_initialized or exists(select 1 from public.inventory_movements where product_id=p_product_id) then
+  select * into v_cost from public.product_inventory_costs where product_id=p_product_id for update;
+  if (found and v_cost.cost_initialized) or exists(select 1 from public.inventory_movements where product_id=p_product_id) then
     raise exception 'Harga modal awal sudah pernah ditetapkan; gunakan penyesuaian persediaan';
   end if;
-  update public.products set cost_price=round(p_unit_cost,2),cost_initialized=true,updated_at=now() where id=p_product_id;
+  insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
+  values(p_product_id,round(p_unit_cost,2),true,(select auth.uid()),now())
+  on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=true,updated_by=excluded.updated_by,updated_at=now();
   insert into public.inventory_movements(product_id,movement_type,quantity_in,unit_cost,balance_quantity,balance_cost,reference_type,notes,actor_id)
   values(p_product_id,'opening',v_product.stock,round(p_unit_cost,2),v_product.stock,round(p_unit_cost,2),'opening_valuation',p_notes,(select auth.uid()));
   insert into public.product_cost_history(product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,notes,actor_id)
@@ -340,7 +364,7 @@ end;
 $$;
 
 -- Record opening stock or a controlled stock adjustment; direct browser writes
--- to products.stock/cost_price are not granted by this migration.
+-- direct browser writes to products.stock or private HPP records are not granted.
 create or replace function public.adjust_inventory_stock(
   p_product_id uuid,
   p_quantity_delta numeric,
@@ -351,10 +375,12 @@ language plpgsql security definer set search_path = ''
 as $$
 declare
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
   v_new_stock numeric(14,3);
   v_new_cost numeric(14,2);
   v_old_stock numeric(14,3);
   v_old_cost numeric(14,2);
+  v_cost_initialized boolean;
   v_movement text;
 begin
   if not public.is_admin() then raise exception 'Akses admin diperlukan'; end if;
@@ -363,8 +389,11 @@ begin
   if coalesce(trim(p_reason),'')='' then raise exception 'Alasan penyesuaian wajib diisi'; end if;
   select * into v_product from public.products where id=p_product_id for update;
   if not found then raise exception 'Produk tidak ditemukan'; end if;
-  v_old_stock:=v_product.stock; v_old_cost:=v_product.cost_price;
-  if v_old_stock>0 and not v_product.cost_initialized then raise exception 'Tetapkan HPP awal sebelum melakukan penyesuaian stok'; end if;
+  select * into v_cost from public.product_inventory_costs where product_id=p_product_id for update;
+  v_cost_initialized := found and v_cost.cost_initialized;
+  v_old_stock:=v_product.stock;
+  v_old_cost:=case when v_cost_initialized then v_cost.average_cost else 0 end;
+  if v_old_stock>0 and not v_cost_initialized then raise exception 'Tetapkan HPP awal sebelum melakukan penyesuaian stok'; end if;
   v_new_stock:=v_old_stock+p_quantity_delta;
   if v_new_stock<0 then raise exception 'Stok tidak mencukupi untuk penyesuaian keluar'; end if;
   if p_quantity_delta>0 then
@@ -376,7 +405,10 @@ begin
     v_new_cost:=v_old_cost;
     v_movement:='adjustment_out';
   end if;
-  update public.products set stock=v_new_stock,cost_price=v_new_cost,cost_initialized=(v_product.cost_initialized or p_quantity_delta>0),updated_at=now() where id=v_product.id;
+  insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
+  values(v_product.id,v_new_cost,true,(select auth.uid()),now())
+  on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=true,updated_by=excluded.updated_by,updated_at=now();
+  update public.products set stock=v_new_stock,updated_at=now() where id=v_product.id;
   insert into public.inventory_movements(product_id,movement_type,quantity_in,quantity_out,unit_cost,balance_quantity,balance_cost,reference_type,notes,actor_id)
   values(v_product.id,v_movement,greatest(p_quantity_delta,0),greatest(-p_quantity_delta,0),case when p_quantity_delta>0 then p_unit_cost else v_old_cost end,v_new_stock,v_new_cost,'manual_adjustment',p_reason,(select auth.uid()));
   insert into public.product_cost_history(product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,notes,actor_id)
@@ -405,29 +437,27 @@ alter table public.order_items
 
 create or replace function public.snapshot_order_item_hpp()
 returns trigger language plpgsql security definer set search_path = ''
-as $
+as $$
 declare
   v_order public.orders%rowtype;
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
 begin
   select * into v_order from public.orders where id=new.order_id;
   if not found then raise exception 'Pesanan tidak ditemukan untuk item'; end if;
   if v_order.transaction_type <> 'regular' then return new; end if;
-
   select * into v_product from public.products where id=new.product_id for update;
   if not found then raise exception 'Produk tidak ditemukan untuk snapshot HPP'; end if;
-  if not v_product.cost_initialized then
+  select * into v_cost from public.product_inventory_costs where product_id=new.product_id for update;
+  if not found or not v_cost.cost_initialized then
     raise exception 'HPP awal produk % belum ditetapkan. Lengkapi valuasi persediaan sebelum menerima pesanan.',v_product.name;
   end if;
-  if new.quantity > v_product.stock then
-    raise exception 'Stok produk % tidak mencukupi.',v_product.name;
-  end if;
-
-  new.unit_cost_snapshot := v_product.cost_price;
-  new.line_cost_snapshot := round(v_product.cost_price * new.quantity,2);
+  if new.quantity > v_product.stock then raise exception 'Stok produk % tidak mencukupi.',v_product.name; end if;
+  new.unit_cost_snapshot := v_cost.average_cost;
+  new.line_cost_snapshot := round(v_cost.average_cost * new.quantity,2);
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists trg_inventory_snapshot_order_item_hpp on public.order_items;
 create trigger trg_inventory_snapshot_order_item_hpp
@@ -436,26 +466,27 @@ for each row execute function public.snapshot_order_item_hpp();
 
 create or replace function public.record_inventory_sale_movement()
 returns trigger language plpgsql security definer set search_path = ''
-as $
+as $$
 declare
   v_order public.orders%rowtype;
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
 begin
   select * into v_order from public.orders where id=new.order_id;
   if not found or v_order.transaction_type <> 'regular' then return new; end if;
-
   select * into v_product from public.products where id=new.product_id for update;
+  select * into v_cost from public.product_inventory_costs where product_id=new.product_id for update;
   insert into public.inventory_movements(
     product_id,movement_type,quantity_out,unit_cost,balance_quantity,balance_cost,
     reference_type,reference_id,notes,actor_id
   ) values (
     new.product_id,'sale_out',new.quantity,new.unit_cost_snapshot,
-    v_product.stock-new.quantity,v_product.cost_price,
+    v_product.stock-new.quantity,v_cost.average_cost,
     'store_order',new.order_id,'Stok dicadangkan untuk pesanan '||v_order.order_number,null
   );
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists trg_inventory_record_sale_movement on public.order_items;
 create trigger trg_inventory_record_sale_movement
@@ -467,12 +498,14 @@ for each row execute function public.record_inventory_sale_movement();
 -- the returned goods at their original issue cost and updates moving average.
 create or replace function public.record_inventory_cancel_return()
 returns trigger language plpgsql security definer set search_path = ''
-as $
+as $$
 declare
   v_item public.order_items%rowtype;
   v_product public.products%rowtype;
+  v_cost public.product_inventory_costs%rowtype;
   v_return_cost numeric(14,2);
   v_before_return numeric(14,3);
+  v_old_cost numeric(14,2);
   v_new_cost numeric(14,2);
 begin
   if old.status is distinct from new.status
@@ -482,16 +515,18 @@ begin
     for v_item in select * from public.order_items where order_id=new.id order by product_id loop
       select * into v_product from public.products where id=v_item.product_id for update;
       if not found then continue; end if;
-      v_return_cost:=coalesce(v_item.unit_cost_snapshot,v_product.cost_price);
+      select * into v_cost from public.product_inventory_costs where product_id=v_item.product_id for update;
+      v_old_cost:=case when found then v_cost.average_cost else 0 end;
+      v_return_cost:=coalesce(v_item.unit_cost_snapshot,v_old_cost);
       v_before_return:=greatest(v_product.stock-v_item.quantity,0);
       if v_product.stock>0 then
-        v_new_cost:=round(((v_before_return*v_product.cost_price)+(v_item.quantity*v_return_cost))/v_product.stock,2);
+        v_new_cost:=round(((v_before_return*v_old_cost)+(v_item.quantity*v_return_cost))/v_product.stock,2);
       else
         v_new_cost:=v_return_cost;
       end if;
-      update public.products
-      set cost_price=v_new_cost,cost_initialized=true,updated_at=now()
-      where id=v_product.id;
+      insert into public.product_inventory_costs(product_id,average_cost,cost_initialized,updated_by,updated_at)
+      values(v_product.id,v_new_cost,true,null,now())
+      on conflict(product_id) do update set average_cost=excluded.average_cost,cost_initialized=true,updated_at=now();
       insert into public.inventory_movements(
         product_id,movement_type,quantity_in,unit_cost,balance_quantity,balance_cost,
         reference_type,reference_id,notes,actor_id
@@ -502,14 +537,14 @@ begin
       insert into public.product_cost_history(
         product_id,previous_cost,new_cost,previous_stock,new_stock,source_type,source_id,notes,actor_id
       ) values (
-        v_product.id,v_product.cost_price,v_new_cost,v_before_return,v_product.stock,
+        v_product.id,v_old_cost,v_new_cost,v_before_return,v_product.stock,
         'sale_return',new.id,'Revaluasi moving average saat pesanan dibatalkan',null
       );
     end loop;
   end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists trg_z_inventory_cancel_return on public.orders;
 create trigger trg_z_inventory_cancel_return
