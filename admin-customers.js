@@ -312,18 +312,32 @@ function render() {
     '</tbody></table><p class="muted" style="margin-top:10px">Menampilkan ' + visible.length.toLocaleString("id-ID") + ' dari ' + customers.length.toLocaleString("id-ID") + ' kontak.</p>';
 }
 
-async function loadCustomers() {
-  status("Mengambil data pelanggan, akun, dan transaksi...");
-  const [directoryResult, profileResult, orderResult] = await Promise.all([
-    db.from("customer_directory").select("email,customer_name,phone,address,notes,source,first_seen_at,last_seen_at,created_at").order("updated_at", { ascending: false }).limit(10000),
-    db.from("profiles").select("id,email,display_name,role,created_at").eq("role", "customer").limit(10000),
-    db.from("orders").select("customer_email,customer_name,customer_phone,customer_address,total,created_at,status").neq("status", "cancelled").limit(20000)
-  ]);
-  for (const result of [directoryResult, profileResult, orderResult]) {
-    if (result.error) throw result.error;
+async function fetchAllCustomerRows(queryFactory, pageSize = 500) {
+  const rows = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await queryFactory().range(from, from + pageSize - 1);
+    if (error) throw error;
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) break;
   }
+  return rows;
+}
+
+async function loadCustomers() {
+  status("Mengambil seluruh data pelanggan, akun, dan transaksi...");
+  const [directoryRows, profileRows, orderRows] = await Promise.all([
+    fetchAllCustomerRows(() => db.from("customer_directory")
+      .select("email,customer_name,phone,address,notes,source,first_seen_at,last_seen_at,created_at")
+      .order("updated_at", { ascending: false }).order("email", { ascending: true })),
+    fetchAllCustomerRows(() => db.from("profiles")
+      .select("id,email,display_name,role,created_at").eq("role", "customer")
+      .order("created_at", { ascending: true }).order("email", { ascending: true })),
+    fetchAllCustomerRows(() => db.from("orders")
+      .select("customer_email,customer_name,customer_phone,customer_address,total,created_at,status")
+      .neq("status", "cancelled").order("created_at", { ascending: true }).order("customer_email", { ascending: true }))
+  ]);
   const map = new Map();
-  (directoryResult.data || []).forEach(row => {
+  (directoryRows || []).forEach(row => {
     const email = String(row.email || "").toLowerCase();
     if (email) map.set(email, {
       email, customer_name: row.customer_name || "", phone: row.phone || "", address: row.address || "",
@@ -331,7 +345,7 @@ async function loadCustomers() {
       order_count: 0, total_spent: 0, last_order_at: null
     });
   });
-  (profileResult.data || []).forEach(row => {
+  (profileRows || []).forEach(row => {
     const email = String(row.email || "").toLowerCase();
     if (!email) return;
     const current = map.get(email) || {
@@ -343,7 +357,7 @@ async function loadCustomers() {
     current.source = current.source === "order" ? "order" : "account";
     map.set(email, current);
   });
-  (orderResult.data || []).forEach(order => {
+  (orderRows || []).forEach(order => {
     const email = String(order.customer_email || "").toLowerCase();
     if (!email) return;
     const current = map.get(email) || {
