@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const isProductionHost = location.hostname === "bospangan.com" || location.hostname === "www.bospangan.com";
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let categories = ["Daging sapi","Ikan","Ayam","Sayuran","Minyak","Beras","Bumbu dapur","Buah","Bebek"];
@@ -32,7 +33,8 @@ function panelMarkup() {
         <div class="row">
           <label>Kategori<select name="category" required>${categories.map(c=>'<option>'+c+'</option>').join("")}</select></label>
           <label>Harga (Rp)<input name="price" type="number" min="0" step="0.01" required></label>
-          <label>Stok<input name="stock" type="number" min="0" step="0.001" value="0" required></label>
+          <label>Stok awal / saat ini<input name="stock" type="number" min="0" step="0.001" value="0" required><small class="muted">Stok yang sudah ada dikelola melalui Persediaan & HPP.</small></label>
+          <label>Harga modal awal / HPP rata-rata<input name="cost_price" type="number" min="0" step="0.01" value="0" required><small class="muted">Nilai awal hanya digunakan saat membuat produk baru.</small></label>
           <label>Satuan<input name="unit" maxlength="24" value="pcs" required></label>
         </div>
         <label>Deskripsi<textarea name="description" rows="3" maxlength="5000"></textarea></label>
@@ -96,6 +98,7 @@ function message(text){$("commerceStatus").textContent=text;}
 function slugify(value){return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,150);}
 function resetForm(){
   editingId=null;$("productForm").reset();$("productFormTitle").textContent="Tambah produk";$("currentImages").textContent="";
+  $("productForm").elements.stock.readOnly=false;$("productForm").elements.cost_price.readOnly=false;
 }
 async function uploadImages(files, oldUrls=[]){
   if(files.length>5) throw new Error("Maksimal 5 foto produk.");
@@ -127,13 +130,17 @@ async function loadProductCategoryOptions(selected = ""){
 }
 async function loadProducts(){
   await loadProductCategoryOptions(editingId ? $("productForm")?.elements?.category?.value : "");
-  const {data,error}=await db.from("products").select("*").order("created_at",{ascending:false});
+  const {data:productRows,error}=await db.from("products").select("*").order("created_at",{ascending:false});
   if(error)throw error;
-  $("productsTable").innerHTML=data.length?'<table><thead><tr><th>Produk</th><th>SKU</th><th>Kategori</th><th>Harga</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+
-    data.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.sku)+'</td><td>'+esc(p.category)+'</td><td>'+money(p.price)+'</td><td>'+(p.is_published?"Tayang":"Draft")+'</td><td><button data-edit="'+p.id+'">Edit</button> <button data-delete="'+p.id+'">Hapus</button></td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada produk dari dashboard.</p>';
+  const {data:costRows,error:costError}=await db.from("product_inventory_costs").select("product_id,average_cost,cost_initialized");
+  if(costError)throw costError;
+  const costByProduct=new Map((costRows||[]).map(row=>[row.product_id,row]));
+  const data=(productRows||[]).map(product=>{const cost=costByProduct.get(product.id);return {...product,cost_price:Number(cost?.average_cost||0),cost_initialized:Boolean(cost?.cost_initialized)};});
+  $("productsTable").innerHTML=data.length?'<table><thead><tr><th>Produk</th><th>SKU</th><th>Kategori</th><th>Harga jual</th><th>HPP rata-rata</th><th>Stok</th><th>Status</th><th>Aksi</th></tr></thead><tbody>'+
+    data.map(p=>'<tr><td>'+esc(p.name)+'</td><td>'+esc(p.sku)+'</td><td>'+esc(p.category)+'</td><td>'+money(p.price)+'</td><td>'+money(p.cost_price)+'</td><td>'+Number(p.stock||0).toLocaleString("id-ID")+' '+esc(p.unit)+'</td><td>'+(p.is_published?"Tayang":"Draft")+'</td><td><button data-edit="'+p.id+'">Edit</button> <button data-delete="'+p.id+'">Hapus</button></td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada produk dari dashboard.</p>';
   $("campaignProduct").innerHTML=data.map(p=>'<option value="'+p.id+'">'+esc(p.name)+' · '+esc(p.sku)+'</option>').join("");
   $("productsTable").querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>editProduct(data.find(p=>p.id===b.dataset.edit)));
-  $("productsTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!confirm("Hapus produk ini? Riwayat transaksi akan tetap menyimpan snapshot produk."))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)message(error.message);else{message("Produk dihapus.");await loadProducts();}});
+  $("productsTable").querySelectorAll("[data-delete]").forEach(b=>b.onclick=async()=>{if(!isProductionHost){message("Mode preview: penghapusan produk dinonaktifkan agar Supabase production tidak berubah.");return;}if(!confirm("Hapus produk ini? Riwayat transaksi akan tetap menyimpan snapshot produk."))return;const {error}=await db.from("products").delete().eq("id",b.dataset.delete);if(error)message(error.message);else{message("Produk dihapus.");await loadProducts();}});
 }
 function renderCurrentImages(urls = []) {
   const root = $("currentImages");
@@ -204,7 +211,8 @@ function renderCurrentImages(urls = []) {
 async function editProduct(p){
   editingId=p.id;const f=$("productForm").elements;
   await loadProductCategoryOptions(p.category);
-  for(const key of ["name","sku","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
+  for(const key of ["name","sku","category","price","stock","cost_price","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
+  f.stock.readOnly=true;f.cost_price.readOnly=true;
   f.is_published.checked=p.is_published;f.is_featured.checked=p.is_featured;
   $("productFormTitle").textContent="Edit produk · "+p.sku;
   renderCurrentImages(p.image_urls || []);
@@ -244,6 +252,7 @@ async function loadOrders(){
     const order=data.find(x=>x.id===sel.dataset.orderStatus);
     sel.value=order.status;
     sel.onchange=async()=>{
+      if(!isProductionHost){message("Mode preview: perubahan status pesanan dinonaktifkan.");sel.value=order.status;return;}
       const nextStatus=sel.value;
       if(nextStatus==="cancelled" && !canCancel(order)){
         message("Pesanan ini tidak dapat dibatalkan dari status atau pembayaran saat ini.");
@@ -273,6 +282,7 @@ async function loadOrders(){
 
   $("ordersTable").querySelectorAll("[data-cancel-order]").forEach(button=>{
     button.onclick=async()=>{
+      if(!isProductionHost){message("Mode preview: pembatalan pesanan dinonaktifkan.");return;}
       const order=data.find(x=>x.id===button.dataset.cancelOrder);
       if(!order || !canCancel(order))return;
       if(!confirm("Batalkan pesanan "+order.order_number+"? Stok produk yang dipesan akan dikembalikan."))return;
@@ -297,7 +307,7 @@ async function loadCampaigns(){
   if(error)throw error;
   $("campaignsTable").innerHTML=data.length?'<table><thead><tr><th>Campaign</th><th>Channel / Target</th><th>Status</th><th>Jadwal</th><th>Aksi</th></tr></thead><tbody>'+
    data.map(c=>'<tr><td>'+esc(c.title)+'<br><small>'+esc(c.subject)+'</small></td><td>'+esc(c.channel)+' / '+esc(c.audience)+'</td><td>'+esc(c.status)+'</td><td>'+esc(c.scheduled_at||"—")+'</td><td>'+(c.status==="draft"||c.status==="scheduled"?'<button data-send-campaign="'+c.id+'">Kirim sekarang</button>':"—")+'</td></tr>').join("")+'</tbody></table>':'<p class="muted">Belum ada campaign.</p>';
-  $("campaignsTable").querySelectorAll("[data-send-campaign]").forEach(b=>b.onclick=async()=>{if(!confirm("Kirim campaign ini kepada pelanggan yang sudah memberi izin?"))return;b.disabled=true;const {data:{session}}=await db.auth.getSession();const response=await fetch(SUPABASE_URL+"/functions/v1/send-product-campaign",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({campaign_id:b.dataset.sendCampaign})});const result=await response.json().catch(()=>({}));message(response.ok?"Campaign diproses. "+(result.sent??0)+" email terkirim.":(result.error||"Gagal mengirim campaign."));b.disabled=false;await loadCampaigns();});
+  $("campaignsTable").querySelectorAll("[data-send-campaign]").forEach(b=>b.onclick=async()=>{if(!isProductionHost){message("Mode preview: pengiriman campaign dinonaktifkan.");return;}if(!confirm("Kirim campaign ini kepada pelanggan yang sudah memberi izin?"))return;b.disabled=true;const {data:{session}}=await db.auth.getSession();const response=await fetch(SUPABASE_URL+"/functions/v1/send-product-campaign",{method:"POST",headers:{Authorization:"Bearer "+session.access_token,"Content-Type":"application/json"},body:JSON.stringify({campaign_id:b.dataset.sendCampaign})});const result=await response.json().catch(()=>({}));message(response.ok?"Campaign diproses. "+(result.sent??0)+" email terkirim.":(result.error||"Gagal mengirim campaign."));b.disabled=false;await loadCampaigns();});
 }
 async function loadNotificationQueue(){
   const target=$("notificationQueueTable");
@@ -340,6 +350,7 @@ async function loadSettings(){
 }
 $("commerceAdmin")?.addEventListener("submit",()=>{});
 function wireForms(){
+  if(!isProductionHost){message("Mode preview: penyimpanan katalog, transaksi, dan campaign dinonaktifkan.");return;}
   $("refreshNotificationQueue")?.addEventListener("click",async()=>{
     const button=$("refreshNotificationQueue");
     button.disabled=true;
@@ -353,9 +364,10 @@ function wireForms(){
       const existing=editingId?(await db.from("products").select("image_urls").eq("id",editingId).single()).data:null;
       const selected=[...f.images.files];const images=await uploadImages(selected,existing?.image_urls||[]);
       const name=f.name.value.trim(),sku=f.sku.value.trim().toUpperCase();
-      const payload={name,sku,slug:slugify(name)+"-"+slugify(sku),category:f.category.value,price:Number(f.price.value),stock:Number(f.stock.value),unit:f.unit.value.trim(),description:f.description.value.trim(),tax_percent:f.tax_percent.value===""?null:Number(f.tax_percent.value),youtube_url:f.youtube_url.value.trim()||null,image_urls:images,is_published:f.is_published.checked,is_featured:f.is_featured.checked,updated_by:user.id};
+      const initialStock=Number(f.stock.value||0),initialCost=Number(f.cost_price.value||0);
+      const payload={name,sku,slug:slugify(name)+"-"+slugify(sku),category:f.category.value,price:Number(f.price.value),unit:f.unit.value.trim(),description:f.description.value.trim(),tax_percent:f.tax_percent.value===""?null:Number(f.tax_percent.value),youtube_url:f.youtube_url.value.trim()||null,image_urls:images,is_published:f.is_published.checked,is_featured:f.is_featured.checked,updated_by:user.id};
       if(editingId){const {error}=await db.from("products").update(payload).eq("id",editingId);if(error)throw error;}
-      else{payload.created_by=user.id;const {error}=await db.from("products").insert(payload);if(error)throw error;}
+      else{payload.created_by=user.id;payload.stock=0;payload.cost_price=0;const {data:created,error}=await db.from("products").insert(payload).select("id").single();if(error)throw error;if(initialStock>0){const {error:stockError}=await db.rpc("adjust_inventory_stock",{p_product_id:created.id,p_quantity_delta:initialStock,p_unit_cost:initialCost,p_reason:"Stok awal saat produk dibuat"});if(stockError)throw stockError;}}
       resetForm();message("Produk berhasil disimpan.");await loadProducts();
     }catch(err){message("Gagal menyimpan produk: "+(err.message||err));}finally{button.disabled=false;}
   };

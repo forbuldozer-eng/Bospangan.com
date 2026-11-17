@@ -43,10 +43,11 @@ function showOnly(id){
   ["overviewView","placeholderView","articleView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
+  if(page !== "inventory") $("inventoryHppPanel")?.classList.add("hidden");
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
-    overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
+    overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",inventory:"Persediaan & HPP",orders:"Pesanan",special:"Transaksi Khusus",
     campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
     notifications:"Log Notifikasi","financial-report":"Laporan Keuangan"
   };
@@ -58,6 +59,13 @@ function activatePage(page){
 
   if(page === "overview"){
     showOnly("overviewView");
+    return;
+  }
+  if(page === "inventory"){
+    showOnly("adminView");
+    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id=>$(id)?.classList.add("hidden"));
+    $("inventoryHppPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:inventory-open"));
     return;
   }
   if(page === "categories"){
