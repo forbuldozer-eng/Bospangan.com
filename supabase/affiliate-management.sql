@@ -66,7 +66,7 @@ create policy "admins review affiliate withdrawals" on public.affiliate_withdraw
 grant select,insert,update on public.affiliate_withdrawals to authenticated;
 
 create or replace function public.admin_review_affiliate_application(p_application_id uuid,p_decision text,p_affiliate_code text,p_note text default '')
-returns uuid language plpgsql security definer set search_path='' as $$
+returns uuid language plpgsql security definer set search_path='' as $$$
 declare v_app public.affiliate_applications%rowtype; v_id uuid; v_code text:=upper(regexp_replace(trim(coalesce(p_affiliate_code,'')),'[^A-Za-z0-9_-]','','g'));
 begin
  if not public.is_admin() then raise exception 'Akses admin diperlukan.'; end if;
@@ -121,7 +121,7 @@ begin
  returning id into v_id;
  return v_id;
 end;
-$;
+$$
 revoke all on function public.request_affiliate_withdrawal(numeric,text,text,text) from public;
 grant execute on function public.request_affiliate_withdrawal(numeric,text,text,text) to authenticated;
 
