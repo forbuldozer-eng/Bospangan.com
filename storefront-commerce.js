@@ -537,6 +537,7 @@ function openCheckout(type = "regular", initialRequest = "") {
           items,
           idempotency_key: state.idempotencyKey,
           company_website: data.get("company_website"),
+          affiliate_ref: (() => { try { return localStorage.getItem("bp_affiliate_ref") || ""; } catch { return ""; } })(),
         }),
       });
       const result = await response.json().catch(() => ({}));
