@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Program Afiliasi Bos Pangan</title>
+<meta name="description" content="Daftar program afiliasi Bos Pangan dan bagikan katalog kebutuhan pangan.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://www.bospangan.com/affiliate/">
+<meta property="og:title" content="Program Afiliasi Bos Pangan">
+<meta property="og:description" content="Daftar program afiliasi Bos Pangan.">
+<meta property="og:url" content="https://www.bospangan.com/affiliate/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://www.bospangan.com/assets/bos-pangan-logo.webp">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f6f8f1;color:#183b2d;font:16px/1.55 system-ui,sans-serif}header{background:#0d461a;color:#fff;padding:16px 5%;font-weight:800}main{width:min(760px,92%);margin:36px auto}section{background:#fff;border:1px solid #dce5d9;border-radius:18px;padding:24px;margin:18px 0}h1{font-size:clamp(28px,5vw,42px);line-height:1.1}label{display:block;font-weight:650;margin:14px 0}input{display:block;width:100%;padding:12px;border:1px solid #cbd8ca;border-radius:9px;margin-top:5px;font:inherit}button{border:0;border-radius:9px;padding:12px 18px;background:#0d461a;color:white;font:inherit;font-weight:700;cursor:pointer}button:disabled{opacity:.6}small,.muted{color:#65776b}.result{padding:14px;border-radius:10px;background:#eef5e9;overflow-wrap:anywhere;margin-top:14px}.hidden{display:none}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{padding:14px;background:#eef5e9;border-radius:10px}.stat strong{display:block;font-size:24px}@media(max-width:560px){.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><a href="/" style="color:inherit;text-decoration:none">Bos Pangan</a> · Program Afiliasi</header>
+<main>
+<h1>Jadilah Mitra Afiliasi Bos Pangan</h1>
+<p>Daftarkan diri untuk mendapatkan tautan referral. Pendaftaran akan ditinjau admin sebelum tautan dapat digunakan.</p>
+<section id="registerPanel">
+<h2>Formulir pendaftaran</h2>
+<form id="affiliateForm">
+<label>Nama lengkap<input name="name" required minlength="2" maxlength="120" autocomplete="name"></label>
+<label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+<label>Website / media promosi (opsional)<input name="website" type="url" placeholder="https://"></label>
+<label>Kode referral dari mitra lain (opsional)<input name="referral_code" maxlength="80"></label>
+<label class="hidden" aria-hidden="true">Website perusahaan<input name="company_website" tabindex="-1" autocomplete="off"></label>
+<button id="submitButton" type="submit">Kirim pendaftaran</button>
+<p id="status" role="status" aria-live="polite"></p>
+</form>
+<div id="registrationResult" class="result hidden"></div>
+</section>
+<section id="dashboardPanel">
+<h2>Dashboard afiliasi</h2>
+<p class="muted">Masukkan kode referral untuk melihat statistik tautan yang sudah disetujui admin.</p>
+<form id="statsForm"><label>Kode referral<input name="ref_id" required></label><button type="submit">Lihat statistik</button></form>
+<div id="stats" class="hidden"></div>
+<p id="statsStatus" role="status"></p>
+</section>
+<p class="muted">Program afiliasi tunduk pada persetujuan admin. Jumlah klik dan konversi ditampilkan setelah sistem aktif.</p>
+</main>
+<script>
+const endpoint="/api/affiliate";
+const form=document.getElementById("affiliateForm");
+form.addEventListener("submit",async event=>{
+ event.preventDefault();
+ const button=document.getElementById("submitButton"),status=document.getElementById("status"),result=document.getElementById("registrationResult");
+ button.disabled=true;status.textContent="Mengirim pendaftaran...";
+ try{
+  const payload=Object.fromEntries(new FormData(form).entries());payload.action="register";
+  const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const data=await res.json();if(!res.ok)throw new Error(data.error||"Pendaftaran gagal.");
+  result.classList.remove("hidden");
+  result.innerHTML="<strong>Pendaftaran diterima.</strong><p>Status: menunggu persetujuan admin.</p><p>Link referral akan aktif setelah disetujui.</p><code></code>";
+  result.querySelector("code").textContent=data.affiliate_link;
+  status.textContent=data.message||"Berhasil.";
+ }catch(error){status.textContent=error.message||"Terjadi kesalahan."}
+ finally{button.disabled=false}
+});
+document.getElementById("statsForm").addEventListener("submit",async event=>{
+ event.preventDefault();const status=document.getElementById("statsStatus"),box=document.getElementById("stats");status.textContent="Memuat statistik...";
+ try{
+  const ref_id=new FormData(event.currentTarget).get("ref_id");
+  const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"stats",ref_id})});
+  const data=await res.json();if(!res.ok)throw new Error(data.error||"Statistik belum tersedia.");
+  box.className="stats";box.innerHTML="";
+  [["Klik",data.clicks],["Konversi",data.conversions],["Nilai transaksi",new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(data.attributed_sales)]].forEach(([label,value])=>{const el=document.createElement("div");el.className="stat";const strong=document.createElement("strong");strong.textContent=value;const span=document.createElement("span");span.textContent=label;el.append(strong,span);box.append(el)});
+  status.textContent="";
+ }catch(error){box.className="hidden";status.textContent=error.message}
+});
+</script>
+</body>
+</html>
