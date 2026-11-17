@@ -336,6 +336,15 @@ async function renderAccount() {
         <p>Total komisi tercatat: <strong>Rp${commissionTotal.toLocaleString("id-ID")}</strong></p>
         <h4>Riwayat komisi</h4>
         ${commissions?.length ? '<div class="customer-order-list">'+commissions.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.note||"Komisi")+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada komisi.</p>'}
+        <h4>Ajukan pencairan komisi</h4>
+        <form id="affiliateWithdrawalForm">
+          <label>Nominal pencairan (Rp)<input name="amount" type="number" min="1" step="1" required></label>
+          <label>Metode pembayaran<input name="payment_method" maxlength="60" required placeholder="Transfer bank / e-wallet"></label>
+          <label>Nama pemilik rekening<input name="payment_account_name" maxlength="120" required></label>
+          <label>Nomor rekening / akun<input name="payment_account_number" maxlength="80" required></label>
+          <button type="submit" class="primary customer-auth-submit">Kirim permintaan pencairan</button>
+        </form>
+        <p class="customer-auth-muted">Permintaan akan ditinjau Admin. Saldo yang sedang menunggu persetujuan tidak dapat diminta kembali.</p>
         <h4>Riwayat pencairan</h4>
         ${withdrawals?.length ? '<div class="customer-order-list">'+withdrawals.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.payment_method)+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada permintaan pencairan.</p>'}
       </section>`;
@@ -390,6 +399,24 @@ async function renderAccount() {
     ${affiliatePanel}
     ${orders?.length && !orderError ? '<p class="customer-auth-muted">Pesanan yang masih menunggu konfirmasi dan belum dibayar dapat dibatalkan. Setelah pembatalan berhasil, stok produk dikembalikan ke katalog.</p>' : ''}
   `);
+
+  const affiliateWithdrawalForm = $("affiliateWithdrawalForm");
+  if (affiliateWithdrawalForm) affiliateWithdrawalForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form=event.currentTarget, data=new FormData(form), button=form.querySelector('[type="submit"]');
+    button.disabled=true;
+    const {error}=await supabase.rpc("request_affiliate_withdrawal",{
+      p_amount:Number(data.get("amount")),
+      p_payment_method:String(data.get("payment_method")||"").trim(),
+      p_payment_account_name:String(data.get("payment_account_name")||"").trim(),
+      p_payment_account_number:String(data.get("payment_account_number")||"").trim()
+    });
+    if(error){
+      button.disabled=false;
+      const message=document.createElement("p");message.className="customer-auth-error";message.textContent=error.message;form.append(message);return;
+    }
+    await renderAccount();
+  });
 
   const affiliateApplyForm = $("affiliateApplyForm");
   if (affiliateApplyForm) affiliateApplyForm.addEventListener("submit", async (event) => {
