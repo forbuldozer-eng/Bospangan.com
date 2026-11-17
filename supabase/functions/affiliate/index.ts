@@ -39,7 +39,6 @@ Deno.serve(async (req) => {
       method,
       headers: {
         apikey: serviceKey,
-        Authorization: "Bearer " + serviceKey,
         "Content-Type": "application/json",
         Prefer: "return=representation",
       },
@@ -75,7 +74,7 @@ Deno.serve(async (req) => {
         const parent = await db("affiliates?select=id&ref_id=eq." + encodeURIComponent(referralCode) + "&status=eq.active&limit=1");
         parentId = parent?.[0]?.id ?? null;
       }
-      const rows = await db("affiliates", "POST", [{ name, email, website, ref_id: crypto.randomUUID(), status: "pending" }]);
+      const rows = await db("affiliates", "POST", [{ name, email, website, referred_by: parentId, ref_id: crypto.randomUUID(), status: "pending" }]);
       const affiliate = rows?.[0];
       if (!affiliate?.ref_id) throw new Error("Pendaftaran afiliasi gagal disimpan.");
       return response(req, {
