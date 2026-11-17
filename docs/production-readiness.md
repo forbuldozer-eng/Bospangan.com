@@ -24,7 +24,7 @@
 4. Deploy the Supabase Edge Function named affiliate and verify its environment variables.
 5. Confirm that https://www.bospangan.com is attached and verified in the Vercel project before relying on the redirect.
 6. Confirm the Vercel external rewrite to the Supabase Edge Function works for POST requests and preflight requests.
-7. Test affiliate registration, approval workflow, click tracking, checkout attribution, and dashboard statistics. New affiliates are pending by default; an admin approval mechanism must be confirmed before inviting partners.
+7. Test affiliate registration, approval workflow, click tracking, checkout attribution, and dashboard statistics. New affiliates become active immediately after registration; apply rate limiting/abuse controls before large-scale promotion.
 8. Run a production build/test suite. This repository currently has no package.json or existing test workflow, so build/test commands cannot be assumed.
 9. Check all public page canonical tags, sitemap URLs, robots.txt, console errors, mobile layout, and Core Web Vitals.
 10. Deploy only after all blocking checks pass.
