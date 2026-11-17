@@ -176,6 +176,31 @@ Deno.serve(async (req) => {
       throw new Error("Database tidak mengembalikan nomor transaksi.");
     }
 
+    // Attribute the completed order to an approved affiliate, when present.
+    // A referral failure must never block a valid customer checkout.
+    const affiliateRef = String(input.affiliate_ref ?? "");
+    if (uuidPattern.test(affiliateRef)) {
+      try {
+        const affiliates = await databaseRequest(
+          "affiliates?select=id&ref_id=eq." + encodeURIComponent(affiliateRef) + "&status=eq.active&limit=1",
+        );
+        const affiliate = Array.isArray(affiliates) ? affiliates[0] : null;
+        if (affiliate?.id) {
+          await databaseRequest("affiliate_conversions", {
+            method: "POST",
+            body: {
+              affiliate_id: affiliate.id,
+              order_id: order.id,
+              order_total: Number(order.total ?? 0),
+            },
+            prefer: "resolution=ignore-duplicates,return=minimal",
+          });
+        }
+      } catch (affiliateError) {
+        console.error("Affiliate attribution failed:", affiliateError);
+      }
+    }
+
     let emailStatus = "not_queued";
     const queueParams = new URLSearchParams({
       select: "id,recipient_email,subject,status",

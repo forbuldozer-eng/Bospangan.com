@@ -537,6 +537,7 @@ function openCheckout(type = "regular", initialRequest = "") {
           items,
           idempotency_key: state.idempotencyKey,
           company_website: data.get("company_website"),
+          affiliate_ref: (() => { try { const ref = localStorage.getItem("bp_affiliate_ref") || ""; const at = Number(localStorage.getItem("bp_affiliate_ref_at") || 0); return Date.now() - at < 30 * 24 * 60 * 60 * 1000 ? ref : ""; } catch { return ""; } })(),
         }),
       });
       const result = await response.json().catch(() => ({}));

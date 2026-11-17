@@ -1,7 +1,10 @@
-project_id = "flyndyrplyvalnhzhvz"
+project_id = "flyndyrplyvalnhzhvzw"
 
 [functions.create-order]
 verify_jwt = false
 
 [functions.send-product-campaign]
 verify_jwt = true
+
+[functions.affiliate]
+verify_jwt = false
