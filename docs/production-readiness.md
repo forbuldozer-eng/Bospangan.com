@@ -17,6 +17,15 @@
 - Added a read-only query to identify candidate dummy products.
 - Added .gitignore rules for local environment and deployment files.
 
+## Static checks completed on the working branch
+- `vercel.json` parses as valid JSON and contains the apex-to-www redirect, affiliate API rewrite, and static asset cache header.
+- `robots.txt` points to the www sitemap.
+- `sitemap.xml` contains the www canonical host and no apex-host URLs.
+- Homepage canonical, LocalBusiness JSON-LD, social metadata, and referral capture are present.
+- Representative static blog/category pages use the www host.
+- Affiliate page, Edge Function actions, checkout referral payload, and order attribution hooks are present.
+- These are repository-level static checks only; no browser end-to-end, live Supabase, or production-domain checks have been run.
+
 ## Required before production
 1. Take and verify a Supabase database backup. The database has not been modified by this branch.
 2. Review the read-only dummy-product query results with the owner. Do not delete any row until its dummy status is confirmed.
@@ -31,7 +40,7 @@
 
 ## Known limits
 - No Supabase credentials or connected database administration session were available during this repository change. No database backup, migration execution, product deletion, or Edge Function deployment has been performed.
-- Domain attachment and DNS status are not established by repository files alone.
+- Domain attachment and DNS status are not established by repository files alone. A direct live-site fetch was unavailable during this session.
 - The affiliate dashboard is designed to show aggregate statistics for an active referral ID. The registration status is pending until approved.
 - Affiliate attribution is non-blocking: if recording attribution fails, the customer's order still completes.
 - The homepage and static content pages were updated. Dynamic template pages (CMS/dashboard and landing-page template) require a separate review of their runtime canonical metadata.
