@@ -11,6 +11,7 @@ const storedCart = readStorage(cartStorageKey, {});
 const storedFavorites = readStorage(favoritesStorageKey, []);
 const state = {
   products: [],
+  categories: [],
   cart: storedCart && typeof storedCart === "object" && !Array.isArray(storedCart) ? storedCart : {},
   favorites: Array.isArray(storedFavorites) ? storedFavorites : [],
   category: "Semua",
@@ -165,7 +166,7 @@ function imageFor(product, className) {
 function renderFilters() {
   const root = $("filters");
   root.replaceChildren();
-  const categories = [...new Set(state.products.map((product) => product.category).filter(Boolean))];
+  const categories = state.categories.length ? state.categories.map((category) => category.name) : [...new Set(state.products.map((product) => product.category).filter(Boolean))];
   const choices = ["Semua", "Favorit", ...categories];
   choices.forEach((category) => {
     root.append(button(category, () => {
@@ -643,7 +644,7 @@ async function initialize() {
   wireControls();
   setStatus("Memuat katalog Bos Pangan...");
 
-  const [productsResponse, taxResponse] = await Promise.all([
+  const [productsResponse, taxResponse, categoriesResponse] = await Promise.all([
     db.from("products")
       .select("id,name,sku,category,price,stock,unit,description,image_urls,tax_percent,is_featured,youtube_url")
       .eq("is_published", true)
@@ -651,6 +652,7 @@ async function initialize() {
       .order("created_at", { ascending: false })
       .limit(500),
     db.rpc("get_public_default_tax_percent"),
+    db.from("product_categories").select("id,name,slug,icon,sort_order").eq("is_active", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
   ]);
 
   if (productsResponse.error) {
@@ -661,6 +663,7 @@ async function initialize() {
   }
 
   state.products = productsResponse.data ?? [];
+  state.categories = categoriesResponse.error ? [] : (categoriesResponse.data ?? []);
   const validIds = new Set(state.products.map((product) => product.id));
   for (const id of Object.keys(state.cart)) {
     if (!validIds.has(id)) delete state.cart[id];
@@ -679,6 +682,13 @@ async function initialize() {
   }
 
   renderProducts();
+  window.addEventListener("bp:select-category", (event) => {
+    const selected = String(event.detail?.name || "");
+    if (!state.categories.some((category) => category.name === selected)) return;
+    state.category = selected;
+    renderProducts();
+    document.getElementById("katalog")?.scrollIntoView({ behavior: "smooth" });
+  });
   if (state.checkoutReady) {
     // Hide internal catalogue counts and default-tax diagnostics from customers.
     setStatus("");
