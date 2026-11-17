@@ -1,0 +1,6 @@
+# Cloudflare Pages route compatibility for existing Vercel dynamic routes.
+# These are internal rewrites (200), not browser redirects.
+/landingpage/:slug /landingpage/index.html?slug=:slug 200
+/landingpage/:slug/ /landingpage/index.html?slug=:slug 200
+/blog/:slug /blog/article.html?slug=:slug 200
+/blog/:slug/ /blog/article.html?slug=:slug 200

@@ -1,5 +1,8 @@
 const allowedOrigins = new Set([
-  "https://bospangancom-theta.vercel.app",
+  // Current Cloudflare Pages preview and Vercel production/preview origins.
+  "https://bospangan-com.pages.dev",
+  "https://bospangan-com-theta.vercel.app",
+  "https://bospangancom-theta.vercel.app", // legacy hostname retained for compatibility
   "https://bospangan.com",
   "https://www.bospangan.com",
   ...(Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map((value) => value.trim()).filter(Boolean),
@@ -7,16 +10,13 @@ const allowedOrigins = new Set([
 
 function headersFor(req: Request) {
   const origin = req.headers.get("origin") ?? "";
-  const allowOrigin = allowedOrigins.has(origin)
-    ? origin
-    : "https://bospangancom-theta.vercel.app";
-
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": "apikey, x-client-info, content-type",
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "apikey, authorization, x-client-info, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
   };
+  if (allowedOrigins.has(origin)) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
 function json(req: Request, body: unknown, status = 200) {

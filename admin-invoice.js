@@ -8,6 +8,7 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
   "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
 }[c]));
 let orders = [];
+let invoiceRecords = new Map();
 let activeOrder = null;
 let initialized = false;
 
@@ -43,6 +44,8 @@ function mountPanel() {
             <option value="all">Semua pesanan</option>
             <option value="unpaid">Belum dibayar</option>
             <option value="paid">Sudah dibayar</option>
+            <option value="issued">Invoice sudah diterbitkan</option>
+            <option value="not-issued">Belum diterbitkan</option>
           </select>
         </label>
       </div>
@@ -93,6 +96,8 @@ function renderOrders() {
     if (filter === "eligible" && !canIssueInvoice(order)) return false;
     if (filter === "unpaid" && order.payment_status !== "unpaid") return false;
     if (filter === "paid" && order.payment_status !== "paid") return false;
+    if (filter === "issued" && !invoiceRecords.has(order.id)) return false;
+    if (filter === "not-issued" && invoiceRecords.has(order.id)) return false;
     return true;
   });
 
@@ -103,6 +108,7 @@ function renderOrders() {
   root.innerHTML = '<table><thead><tr><th>No. Pesanan</th><th>Pelanggan</th><th>Tanggal</th><th>Total</th><th>Status</th><th>Invoice</th><th>Aksi</th></tr></thead><tbody>' +
     visible.map(order => {
       const eligible = canIssueInvoice(order);
+      const record = invoiceRecords.get(order.id);
       const label = order.status === "cancelled" ? "Dibatalkan" :
         order.transaction_type === "special" && order.status === "quoted" ? "Menunggu konfirmasi penawaran" :
         "Siap dibuat";
@@ -111,12 +117,40 @@ function renderOrders() {
         '<td>' + esc(new Date(order.created_at).toLocaleDateString("id-ID")) + '</td>' +
         '<td>' + money(order.total) + '</td>' +
         '<td>' + esc(order.status) + ' / ' + esc(order.payment_status) + '</td>' +
-        '<td>' + (eligible ? esc(invoiceNumber(order)) : '<small>' + label + '</small>') + '</td>' +
-        '<td>' + (eligible ? '<button class="btn" type="button" data-invoice-preview="' + esc(order.id) + '">Buat / Lihat</button>' : '<small>—</small>') + '</td></tr>';
+        '<td>' + (record ? '<strong>' + esc(record.invoice_number) + '</strong><br><small>Diterbitkan ' + esc(new Date(record.issued_at).toLocaleDateString("id-ID")) + '</small>' : eligible ? '<small>Belum diterbitkan</small>' : '<small>' + label + '</small>') + '</td>' +
+        '<td>' + (eligible ? '<button class="btn" type="button" data-invoice-preview="' + esc(order.id) + '">' + (record ? 'Lihat Invoice' : 'Terbitkan Invoice') + '</button>' : '<small>—</small>') + '</td></tr>';
     }).join("") + '</tbody></table>';
 
   root.querySelectorAll("[data-invoice-preview]").forEach(button => {
-    button.addEventListener("click", () => showInvoice(orders.find(order => order.id === button.dataset.invoicePreview)));
+    button.addEventListener("click", async () => {
+      const order = orders.find(item => item.id === button.dataset.invoicePreview);
+      if (!order) return;
+      button.disabled = true;
+      try {
+        let record = invoiceRecords.get(order.id);
+        if (!record) {
+          const { data: { session }, error: sessionError } = await db.auth.getSession();
+          if (sessionError) throw sessionError;
+          if (!session) throw new Error("Sesi admin berakhir. Silakan login kembali.");
+          const { error: insertError } = await db.from("invoice_records").insert({
+            order_id: order.id,
+            invoice_number: invoiceNumber(order),
+            order_snapshot: { ...order, order_items: order.order_items || [] },
+            issued_by: session.user.id
+          });
+          if (insertError && insertError.code !== "23505") throw insertError;
+          const { data, error } = await db.from("invoice_records").select("id,order_id,invoice_number,order_snapshot,issued_at").eq("order_id", order.id).single();
+          if (error) throw error;
+          record = data;
+          invoiceRecords.set(order.id, record);
+          setStatus("Invoice " + record.invoice_number + " berhasil disimpan ke arsip.");
+        }
+        showInvoice({ ...record.order_snapshot, invoice_record: record });
+        renderOrders();
+      } catch (error) {
+        setStatus("Gagal menerbitkan invoice: " + (error?.message || "Kesalahan tidak diketahui") + ". Pastikan migrasi invoice_records sudah diterapkan.", true);
+      } finally { button.disabled = false; }
+    });
   });
 }
 
@@ -135,7 +169,7 @@ function invoiceMarkup(order) {
   return '<article class="bp-invoice">' +
     '<header class="bp-invoice-head"><div><div class="bp-brand">BOS PANGAN</div><div class="bp-muted">Juara Pangan Lokal</div></div><div class="bp-invoice-title"><h1>INVOICE</h1><strong>' + esc(invoiceNumber(order)) + '</strong></div></header>' +
     '<div class="bp-invoice-meta"><div><span class="bp-label">DITERBITKAN KEPADA</span><strong>' + esc(order.customer_name) + '</strong><span>' + esc(order.customer_email) + '</span><span>' + esc(order.customer_phone) + '</span><span>' + esc(order.customer_address || "Alamat tidak dicantumkan") + '</span></div>' +
-    '<div><span class="bp-label">INFORMASI INVOICE</span><span>No. Pesanan: <strong>' + esc(order.order_number) + '</strong></span><span>Tanggal: ' + esc(date.toLocaleDateString("id-ID")) + '</span><span>Jenis: ' + esc(order.transaction_type === "special" ? "Transaksi khusus" : "Reguler") + '</span><span>Status pembayaran: <strong>' + esc(order.payment_status === "paid" ? "LUNAS" : order.payment_status.toUpperCase()) + '</strong></span></div></div>' +
+    '<div><span class="bp-label">INFORMASI INVOICE</span><span>No. Invoice: <strong>' + esc(order.invoice_record?.invoice_number || invoiceNumber(order)) + '</strong></span><span>Tanggal terbit: ' + esc(order.invoice_record?.issued_at ? new Date(order.invoice_record.issued_at).toLocaleDateString("id-ID") : date.toLocaleDateString("id-ID")) + '</span><span>No. Pesanan: <strong>' + esc(order.order_number) + '</strong></span><span>Tanggal: ' + esc(date.toLocaleDateString("id-ID")) + '</span><span>Jenis: ' + esc(order.transaction_type === "special" ? "Transaksi khusus" : "Reguler") + '</span><span>Status pembayaran: <strong>' + esc(order.payment_status === "paid" ? "LUNAS" : order.payment_status.toUpperCase()) + '</strong></span></div></div>' +
     '<table class="bp-invoice-table"><thead><tr><th>No.</th><th>Deskripsi produk</th><th class="num">Qty</th><th class="num">Harga</th><th class="num">Subtotal</th><th class="num">Pajak</th></tr></thead><tbody>' +
     (rows || '<tr><td colspan="6">Rincian produk tidak tersedia.</td></tr>') + '</tbody></table>' +
     '<div class="bp-invoice-summary"><div><span>Subtotal</span><strong>' + money(order.subtotal) + '</strong></div><div><span>Pajak (' + taxLabel + ')</span><strong>' + money(order.tax_amount) + '</strong></div><div class="bp-grand-total"><span>Total tagihan</span><strong>' + money(order.total) + '</strong></div></div>' +
@@ -144,7 +178,7 @@ function invoiceMarkup(order) {
 }
 
 function showInvoice(order) {
-  if (!order || !canIssueInvoice(order)) return;
+  if (!order) return;
   activeOrder = order;
   $("invoiceDocument").innerHTML = invoiceMarkup(order);
   $("invoicePreview").classList.remove("hidden");
@@ -177,8 +211,16 @@ async function loadOrders() {
     return;
   }
   orders = data || [];
+  const { data: records, error: recordsError } = await db.from("invoice_records").select("id,order_id,invoice_number,order_snapshot,issued_at");
+  if (recordsError) {
+    invoiceRecords = new Map();
+    renderOrders();
+    setStatus("Pesanan dimuat, tetapi arsip invoice belum tersedia: " + recordsError.message + ". Terapkan migrasi invoice_records terlebih dahulu.", true);
+    return;
+  }
+  invoiceRecords = new Map((records || []).map(record => [record.order_id, record]));
   renderOrders();
-  setStatus(orders.length + " pesanan berhasil dimuat. Invoice menggunakan snapshot transaksi saat checkout.");
+  setStatus(orders.length + " pesanan dimuat; " + invoiceRecords.size + " invoice tersimpan di arsip.");
 }
 
 async function initialize() {
