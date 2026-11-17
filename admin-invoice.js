@@ -44,6 +44,8 @@ function mountPanel() {
             <option value="all">Semua pesanan</option>
             <option value="unpaid">Belum dibayar</option>
             <option value="paid">Sudah dibayar</option>
+            <option value="issued">Invoice sudah diterbitkan</option>
+            <option value="not-issued">Belum diterbitkan</option>
           </select>
         </label>
       </div>
@@ -94,6 +96,8 @@ function renderOrders() {
     if (filter === "eligible" && !canIssueInvoice(order)) return false;
     if (filter === "unpaid" && order.payment_status !== "unpaid") return false;
     if (filter === "paid" && order.payment_status !== "paid") return false;
+    if (filter === "issued" && !invoiceRecords.has(order.id)) return false;
+    if (filter === "not-issued" && invoiceRecords.has(order.id)) return false;
     return true;
   });
 
