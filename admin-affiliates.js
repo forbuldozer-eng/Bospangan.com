@@ -8,10 +8,11 @@ function mount(){
  if(mounted)return;mounted=true;
  const p=document.createElement("section");p.id="affiliateAdminPanel";p.className="panel hidden";
  p.innerHTML=`<h2>Affiliate Management</h2><p class="muted">Pengelolaan pengajuan, affiliate, komisi manual, dan pencairan.</p>
- <div class="stats" style="grid-template-columns:repeat(3,minmax(0,1fr))">
- <article class="stat-card"><div class="stat-top">Total Affiliate</div><strong id="affTotal">0</strong></article>
- <article class="stat-card"><div class="stat-top">Pengajuan Pending</div><strong id="affPending">0</strong></article>
- <article class="stat-card"><div class="stat-top">Komisi Tercatat</div><strong id="affTotalCommission">Rp0</strong></article></div>
+ <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+ <article class="stat-card"><div class="stat-top">Total Affiliate</div><strong id="affTotal">0</strong><small>Seluruh akun affiliate</small></article>
+ <article class="stat-card"><div class="stat-top">Affiliate Aktif</div><strong id="affActive">0</strong><small>Dapat menggunakan kode referral</small></article>
+ <article class="stat-card"><div class="stat-top">Pengajuan Pending</div><strong id="affPending">0</strong><small>Menunggu tinjauan admin</small></article>
+ <article class="stat-card"><div class="stat-top">Komisi Tercatat</div><strong id="affTotalCommission">Rp0</strong><small id="affWithdrawalPending">0 pencairan menunggu</small></article></div>
  <div class="panel"><h3>Pengajuan Affiliate</h3><div id="affApplications">Memuat…</div></div>
  <div class="panel"><h3>Daftar Affiliate</h3><div id="affMembers">Memuat…</div></div>
  <div class="panel"><h3>Catat Komisi Manual</h3><form id="affCommissionForm"><div class="row"><label>Affiliate<select name="affiliate_id" id="affMemberSelect" required></select></label><label>Nominal (Rp)<input name="amount" type="number" min="1" step="1" required></label></div><label>Catatan / referensi<input name="note" maxlength="500" required></label><button class="primary">Simpan komisi</button></form></div>
@@ -32,7 +33,9 @@ async function load(){
  for(const x of [a,m,c,w])if(x.error)throw x.error;
  const apps=a.data||[],members=m.data||[],comm=c.data||[],withdrawals=w.data||[];
  $("affTotal").textContent=members.length;
+ $("affActive").textContent=members.filter(x=>x.status==="active").length;
  $("affPending").textContent=apps.filter(x=>x.status==="pending").length;
+ $("affWithdrawalPending").textContent=withdrawals.filter(x=>x.status==="pending"||x.status==="approved").length+" pencairan dalam proses";
  $("affTotalCommission").textContent=money(comm.filter(x=>x.status!=="void").reduce((s,x)=>s+Number(x.amount),0));
  $("affApplications").innerHTML=apps.length?`<table><thead><tr><th>Nama / Email</th><th>WhatsApp</th><th>Kanal</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${apps.map(x=>`<tr><td>${esc(x.applicant_name)}<br><small>${esc(x.applicant_email)}</small></td><td>${esc(x.whatsapp)}</td><td>${esc(x.promotion_channel)}<br><small>${esc(x.reason)}</small></td><td>${esc(x.status)}</td><td>${x.status==="pending"?`<button data-review-app="${x.id}" data-decision="approved">Setujui</button> <button data-review-app="${x.id}" data-decision="rejected">Tolak</button>`:"—"}</td></tr>`).join("")}</tbody></table>`:"<p class='muted'>Belum ada pengajuan.</p>";
  $("affMembers").innerHTML=members.length?`<table><thead><tr><th>Kode</th><th>User ID</th><th>Status</th><th>Tanggal</th></tr></thead><tbody>${members.map(x=>`<tr><td><strong>${esc(x.affiliate_code)}</strong></td><td><small>${esc(x.user_id)}</small></td><td>${esc(x.status)}</td><td>${new Date(x.created_at).toLocaleDateString("id-ID")}</td></tr>`).join("")}</tbody></table>`:"<p class='muted'>Belum ada affiliate.</p>";
