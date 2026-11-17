@@ -316,6 +316,42 @@ async function renderAccount() {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  const [{data: application, error: applicationError}, {data: affiliate, error: affiliateError}] = await Promise.all([
+    supabase.from("affiliate_applications").select("id,status,review_note,created_at").eq("user_id",user.id).maybeSingle(),
+    supabase.from("affiliates").select("id,affiliate_code,status,approved_at").eq("user_id",user.id).maybeSingle()
+  ]);
+  let affiliatePanel = "";
+  if (affiliate && !affiliateError) {
+    const [{data: commissions}, {data: withdrawals}] = await Promise.all([
+      supabase.from("affiliate_commissions").select("id,amount,note,status,created_at").eq("affiliate_id",affiliate.id).order("created_at",{ascending:false}).limit(20),
+      supabase.from("affiliate_withdrawals").select("id,amount,status,payment_method,created_at,review_note").eq("affiliate_id",affiliate.id).order("created_at",{ascending:false}).limit(20)
+    ]);
+    const commissionTotal = (commissions||[]).filter(x=>x.status!=="void").reduce((sum,x)=>sum+Number(x.amount||0),0);
+    affiliatePanel = `
+      <section class="customer-affiliate-panel">
+        <h3>Dashboard Affiliate</h3>
+        <p>Status: <strong>${esc(affiliate.status)}</strong></p>
+        <p>Kode referral Anda: <strong>${esc(affiliate.affiliate_code)}</strong></p>
+        <p class="customer-auth-muted">Bagikan tautan website dengan parameter ?ref=${esc(affiliate.affiliate_code)}. Pesanan baru yang memakai kode aktif akan tercatat pada akun affiliate Anda.</p>
+        <p>Total komisi tercatat: <strong>Rp${commissionTotal.toLocaleString("id-ID")}</strong></p>
+        <h4>Riwayat komisi</h4>
+        ${commissions?.length ? '<div class="customer-order-list">'+commissions.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.note||"Komisi")+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada komisi.</p>'}
+        <h4>Riwayat pencairan</h4>
+        ${withdrawals?.length ? '<div class="customer-order-list">'+withdrawals.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.payment_method)+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada permintaan pencairan.</p>'}
+      </section>`;
+  } else if (!applicationError && application) {
+    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate</h3><p>Pengajuan Anda: <strong>${esc(application.status)}</strong></p><p class="customer-auth-muted">${esc(application.review_note||"Tim Bos Pangan akan meninjau pengajuan Anda.")}</p></section>`;
+  } else if (applicationError?.code !== "PGRST116" && applicationError) {
+    affiliatePanel = '<section class="customer-affiliate-panel"><h3>Program Affiliate</h3><p class="customer-auth-muted">Program affiliate belum diaktifkan pada database. Jalankan migrasi affiliate terlebih dahulu.</p></section>';
+  } else {
+    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate Bos Pangan</h3><p>Ajukan keanggotaan untuk memperoleh kode referral dan melihat komisi dari transaksi yang tercatat.</p><form id="affiliateApplyForm">
+      <label>Nomor WhatsApp<input name="whatsapp" type="tel" maxlength="32" required placeholder="08xxxxxxxxxx"></label>
+      <label>Kanal promosi<input name="promotion_channel" maxlength="160" required placeholder="Contoh: WhatsApp, Instagram, komunitas"></label>
+      <label>Alasan bergabung<textarea name="reason" maxlength="1000" required></textarea></label>
+      <button type="submit" class="primary customer-auth-submit">Ajukan sebagai Affiliate</button>
+    </form></section>`;
+  }
+
   const orderRows = orderError
     ? '<p class="customer-auth-muted">Riwayat pesanan belum tersedia. Pastikan migrasi customer-accounts.sql sudah dijalankan.</p>'
     : orders?.length
@@ -351,8 +387,36 @@ async function renderAccount() {
     </div>
     <h3 class="customer-history-title">Riwayat pesanan</h3>
     ${orderRows}
+    ${affiliatePanel}
     ${orders?.length && !orderError ? '<p class="customer-auth-muted">Pesanan yang masih menunggu konfirmasi dan belum dibayar dapat dibatalkan. Setelah pembatalan berhasil, stok produk dikembalikan ke katalog.</p>' : ''}
   `);
+
+  const affiliateApplyForm = $("affiliateApplyForm");
+  if (affiliateApplyForm) affiliateApplyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    const {error} = await supabase.from("affiliate_applications").insert({
+      user_id:user.id,
+      applicant_name:profile.display_name || user.user_metadata?.display_name || "Pelanggan",
+      applicant_email:profile.email || user.email || "",
+      whatsapp:String(data.get("whatsapp")||"").trim(),
+      promotion_channel:String(data.get("promotion_channel")||"").trim(),
+      reason:String(data.get("reason")||"").trim(),
+      status:"pending"
+    });
+    if(error){
+      button.disabled=false;
+      const message=document.createElement("p");
+      message.className="customer-auth-error";
+      message.textContent=error.message;
+      form.append(message);
+      return;
+    }
+    await renderAccount();
+  });
 
   panel.querySelectorAll("[data-cancel-order]").forEach((button) => {
     button.addEventListener("click", async () => {
