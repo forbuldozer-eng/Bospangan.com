@@ -41,7 +41,7 @@ async function load(){
  document.querySelectorAll("[data-review-app]").forEach(b=>b.onclick=()=>reviewApp(b.dataset.reviewApp,b.dataset.decision));
  document.querySelectorAll("[data-review-withdraw]").forEach(b=>b.onclick=()=>reviewWithdrawal(b.dataset.reviewWithdraw,b.dataset.decision));
  say("Data affiliate berhasil dimuat.");
- }catch(e){say("Gagal memuat data. Pastikan migration supabase/affiliate-management.sql sudah dijalankan. "+(e.message||e));}
+ }catch(e){const detail=String(e?.message||e||"Kesalahan tidak diketahui");for(const id of ["affApplications","affMembers","affWithdrawals"])if($(id))$(id).innerHTML=`<p class="error">Data belum dapat dimuat: ${esc(detail)}<br><small>Pastikan migration affiliate sudah dijalankan pada project Supabase yang dipakai Preview.</small></p>`;if($("affMemberSelect"))$("affMemberSelect").innerHTML=`<option value="">Database affiliate belum siap</option>`;say("Gagal memuat data affiliate: "+detail);}
 }
 async function reviewApp(id,decision){
  const code=decision==="approved"?prompt("Kode affiliate (minimal 4 karakter):"):"";
