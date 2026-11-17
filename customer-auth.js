@@ -3,9 +3,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
-const dialog = $("customerAuthBox");
-const panel = $("customerAuthPanel");
-const title = $("customerAuthTitle");
+const dialog = $("box");
+const panel = $("panel");
+const title = $("heading");
 const accountButton = $("accountTop");
 let currentUser = null;
 
@@ -100,7 +100,7 @@ function paymentStatusLabel(status) {
 }
 
 function loginForm(notice = "") {
-  show("Masuk sebagai pelanggan", `
+  show(new URLSearchParams(location.search).get("affiliate")==="1" ? "Masuk Program Affiliate" : "Masuk sebagai pelanggan", `
     <p class="customer-auth-intro">Masuk untuk mengelola informasi akun dan melihat riwayat pesanan Bos Pangan.</p>
     <form id="customerLoginForm" class="customer-auth-form">
       <label>Email
@@ -116,7 +116,7 @@ function loginForm(notice = "") {
       <button class="primary customer-auth-submit" type="submit">Masuk</button>
     </form>
     <button id="customerForgot" class="customer-auth-secondary" type="button">Lupa password?</button>
-    <div class="customer-auth-switch">Belum punya akun? <button id="goCustomerSignup" type="button">Daftar pelanggan</button></div>
+    <div class="customer-auth-switch">Belum punya akun? <button id="goCustomerSignup" type="button">${new URLSearchParams(location.search).get("affiliate")==="1" ? "Daftar sebagai affiliate" : "Daftar pelanggan"}</button></div>
     <p class="customer-auth-foot">Login pelanggan terpisah dari halaman administrator <a href="/cms/">CMS Admin</a>.</p>
   `);
 
@@ -158,8 +158,8 @@ function loginForm(notice = "") {
 }
 
 function signupForm(notice = "") {
-  show("Daftar akun pelanggan", `
-    <p class="customer-auth-intro">Buat akun untuk menyimpan identitas pelanggan dan memantau pesanan Anda.</p>
+  show(new URLSearchParams(location.search).get("affiliate")==="1" ? "Daftar Program Affiliate" : "Daftar akun pelanggan", `
+    <p class="customer-auth-intro">Buat akun Bos Pangan, lalu ajukan keanggotaan Program Affiliate untuk memperoleh kode referral dan memantau komisi.</p>
     <form id="customerSignupForm" class="customer-auth-form">
       <label>Nama lengkap
         <input name="display_name" type="text" autocomplete="name" maxlength="120" required>
@@ -544,7 +544,7 @@ function resetPasswordForm() {
 accountButton.textContent = "Masuk / Daftar";
 accountButton.onclick = open;
 
-$("customerAuthClose").addEventListener("click", () => dialog.close());
+$("closeBox").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (event) => {
   if (event.target === dialog) dialog.close();
 });
@@ -563,4 +563,5 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 refreshAccountButton();
+if (new URLSearchParams(location.search).get("affiliate") === "1") open();
 window.BPCustomerAuth = { open };
