@@ -95,7 +95,7 @@ returns uuid
 language plpgsql
 security definer
 set search_path=''
-as $
+as $$
 declare
  v_affiliate public.affiliates%rowtype;
  v_available numeric(14,2);
@@ -121,7 +121,7 @@ begin
  returning id into v_id;
  return v_id;
 end;
-$$
+$$;
 revoke all on function public.request_affiliate_withdrawal(numeric,text,text,text) from public;
 grant execute on function public.request_affiliate_withdrawal(numeric,text,text,text) to authenticated;
 
