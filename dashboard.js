@@ -43,6 +43,7 @@ function showOnly(id){
   ["overviewView","placeholderView","articleView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
+  if(page !== "affiliates") $("affiliateAdminPanel")?.classList.add("hidden");
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
