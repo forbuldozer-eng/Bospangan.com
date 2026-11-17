@@ -4,6 +4,21 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 const rupiah = (value) => "Rp" + Number(value || 0).toLocaleString("id-ID");
+const affiliateReferralStorageKey = "bp-affiliate-referral-code-v1";
+function getStoredAffiliateReferralCode() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const fromUrl = String(params.get("ref") || "").trim().toUpperCase();
+    if (/^[A-Z0-9_-]{4,40}$/.test(fromUrl)) {
+      localStorage.setItem(affiliateReferralStorageKey, fromUrl);
+    }
+    const saved = String(localStorage.getItem(affiliateReferralStorageKey) || "").trim().toUpperCase();
+    return /^[A-Z0-9_-]{4,40}$/.test(saved) ? saved : "";
+  } catch {
+    return "";
+  }
+}
+
 const cartStorageKey = "bp-checkout-cart-v1";
 const favoritesStorageKey = "bp-checkout-favorites-v1";
 
@@ -536,6 +551,7 @@ function openCheckout(type = "regular", initialRequest = "") {
           items,
           idempotency_key: state.idempotencyKey,
           company_website: data.get("company_website"),
+          referral_code: getStoredAffiliateReferralCode(),
         }),
       });
       const result = await response.json().catch(() => ({}));
