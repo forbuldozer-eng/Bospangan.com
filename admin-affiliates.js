@@ -8,7 +8,7 @@ function mount(){
  if(mounted)return;mounted=true;
  const p=document.createElement("section");p.id="affiliateAdminPanel";p.className="panel hidden";
  p.innerHTML=`<h2>Affiliate Management</h2><p class="muted">Pengelolaan pengajuan, affiliate, komisi manual, dan pencairan.</p>
- <div class="stats" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+ <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
  <article class="stat-card"><div class="stat-top">Total Affiliate</div><strong id="affTotal">0</strong><small>Seluruh akun affiliate</small></article>
  <article class="stat-card"><div class="stat-top">Affiliate Aktif</div><strong id="affActive">0</strong><small>Dapat menggunakan kode referral</small></article>
  <article class="stat-card"><div class="stat-top">Pengajuan Pending</div><strong id="affPending">0</strong><small>Menunggu tinjauan admin</small></article>
