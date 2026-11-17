@@ -283,7 +283,7 @@ $('more').onclick=()=>{limit+=24;render()};$('search').oninput=()=>{limit=24;ren
  const params=new URLSearchParams(location.search);
  const ref=params.get("ref");
  if(ref && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(ref)){
-  try{localStorage.setItem("bp_affiliate_ref",ref)}catch(e){}
+  try{localStorage.setItem("bp_affiliate_ref",ref);localStorage.setItem("bp_affiliate_ref_at",String(Date.now()))}catch(e){}
   fetch("/api/affiliate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"click",ref_id:ref,referrer:document.referrer||""})}).catch(()=>{});
  }
 })();
