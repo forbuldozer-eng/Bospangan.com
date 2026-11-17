@@ -82,4 +82,47 @@ begin
 end; $$;
 revoke all on function public.admin_review_affiliate_application(uuid,text,text,text) from public;
 grant execute on function public.admin_review_affiliate_application(uuid,text,text,text) to authenticated;
+
+-- Secure withdrawal request: serialize requests per affiliate and reserve
+-- available balance by counting pending/approved/paid requests.
+create or replace function public.request_affiliate_withdrawal(
+ p_amount numeric,
+ p_payment_method text,
+ p_payment_account_name text,
+ p_payment_account_number text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+ v_affiliate public.affiliates%rowtype;
+ v_available numeric(14,2);
+ v_id uuid;
+begin
+ select * into v_affiliate from public.affiliates
+ where user_id=auth.uid() and status='active' for update;
+ if not found then raise exception 'Akun affiliate aktif tidak ditemukan.'; end if;
+ if p_amount is null or p_amount<=0 then raise exception 'Nominal pencairan tidak valid.'; end if;
+ if length(trim(coalesce(p_payment_method,'')))<2
+    or length(trim(coalesce(p_payment_account_name,'')))<2
+    or length(trim(coalesce(p_payment_account_number,'')))<4 then
+   raise exception 'Informasi tujuan pembayaran belum lengkap.';
+ end if;
+ select coalesce((select sum(c.amount) from public.affiliate_commissions c
+                  where c.affiliate_id=v_affiliate.id and c.status='available'),0)
+        - coalesce((select sum(w.amount) from public.affiliate_withdrawals w
+                    where w.affiliate_id=v_affiliate.id and w.status in ('pending','approved','paid')),0)
+ into v_available;
+ if p_amount>v_available then raise exception 'Saldo komisi tersedia tidak mencukupi.'; end if;
+ insert into public.affiliate_withdrawals(affiliate_id,amount,payment_method,payment_account_name,payment_account_number)
+ values(v_affiliate.id,round(p_amount,2),left(trim(p_payment_method),60),left(trim(p_payment_account_name),120),left(trim(p_payment_account_number),80))
+ returning id into v_id;
+ return v_id;
+end;
+$;
+revoke all on function public.request_affiliate_withdrawal(numeric,text,text,text) from public;
+grant execute on function public.request_affiliate_withdrawal(numeric,text,text,text) to authenticated;
+
 commit;
