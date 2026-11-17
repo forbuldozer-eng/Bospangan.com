@@ -9,7 +9,7 @@ create table if not exists public.affiliates (
   website text not null default '',
   referred_by uuid references public.affiliates(id) on delete set null,
   ref_id uuid not null unique default gen_random_uuid(),
-  status text not null default 'pending' check (status in ('pending','active','rejected')),
+  status text not null default 'active' check (status in ('pending','active','rejected')),
   created_at timestamptz not null default now()
 );
 create index if not exists affiliates_email_idx on public.affiliates(lower(email));
