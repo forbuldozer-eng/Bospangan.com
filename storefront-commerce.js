@@ -19,6 +19,7 @@ function getStoredAffiliateReferralCode() {
   }
 }
 
+getStoredAffiliateReferralCode();
 const cartStorageKey = "bp-checkout-cart-v1";
 const favoritesStorageKey = "bp-checkout-favorites-v1";
 
