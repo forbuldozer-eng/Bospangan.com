@@ -74,15 +74,15 @@ Deno.serve(async (req) => {
         const parent = await db("affiliates?select=id&ref_id=eq." + encodeURIComponent(referralCode) + "&status=eq.active&limit=1");
         parentId = parent?.[0]?.id ?? null;
       }
-      const rows = await db("affiliates", "POST", [{ name, email, website, referred_by: parentId, ref_id: crypto.randomUUID(), status: "pending" }]);
+      const rows = await db("affiliates", "POST", [{ name, email, website, referred_by: parentId, ref_id: crypto.randomUUID(), status: "active" }]);
       const affiliate = rows?.[0];
       if (!affiliate?.ref_id) throw new Error("Pendaftaran afiliasi gagal disimpan.");
       return response(req, {
         success: true,
-        status: "pending",
+        status: "active",
         referral_code: affiliate.ref_id,
         affiliate_link: "https://www.bospangan.com/?ref=" + affiliate.ref_id,
-        message: "Pendaftaran diterima dan menunggu persetujuan admin.",
+        message: "Pendaftaran afiliasi berhasil. Tautan referral sudah aktif.",
       }, 201);
     }
 
