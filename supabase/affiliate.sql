@@ -7,6 +7,7 @@ create table if not exists public.affiliates (
   name text not null,
   email text not null,
   website text not null default '',
+  referred_by uuid references public.affiliates(id) on delete set null,
   ref_id uuid not null unique default gen_random_uuid(),
   status text not null default 'pending' check (status in ('pending','active','rejected')),
   created_at timestamptz not null default now()
