@@ -255,17 +255,23 @@ async function loadOrders(){
         return;
       }
       sel.disabled=true;
+      // In Bos Pangan's current manual workflow, moving an order into
+      // fulfillment means the admin has verified payment.
+      const updatePayload={status:nextStatus,updated_at:new Date().toISOString()};
+      if(["processing","shipped","completed"].includes(nextStatus)){
+        updatePayload.payment_status="paid";
+      }
       const {error:updateError}=await db.from("orders")
-        .update({status:nextStatus,updated_at:new Date().toISOString()})
+        .update(updatePayload)
         .eq("id",order.id)
-        .select("id,status")
+        .select("id,status,payment_status")
         .single();
       if(updateError){
         message("Gagal memperbarui status: "+updateError.message);
         await loadOrders();
         return;
       }
-      message(nextStatus==="cancelled" ? "Pesanan dibatalkan. Stok terkait dikembalikan." : "Status transaksi diperbarui.");
+      message(nextStatus==="cancelled" ? "Pesanan dibatalkan. Stok terkait dikembalikan." : ["processing","shipped","completed"].includes(nextStatus) ? "Status pesanan diperbarui dan pembayaran ditandai lunas." : "Status transaksi diperbarui.");
       await loadOrders();
       if(nextStatus==="cancelled") await loadProducts();
     };
