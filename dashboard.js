@@ -142,6 +142,16 @@ function activatePage(page){
     window.dispatchEvent(new CustomEvent("cms:articles-open"));
     return;
   }
+  if(page === "product-report"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    window.dispatchEvent(new CustomEvent("cms:product-report-open"));
+    return;
+  }
   if(page === "transaction-report"){
     showOnly("transactionReportView");
     window.dispatchEvent(new CustomEvent("cms:transaction-report-open"));
