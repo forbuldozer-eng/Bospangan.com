@@ -28,6 +28,7 @@ function panelMarkup() {
         <div class="row">
           <label>Nama produk<input name="name" maxlength="160" required></label>
           <label>SKU<input name="sku" maxlength="64" required></label>
+          <label>Lokasi Stok<input name="stock_location" maxlength="160" placeholder="Contoh: Gudang Bekasi / Rak A-01"></label>
         </div>
         <div class="row">
           <label>Kategori<select name="category" required>${categories.map(c=>'<option>'+c+'</option>').join("")}</select></label>
@@ -204,7 +205,7 @@ function renderCurrentImages(urls = []) {
 async function editProduct(p){
   editingId=p.id;const f=$("productForm").elements;
   await loadProductCategoryOptions(p.category);
-  for(const key of ["name","sku","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
+  for(const key of ["name","sku","stock_location","category","price","stock","unit","description","tax_percent","youtube_url"])f[key].value=p[key]??"";
   f.is_published.checked=p.is_published;f.is_featured.checked=p.is_featured;
   $("productFormTitle").textContent="Edit produk · "+p.sku;
   renderCurrentImages(p.image_urls || []);
@@ -359,7 +360,7 @@ function wireForms(){
       const existing=editingId?(await db.from("products").select("image_urls").eq("id",editingId).single()).data:null;
       const selected=[...f.images.files];const images=await uploadImages(selected,existing?.image_urls||[]);
       const name=f.name.value.trim(),sku=f.sku.value.trim().toUpperCase();
-      const payload={name,sku,slug:slugify(name)+"-"+slugify(sku),category:f.category.value,price:Number(f.price.value),stock:Number(f.stock.value),unit:f.unit.value.trim(),description:f.description.value.trim(),tax_percent:f.tax_percent.value===""?null:Number(f.tax_percent.value),youtube_url:f.youtube_url.value.trim()||null,image_urls:images,is_published:f.is_published.checked,is_featured:f.is_featured.checked,updated_by:user.id};
+      const payload={name,sku,slug:slugify(name)+"-"+slugify(sku),stock_location:f.stock_location.value.trim(),category:f.category.value,price:Number(f.price.value),stock:Number(f.stock.value),unit:f.unit.value.trim(),description:f.description.value.trim(),tax_percent:f.tax_percent.value===""?null:Number(f.tax_percent.value),youtube_url:f.youtube_url.value.trim()||null,image_urls:images,is_published:f.is_published.checked,is_featured:f.is_featured.checked,updated_by:user.id};
       if(editingId){const {error}=await db.from("products").update(payload).eq("id",editingId);if(error)throw error;}
       else{payload.created_by=user.id;const {error}=await db.from("products").insert(payload);if(error)throw error;}
       resetForm();message("Produk berhasil disimpan.");await loadProducts();
