@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
     const address = String(input.customer_address ?? "").trim().slice(0, 1000);
     const kind = input.transaction_type === "special" ? "special" : "regular";
     const specialRequest = String(input.special_request ?? "").trim().slice(0, 4000);
+    const referralCode = String(input.referral_code ?? "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 40);
     const suppliedKey = String(input.idempotency_key ?? "");
     const idempotencyKey = uuidPattern.test(suppliedKey) ? suppliedKey : crypto.randomUUID();
 
@@ -174,6 +175,32 @@ Deno.serve(async (req) => {
     const order = result?.order;
     if (!order?.id || !order?.order_number) {
       throw new Error("Database tidak mengembalikan nomor transaksi.");
+    }
+
+    // Resolve referral codes only on the trusted server. The browser never
+    // supplies an affiliate UUID and repeat/idempotent orders are not reassigned.
+    let referralStatus = "none";
+    if (referralCode && !result?.duplicate) {
+      const affiliateParams = new URLSearchParams({
+        select: "id",
+        affiliate_code: "eq." + referralCode,
+        status: "eq.active",
+        limit: "1",
+      });
+      const affiliateRows = await databaseRequest("affiliates?" + affiliateParams.toString());
+      const affiliate = Array.isArray(affiliateRows) ? affiliateRows[0] : null;
+      if (affiliate?.id) {
+        await databaseRequest("orders?id=eq." + encodeURIComponent(order.id), {
+          method: "PATCH",
+          body: { affiliate_id: affiliate.id },
+          prefer: "return=minimal",
+        });
+        referralStatus = "attributed";
+      } else {
+        referralStatus = "invalid";
+      }
+    } else if (referralCode && result?.duplicate) {
+      referralStatus = "existing_order_unchanged";
     }
 
     let emailStatus = "not_queued";
@@ -299,6 +326,7 @@ Deno.serve(async (req) => {
       duplicate: Boolean(result?.duplicate),
       order,
       email_status: emailStatus,
+      referral_status: referralStatus,
       message: kind === "special"
         ? "Permintaan transaksi khusus berhasil diterima."
         : "Pesanan berhasil diterima.",

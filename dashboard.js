@@ -43,12 +43,13 @@ function showOnly(id){
   ["overviewView","placeholderView","articleView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
+  if(page !== "affiliates") $("affiliateAdminPanel")?.classList.add("hidden");
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
     overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
     campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
-    notifications:"Log Notifikasi","financial-report":"Laporan Keuangan"
+    notifications:"Log Notifikasi",affiliates:"Affiliate Management","financial-report":"Laporan Keuangan"
   };
   $("crumb").textContent = labels[page] || pageInfo[page]?.[0] || "Dashboard";
   closeMobileMenu();
@@ -165,6 +166,14 @@ function activatePage(page){
   if(page === "admins"){
     if(currentRole !== "super_admin") return;
     showOnly("accessPanel");
+    return;
+  }
+
+  if(page === "affiliates"){
+    showOnly("adminView");
+    document.querySelectorAll("#adminView > section").forEach(node=>node.classList.add("hidden"));
+    document.getElementById("affiliateAdminPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:affiliate-open"));
     return;
   }
 

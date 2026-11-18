@@ -4,6 +4,48 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 const rupiah = (value) => "Rp" + Number(value || 0).toLocaleString("id-ID");
+const affiliateReferralStorageKey = "bp-affiliate-referral-v2";
+const AFFILIATE_ATTRIBUTION_DAYS = 90;
+const AFFILIATE_ATTRIBUTION_MS = AFFILIATE_ATTRIBUTION_DAYS * 24 * 60 * 60 * 1000;
+
+function getStoredAffiliateReferralCode() {
+  try {
+    const now = Date.now();
+    const params = new URLSearchParams(location.search);
+    const fromUrl = String(params.get("ref") || "").trim().toUpperCase();
+
+    // A new valid referral visit starts a fresh 90-day attribution window.
+    if (/^[A-Z0-9_-]{4,40}$/.test(fromUrl)) {
+      localStorage.setItem(affiliateReferralStorageKey, JSON.stringify({
+        code: fromUrl,
+        capturedAt: now,
+        expiresAt: now + AFFILIATE_ATTRIBUTION_MS,
+      }));
+    }
+
+    const raw = localStorage.getItem(affiliateReferralStorageKey);
+    if (!raw) return "";
+    const saved = JSON.parse(raw);
+    const code = String(saved?.code || "").trim().toUpperCase();
+    const capturedAt = Number(saved?.capturedAt);
+    const expiresAt = Number(saved?.expiresAt);
+
+    if (!/^[A-Z0-9_-]{4,40}$/.test(code) ||
+        !Number.isFinite(capturedAt) ||
+        !Number.isFinite(expiresAt) ||
+        capturedAt > now ||
+        expiresAt <= now ||
+        expiresAt - capturedAt > AFFILIATE_ATTRIBUTION_MS) {
+      localStorage.removeItem(affiliateReferralStorageKey);
+      return "";
+    }
+    return code;
+  } catch {
+    return "";
+  }
+}
+
+getStoredAffiliateReferralCode();
 const cartStorageKey = "bp-checkout-cart-v1";
 const favoritesStorageKey = "bp-checkout-favorites-v1";
 
@@ -11,7 +53,6 @@ const storedCart = readStorage(cartStorageKey, {});
 const storedFavorites = readStorage(favoritesStorageKey, []);
 const state = {
   products: [],
-  categories: [],
   cart: storedCart && typeof storedCart === "object" && !Array.isArray(storedCart) ? storedCart : {},
   favorites: Array.isArray(storedFavorites) ? storedFavorites : [],
   category: "Semua",
@@ -166,7 +207,7 @@ function imageFor(product, className) {
 function renderFilters() {
   const root = $("filters");
   root.replaceChildren();
-  const categories = state.categories.length ? state.categories.map((category) => category.name) : [...new Set(state.products.map((product) => product.category).filter(Boolean))];
+  const categories = [...new Set(state.products.map((product) => product.category).filter(Boolean))];
   const choices = ["Semua", "Favorit", ...categories];
   choices.forEach((category) => {
     root.append(button(category, () => {
@@ -540,6 +581,7 @@ function openCheckout(type = "regular", initialRequest = "") {
           items,
           idempotency_key: state.idempotencyKey,
           company_website: data.get("company_website"),
+          referral_code: getStoredAffiliateReferralCode(),
         }),
       });
       const result = await response.json().catch(() => ({}));
@@ -647,7 +689,7 @@ async function initialize() {
   wireControls();
   setStatus("Memuat katalog Bos Pangan...");
 
-  const [productsResponse, taxResponse, categoriesResponse] = await Promise.all([
+  const [productsResponse, taxResponse] = await Promise.all([
     db.from("products")
       .select("id,name,sku,category,price,stock,stock_location,unit,description,image_urls,tax_percent,is_featured,youtube_url")
       .eq("is_published", true)
@@ -655,7 +697,6 @@ async function initialize() {
       .order("created_at", { ascending: false })
       .limit(500),
     db.rpc("get_public_default_tax_percent"),
-    db.from("product_categories").select("id,name,slug,icon,sort_order").eq("is_active", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
   ]);
 
   if (productsResponse.error) {
@@ -666,7 +707,6 @@ async function initialize() {
   }
 
   state.products = productsResponse.data ?? [];
-  state.categories = categoriesResponse.error ? [] : (categoriesResponse.data ?? []);
   const validIds = new Set(state.products.map((product) => product.id));
   for (const id of Object.keys(state.cart)) {
     if (!validIds.has(id)) delete state.cart[id];
@@ -685,13 +725,6 @@ async function initialize() {
   }
 
   renderProducts();
-  window.addEventListener("bp:select-category", (event) => {
-    const selected = String(event.detail?.name || "");
-    if (!state.categories.some((category) => category.name === selected)) return;
-    state.category = selected;
-    renderProducts();
-    document.getElementById("katalog")?.scrollIntoView({ behavior: "smooth" });
-  });
   if (state.checkoutReady) {
     // Hide internal catalogue counts and default-tax diagnostics from customers.
     setStatus("");

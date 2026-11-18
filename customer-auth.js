@@ -3,9 +3,9 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
-const dialog = $("customerAuthBox");
-const panel = $("customerAuthPanel");
-const title = $("customerAuthTitle");
+const dialog = $("box");
+const panel = $("panel");
+const title = $("heading");
 const accountButton = $("accountTop");
 let currentUser = null;
 
@@ -100,7 +100,7 @@ function paymentStatusLabel(status) {
 }
 
 function loginForm(notice = "") {
-  show("Masuk sebagai pelanggan", `
+  show(new URLSearchParams(location.search).get("affiliate")==="1" ? "Masuk Program Affiliate" : "Masuk sebagai pelanggan", `
     <p class="customer-auth-intro">Masuk untuk mengelola informasi akun dan melihat riwayat pesanan Bos Pangan.</p>
     <form id="customerLoginForm" class="customer-auth-form">
       <label>Email
@@ -116,7 +116,7 @@ function loginForm(notice = "") {
       <button class="primary customer-auth-submit" type="submit">Masuk</button>
     </form>
     <button id="customerForgot" class="customer-auth-secondary" type="button">Lupa password?</button>
-    <div class="customer-auth-switch">Belum punya akun? <button id="goCustomerSignup" type="button">Daftar pelanggan</button></div>
+    <div class="customer-auth-switch">Belum punya akun? <button id="goCustomerSignup" type="button">${new URLSearchParams(location.search).get("affiliate")==="1" ? "Daftar sebagai affiliate" : "Daftar pelanggan"}</button></div>
     <p class="customer-auth-foot">Login pelanggan terpisah dari halaman administrator <a href="/cms/">CMS Admin</a>.</p>
   `);
 
@@ -158,8 +158,8 @@ function loginForm(notice = "") {
 }
 
 function signupForm(notice = "") {
-  show("Daftar akun pelanggan", `
-    <p class="customer-auth-intro">Buat akun untuk menyimpan identitas pelanggan dan memantau pesanan Anda.</p>
+  show(new URLSearchParams(location.search).get("affiliate")==="1" ? "Daftar Program Affiliate" : "Daftar akun pelanggan", `
+    <p class="customer-auth-intro">Buat akun Bos Pangan, lalu ajukan keanggotaan Program Affiliate untuk memperoleh kode referral dan memantau komisi.</p>
     <form id="customerSignupForm" class="customer-auth-form">
       <label>Nama lengkap
         <input name="display_name" type="text" autocomplete="name" maxlength="120" required>
@@ -316,6 +316,51 @@ async function renderAccount() {
     .order("created_at", { ascending: false })
     .limit(10);
 
+  const [{data: application, error: applicationError}, {data: affiliate, error: affiliateError}] = await Promise.all([
+    supabase.from("affiliate_applications").select("id,status,review_note,created_at").eq("user_id",user.id).maybeSingle(),
+    supabase.from("affiliates").select("id,affiliate_code,status,approved_at").eq("user_id",user.id).maybeSingle()
+  ]);
+  let affiliatePanel = "";
+  if (affiliate && !affiliateError) {
+    const [{data: commissions}, {data: withdrawals}] = await Promise.all([
+      supabase.from("affiliate_commissions").select("id,amount,note,status,created_at").eq("affiliate_id",affiliate.id).order("created_at",{ascending:false}).limit(20),
+      supabase.from("affiliate_withdrawals").select("id,amount,status,payment_method,created_at,review_note").eq("affiliate_id",affiliate.id).order("created_at",{ascending:false}).limit(20)
+    ]);
+    const commissionTotal = (commissions||[]).filter(x=>x.status!=="void").reduce((sum,x)=>sum+Number(x.amount||0),0);
+    affiliatePanel = `
+      <section class="customer-affiliate-panel">
+        <h3>Dashboard Affiliate</h3>
+        <p>Status: <strong>${esc(affiliate.status)}</strong></p>
+        <p>Kode referral Anda: <strong>${esc(affiliate.affiliate_code)}</strong></p>
+        <p class="customer-auth-muted">Bagikan tautan website dengan parameter ?ref=${esc(affiliate.affiliate_code)}. Referral berlaku selama 90 hari sejak calon pelanggan membuka tautan affiliate. Kunjungan melalui tautan affiliate lain akan mengganti atribusi sebelumnya.</p>
+        <p>Total komisi tercatat: <strong>Rp${commissionTotal.toLocaleString("id-ID")}</strong></p>
+        <h4>Riwayat komisi</h4>
+        ${commissions?.length ? '<div class="customer-order-list">'+commissions.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.note||"Komisi")+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada komisi.</p>'}
+        <h4>Ajukan pencairan komisi</h4>
+        <form id="affiliateWithdrawalForm">
+          <label>Nominal pencairan (Rp)<input name="amount" type="number" min="1" step="1" required></label>
+          <label>Metode pembayaran<input name="payment_method" maxlength="60" required placeholder="Transfer bank / e-wallet"></label>
+          <label>Nama pemilik rekening<input name="payment_account_name" maxlength="120" required></label>
+          <label>Nomor rekening / akun<input name="payment_account_number" maxlength="80" required></label>
+          <button type="submit" class="primary customer-auth-submit">Kirim permintaan pencairan</button>
+        </form>
+        <p class="customer-auth-muted">Permintaan akan ditinjau Admin. Saldo yang sedang menunggu persetujuan tidak dapat diminta kembali.</p>
+        <h4>Riwayat pencairan</h4>
+        ${withdrawals?.length ? '<div class="customer-order-list">'+withdrawals.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.payment_method)+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada permintaan pencairan.</p>'}
+      </section>`;
+  } else if (!applicationError && application) {
+    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate</h3><p>Pengajuan Anda: <strong>${esc(application.status)}</strong></p><p class="customer-auth-muted">${esc(application.review_note||"Tim Bos Pangan akan meninjau pengajuan Anda.")}</p></section>`;
+  } else if (applicationError?.code !== "PGRST116" && applicationError) {
+    affiliatePanel = '<section class="customer-affiliate-panel"><h3>Program Affiliate</h3><p class="customer-auth-muted">Program affiliate belum diaktifkan pada database. Jalankan migrasi affiliate terlebih dahulu.</p></section>';
+  } else {
+    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate Bos Pangan</h3><p>Ajukan keanggotaan untuk memperoleh kode referral dan melihat komisi dari transaksi yang tercatat.</p><div class="customer-auth-muted"><strong>Ringkasan aturan Program Affiliate:</strong><ul><li>Referral berlaku 90 hari sejak tautan affiliate dibuka.</li><li>Kunjungan melalui tautan affiliate lain mengganti atribusi sebelumnya.</li><li>Satu pesanan hanya dapat dikaitkan dengan satu affiliate.</li><li>Komisi dicatat manual oleh Admin setelah transaksi diverifikasi.</li><li>Pesanan batal, transaksi fiktif, dan penyalahgunaan referral tidak memperoleh komisi.</li></ul></div><form id="affiliateApplyForm">
+      <label>Nomor WhatsApp<input name="whatsapp" type="tel" maxlength="32" required placeholder="08xxxxxxxxxx"></label>
+      <label>Kanal promosi<input name="promotion_channel" maxlength="160" required placeholder="Contoh: WhatsApp, Instagram, komunitas"></label>
+      <label>Alasan bergabung<textarea name="reason" maxlength="1000" required></textarea></label>
+      <button type="submit" class="primary customer-auth-submit">Ajukan sebagai Affiliate</button>
+    </form></section>`;
+  }
+
   const orderRows = orderError
     ? '<p class="customer-auth-muted">Riwayat pesanan belum tersedia. Pastikan migrasi customer-accounts.sql sudah dijalankan.</p>'
     : orders?.length
@@ -351,8 +396,54 @@ async function renderAccount() {
     </div>
     <h3 class="customer-history-title">Riwayat pesanan</h3>
     ${orderRows}
+    ${affiliatePanel}
     ${orders?.length && !orderError ? '<p class="customer-auth-muted">Pesanan yang masih menunggu konfirmasi dan belum dibayar dapat dibatalkan. Setelah pembatalan berhasil, stok produk dikembalikan ke katalog.</p>' : ''}
   `);
+
+  const affiliateWithdrawalForm = $("affiliateWithdrawalForm");
+  if (affiliateWithdrawalForm) affiliateWithdrawalForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form=event.currentTarget, data=new FormData(form), button=form.querySelector('[type="submit"]');
+    button.disabled=true;
+    const {error}=await supabase.rpc("request_affiliate_withdrawal",{
+      p_amount:Number(data.get("amount")),
+      p_payment_method:String(data.get("payment_method")||"").trim(),
+      p_payment_account_name:String(data.get("payment_account_name")||"").trim(),
+      p_payment_account_number:String(data.get("payment_account_number")||"").trim()
+    });
+    if(error){
+      button.disabled=false;
+      const message=document.createElement("p");message.className="customer-auth-error";message.textContent=error.message;form.append(message);return;
+    }
+    await renderAccount();
+  });
+
+  const affiliateApplyForm = $("affiliateApplyForm");
+  if (affiliateApplyForm) affiliateApplyForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const button = form.querySelector('[type="submit"]');
+    button.disabled = true;
+    const {error} = await supabase.from("affiliate_applications").insert({
+      user_id:user.id,
+      applicant_name:profile.display_name || user.user_metadata?.display_name || "Pelanggan",
+      applicant_email:profile.email || user.email || "",
+      whatsapp:String(data.get("whatsapp")||"").trim(),
+      promotion_channel:String(data.get("promotion_channel")||"").trim(),
+      reason:String(data.get("reason")||"").trim(),
+      status:"pending"
+    });
+    if(error){
+      button.disabled=false;
+      const message=document.createElement("p");
+      message.className="customer-auth-error";
+      message.textContent=error.message;
+      form.append(message);
+      return;
+    }
+    await renderAccount();
+  });
 
   panel.querySelectorAll("[data-cancel-order]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -453,7 +544,7 @@ function resetPasswordForm() {
 accountButton.textContent = "Masuk / Daftar";
 accountButton.onclick = open;
 
-$("customerAuthClose").addEventListener("click", () => dialog.close());
+$("closeBox").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (event) => {
   if (event.target === dialog) dialog.close();
 });
@@ -472,4 +563,5 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 refreshAccountButton();
+if (new URLSearchParams(location.search).get("affiliate") === "1") open();
 window.BPCustomerAuth = { open };
