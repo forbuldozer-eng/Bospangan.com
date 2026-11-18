@@ -5,6 +5,14 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const grid = document.getElementById("homepageCategoryLinks");
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+function withTimeout(promise, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(label + " melewati batas waktu 12 detik.")), 12000);
+  });
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
 function render(categories, orderRows = []) {
   if (!grid) return;
   const bySlug = new Map(orderRows.map((row) => [row.slug, row]));
@@ -37,26 +45,29 @@ function render(categories, orderRows = []) {
   });
 }
 
-function withTimeout(promise, label) {\n  let timeoutId;\n  const timeout = new Promise((_, reject) => {\n    timeoutId = window.setTimeout(() => reject(new Error(label + " melewati batas waktu 12 detik.")), 12000);\n  });\n  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));\n}\n\nasync function load() {
+async function load() {
   if (!grid) return;
   grid.setAttribute("aria-busy", "true");
   try {
-    const { data: categories, error: categoryError } = await db
-      .from("product_categories")
-      .select("id,name,slug,icon,sort_order")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
+    const { data: categories, error: categoryError } = await withTimeout(
+      db.from("product_categories")
+        .select("id,name,slug,icon,sort_order")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true }),
+      "Memuat master kategori"
+    );
 
     let activeCategories = categories || [];
     if (categoryError || activeCategories.length === 0) {
-      // A missing category master must not leave the homepage stuck in a loading state.
       // Derive fallback categories only from products actually published in the catalogue.
-      const { data: products, error: productsError } = await db
-        .from("products")
-        .select("category")
-        .eq("is_published", true)
-        .order("category", { ascending: true });
+      const { data: products, error: productsError } = await withTimeout(
+        db.from("products")
+          .select("category")
+          .eq("is_published", true)
+          .order("category", { ascending: true }),
+        "Memuat kategori dari produk"
+      );
 
       if (productsError) throw productsError;
       const names = [...new Set((products || []).map((product) => String(product.category || "").trim()).filter(Boolean))];
@@ -70,10 +81,12 @@ function withTimeout(promise, label) {\n  let timeoutId;\n  const timeout = new 
     }
 
     let orders = [];
-    const { data: orderRows, error: orderError } = await db
-      .from("homepage_category_order")
-      .select("slug,sort_order,is_visible")
-      .order("sort_order", { ascending: true });
+    const { data: orderRows, error: orderError } = await withTimeout(
+      db.from("homepage_category_order")
+        .select("slug,sort_order,is_visible")
+        .order("sort_order", { ascending: true }),
+      "Memuat urutan kategori"
+    );
     if (!orderError) orders = orderRows || [];
 
     render(activeCategories, orders);
