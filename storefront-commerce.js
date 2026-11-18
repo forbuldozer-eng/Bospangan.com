@@ -197,8 +197,9 @@ function renderProducts() {
     card.append(el("h3", "", product.name));
     card.append(el("div", "bp-price", rupiah(product.price) + " / " + product.unit));
     card.append(el("p", "bp-stock", "Stok tersedia: " + Number(product.stock).toLocaleString("id-ID") + " " + product.unit));
-    const taxRate = getTaxRate(product);
-    card.append(el("p", "bp-muted", taxRate + "% pajak " + (product.tax_percent == null ? "(default toko)" : "(khusus produk)")));
+    if (String(product.stock_location || "").trim()) {
+      card.append(el("p", "bp-muted bp-stock-location", "Lokasi produk: " + String(product.stock_location).trim()));
+    }
 
     const actions = el("div", "bp-card-actions");
     actions.append(button("Detail", () => showProduct(product)));
@@ -263,7 +264,9 @@ function showProduct(product) {
   panel.append(el("p", "bp-price", rupiah(product.price) + " / " + product.unit));
   panel.append(el("p", "", product.description || "Deskripsi produk belum tersedia."));
   panel.append(el("p", "bp-muted", "Stok: " + Number(product.stock).toLocaleString("id-ID") + " " + product.unit));
-  panel.append(el("p", "bp-muted", "Pajak: " + getTaxRate(product) + "%"));
+  if (String(product.stock_location || "").trim()) {
+    panel.append(el("p", "bp-muted bp-stock-location", "Lokasi produk: " + String(product.stock_location).trim()));
+  }
 
   const form = el("form");
   const quantityLabel = el("label", "", "Jumlah (" + product.unit + ")");
@@ -646,7 +649,7 @@ async function initialize() {
 
   const [productsResponse, taxResponse, categoriesResponse] = await Promise.all([
     db.from("products")
-      .select("id,name,sku,category,price,stock,unit,description,image_urls,tax_percent,is_featured,youtube_url")
+      .select("id,name,sku,category,price,stock,stock_location,unit,description,image_urls,tax_percent,is_featured,youtube_url")
       .eq("is_published", true)
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
