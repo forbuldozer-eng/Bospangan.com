@@ -4,16 +4,42 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 const rupiah = (value) => "Rp" + Number(value || 0).toLocaleString("id-ID");
-const affiliateReferralStorageKey = "bp-affiliate-referral-code-v1";
+const affiliateReferralStorageKey = "bp-affiliate-referral-v2";
+const AFFILIATE_ATTRIBUTION_DAYS = 90;
+const AFFILIATE_ATTRIBUTION_MS = AFFILIATE_ATTRIBUTION_DAYS * 24 * 60 * 60 * 1000;
+
 function getStoredAffiliateReferralCode() {
   try {
+    const now = Date.now();
     const params = new URLSearchParams(location.search);
     const fromUrl = String(params.get("ref") || "").trim().toUpperCase();
+
+    // A new valid referral visit starts a fresh 90-day attribution window.
     if (/^[A-Z0-9_-]{4,40}$/.test(fromUrl)) {
-      localStorage.setItem(affiliateReferralStorageKey, fromUrl);
+      localStorage.setItem(affiliateReferralStorageKey, JSON.stringify({
+        code: fromUrl,
+        capturedAt: now,
+        expiresAt: now + AFFILIATE_ATTRIBUTION_MS,
+      }));
     }
-    const saved = String(localStorage.getItem(affiliateReferralStorageKey) || "").trim().toUpperCase();
-    return /^[A-Z0-9_-]{4,40}$/.test(saved) ? saved : "";
+
+    const raw = localStorage.getItem(affiliateReferralStorageKey);
+    if (!raw) return "";
+    const saved = JSON.parse(raw);
+    const code = String(saved?.code || "").trim().toUpperCase();
+    const capturedAt = Number(saved?.capturedAt);
+    const expiresAt = Number(saved?.expiresAt);
+
+    if (!/^[A-Z0-9_-]{4,40}$/.test(code) ||
+        !Number.isFinite(capturedAt) ||
+        !Number.isFinite(expiresAt) ||
+        capturedAt > now ||
+        expiresAt <= now ||
+        expiresAt - capturedAt > AFFILIATE_ATTRIBUTION_MS) {
+      localStorage.removeItem(affiliateReferralStorageKey);
+      return "";
+    }
+    return code;
   } catch {
     return "";
   }
