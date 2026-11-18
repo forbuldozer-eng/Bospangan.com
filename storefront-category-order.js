@@ -17,10 +17,35 @@ function render(categories, orderRows) {
 }
 async function load() {
   if (!grid) return;
-  const {data:categories,error:categoryError}=await db.from("product_categories").select("id,name,slug,icon,sort_order").eq("is_active",true).order("sort_order",{ascending:true}).order("name",{ascending:true});
-  if(categoryError){console.error("Bos Pangan homepage categories:",categoryError);grid.innerHTML='<p class="muted">Kategori belum dapat dimuat. Silakan muat ulang halaman.</p>';return;}
-  const {data:orders,error:orderError}=await db.from("homepage_category_order").select("slug,sort_order,is_visible").order("sort_order",{ascending:true});
-  if(orderError) console.warn("Pengaturan urutan kategori tidak tersedia; memakai urutan master kategori.",orderError);
-  render(categories,orderError?[]:orders);
+  grid.setAttribute("aria-busy", "true");
+  try {
+    const categoryRequest = db.from("product_categories")
+      .select("id,name,slug,icon,sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+    const timeout = new Promise((_, reject) =>
+      window.setTimeout(() => reject(new Error("Koneksi kategori melewati batas waktu.")), 12000)
+    );
+    const { data: categories, error: categoryError } = await Promise.race([categoryRequest, timeout]);
+    if (categoryError) throw categoryError;
+
+    let orders = [];
+    try {
+      const result = await db.from("homepage_category_order")
+        .select("slug,sort_order,is_visible")
+        .order("sort_order", { ascending: true });
+      if (result.error) console.warn("Pengaturan urutan kategori tidak tersedia; memakai urutan master kategori.", result.error);
+      else orders = result.data || [];
+    } catch (orderError) {
+      console.warn("Pengaturan urutan kategori tidak tersedia; memakai urutan master kategori.", orderError);
+    }
+    render(categories, orders);
+  } catch (error) {
+    console.error("Bos Pangan homepage categories:", error);
+    grid.innerHTML = '<p class="muted">Kategori belum dapat dimuat. Periksa koneksi katalog dan coba muat ulang.</p>';
+  } finally {
+    grid.removeAttribute("aria-busy");
+  }
 }
 load();
