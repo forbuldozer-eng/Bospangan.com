@@ -332,7 +332,7 @@ async function renderAccount() {
         <h3>Dashboard Affiliate</h3>
         <p>Status: <strong>${esc(affiliate.status)}</strong></p>
         <p>Kode referral Anda: <strong>${esc(affiliate.affiliate_code)}</strong></p>
-        <p class="customer-auth-muted">Bagikan tautan website dengan parameter ?ref=${esc(affiliate.affiliate_code)}. Pesanan baru yang memakai kode aktif akan tercatat pada akun affiliate Anda.</p>
+        <p class="customer-auth-muted">Bagikan tautan website dengan parameter ?ref=${esc(affiliate.affiliate_code)}. Referral berlaku selama 90 hari sejak calon pelanggan membuka tautan affiliate. Kunjungan melalui tautan affiliate lain akan mengganti atribusi sebelumnya.</p>
         <p>Total komisi tercatat: <strong>Rp${commissionTotal.toLocaleString("id-ID")}</strong></p>
         <h4>Riwayat komisi</h4>
         ${commissions?.length ? '<div class="customer-order-list">'+commissions.map(x=>'<article class="customer-order"><strong>Rp'+Number(x.amount).toLocaleString("id-ID")+'</strong><small>'+esc(x.note||"Komisi")+' · '+esc(new Date(x.created_at).toLocaleDateString("id-ID"))+'</small><small>Status: '+esc(x.status)+'</small></article>').join("")+'</div>' : '<p class="customer-auth-muted">Belum ada komisi.</p>'}
@@ -353,7 +353,7 @@ async function renderAccount() {
   } else if (applicationError?.code !== "PGRST116" && applicationError) {
     affiliatePanel = '<section class="customer-affiliate-panel"><h3>Program Affiliate</h3><p class="customer-auth-muted">Program affiliate belum diaktifkan pada database. Jalankan migrasi affiliate terlebih dahulu.</p></section>';
   } else {
-    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate Bos Pangan</h3><p>Ajukan keanggotaan untuk memperoleh kode referral dan melihat komisi dari transaksi yang tercatat.</p><form id="affiliateApplyForm">
+    affiliatePanel = `<section class="customer-affiliate-panel"><h3>Program Affiliate Bos Pangan</h3><p>Ajukan keanggotaan untuk memperoleh kode referral dan melihat komisi dari transaksi yang tercatat.</p><div class="customer-auth-muted"><strong>Ringkasan aturan Program Affiliate:</strong><ul><li>Referral berlaku 90 hari sejak tautan affiliate dibuka.</li><li>Kunjungan melalui tautan affiliate lain mengganti atribusi sebelumnya.</li><li>Satu pesanan hanya dapat dikaitkan dengan satu affiliate.</li><li>Komisi dicatat manual oleh Admin setelah transaksi diverifikasi.</li><li>Pesanan batal, transaksi fiktif, dan penyalahgunaan referral tidak memperoleh komisi.</li></ul></div><form id="affiliateApplyForm">
       <label>Nomor WhatsApp<input name="whatsapp" type="tel" maxlength="32" required placeholder="08xxxxxxxxxx"></label>
       <label>Kanal promosi<input name="promotion_channel" maxlength="160" required placeholder="Contoh: WhatsApp, Instagram, komunitas"></label>
       <label>Alasan bergabung<textarea name="reason" maxlength="1000" required></textarea></label>
