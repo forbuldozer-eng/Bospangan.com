@@ -38,6 +38,21 @@ function saveStorage(key, value) {
   }
 }
 
+const catalogCacheKey = "bp-public-catalog-cache-v1";
+function readCatalogCache() {
+  const cached = readStorage(catalogCacheKey, null);
+  if (!cached || !Array.isArray(cached.products) || !Array.isArray(cached.categories)) return null;
+  return cached;
+}
+function writeCatalogCache() {
+  saveStorage(catalogCacheKey, {
+    savedAt: Date.now(),
+    products: state.products,
+    categories: state.categories,
+    defaultTax: state.defaultTax,
+  });
+}
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -642,7 +657,28 @@ async function initialize() {
   installStyles();
   replaceOldHandlers();
   wireControls();
-  setStatus("Memuat katalog Bos Pangan...");
+
+  // Paint the last known Supabase catalogue immediately; refresh it in the background.
+  const cached = readCatalogCache();
+  if (cached) {
+    state.products = cached.products;
+    state.categories = cached.categories;
+    if (Number.isFinite(Number(cached.defaultTax))) {
+      state.defaultTax = Number(cached.defaultTax);
+      state.checkoutReady = true;
+    }
+    renderProducts();
+  } else {
+    setStatus("Memuat katalog Bos Pangan...");
+  }
+
+  window.addEventListener("bp:select-category", (event) => {
+    const selected = String(event.detail?.name || "");
+    if (!state.categories.some((category) => category.name === selected)) return;
+    state.category = selected;
+    renderProducts();
+    document.getElementById("katalog")?.scrollIntoView({ behavior: "smooth" });
+  });
 
   const [productsResponse, taxResponse, categoriesResponse] = await Promise.all([
     db.from("products")
@@ -656,14 +692,20 @@ async function initialize() {
   ]);
 
   if (productsResponse.error) {
-    state.products = [];
-    renderProducts();
-    setStatus("Katalog belum dapat dimuat: " + productsResponse.error.message, true);
+    if (!cached) {
+      state.products = [];
+      renderProducts();
+      setStatus("Katalog belum dapat dimuat. Silakan muat ulang beberapa saat lagi.", true);
+    } else {
+      // Keep the cached catalogue visible if the network is temporarily unavailable.
+      setStatus("");
+      console.warn("Bos Pangan catalogue refresh:", productsResponse.error.message);
+    }
     return;
   }
 
   state.products = productsResponse.data ?? [];
-  state.categories = categoriesResponse.error ? [] : (categoriesResponse.data ?? []);
+  if (!categoriesResponse.error) state.categories = categoriesResponse.data ?? [];
   const validIds = new Set(state.products.map((product) => product.id));
   for (const id of Object.keys(state.cart)) {
     if (!validIds.has(id)) delete state.cart[id];
@@ -672,29 +714,16 @@ async function initialize() {
   saveStorage(cartStorageKey, state.cart);
   saveStorage(favoritesStorageKey, state.favorites);
 
-  let checkoutWarning = "";
-  if (taxResponse.error || taxResponse.data === null) {
-    state.checkoutReady = false;
-    checkoutWarning = "Katalog dimuat, tetapi checkout belum siap. Admin perlu menjalankan supabase/checkout.sql.";
-  } else {
+  if (!taxResponse.error && taxResponse.data !== null) {
     state.defaultTax = Number(taxResponse.data);
     state.checkoutReady = true;
+  } else if (!cached) {
+    state.checkoutReady = false;
   }
 
+  writeCatalogCache();
   renderProducts();
-  window.addEventListener("bp:select-category", (event) => {
-    const selected = String(event.detail?.name || "");
-    if (!state.categories.some((category) => category.name === selected)) return;
-    state.category = selected;
-    renderProducts();
-    document.getElementById("katalog")?.scrollIntoView({ behavior: "smooth" });
-  });
-  if (state.checkoutReady) {
-    // Hide internal catalogue counts and default-tax diagnostics from customers.
-    setStatus("");
-  } else {
-    setStatus(checkoutWarning, true);
-  }
+  setStatus("");
 }
 
 initialize().catch((error) => {
