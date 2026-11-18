@@ -37,7 +37,7 @@ function render(categories, orderRows = []) {
   });
 }
 
-async function load() {
+function withTimeout(promise, label) {\n  let timeoutId;\n  const timeout = new Promise((_, reject) => {\n    timeoutId = window.setTimeout(() => reject(new Error(label + " melewati batas waktu 12 detik.")), 12000);\n  });\n  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));\n}\n\nasync function load() {
   if (!grid) return;
   grid.setAttribute("aria-busy", "true");
   try {
