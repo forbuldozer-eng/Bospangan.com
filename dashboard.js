@@ -47,7 +47,7 @@ function activatePage(page){
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
     overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
-    campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
+    campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",affiliates:"Affiliate Management",
     notifications:"Log Notifikasi","financial-report":"Laporan Keuangan"
   };
   $("crumb").textContent = labels[page] || pageInfo[page]?.[0] || "Dashboard";
@@ -135,6 +135,21 @@ function activatePage(page){
     $("invoiceAdminPanel")?.classList.add("hidden");
     $("customerDatabasePanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:customers-open"));
+    return;
+  }
+  if(page === "affiliates"){
+    if(currentRole !== "super_admin") return;
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    $("mediaAdminPanel")?.classList.add("hidden");
+    $("invoiceAdminPanel")?.classList.add("hidden");
+    $("customerDatabasePanel")?.classList.add("hidden");
+    $("affiliateAdminPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:affiliate-open"));
     return;
   }
   if(page === "news"){
