@@ -137,6 +137,13 @@ function activatePage(page){
     window.dispatchEvent(new CustomEvent("cms:customers-open"));
     return;
   }
+  if(page === "nutrition-import"){
+    showOnly("adminView");
+    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id => $(id)?.classList.add("hidden"));
+    $("nutritionImportPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:nutrition-import-open"));
+    return;
+  }
   if(page === "news"){
     showOnly("articleView");
     window.dispatchEvent(new CustomEvent("cms:articles-open"));
