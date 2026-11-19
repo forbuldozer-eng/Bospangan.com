@@ -4,3 +4,6 @@
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
 /blog/:slug /blog/article.html?slug=:slug 200
 /blog/:slug/ /blog/article.html?slug=:slug 200
+
+/promo-fnb/:slug /promo-fnb/article.html?slug=:slug 200
+/promo-fnb/:slug/ /promo-fnb/article.html?slug=:slug 200
