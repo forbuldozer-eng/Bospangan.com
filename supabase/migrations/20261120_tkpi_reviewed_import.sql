@@ -93,6 +93,11 @@ begin
       updated_at = now()
     returning id into v_food_id;
 
+    -- Replace the nutrient set for this food. Without this delete, a corrected
+    -- blank cell could leave an older amount in place after a re-import.
+    delete from public.nutrition_food_nutrients
+    where food_id = v_food_id;
+
     for v_nutrient in
       select * from (values
         ('water_g','water'), ('energy_kcal','energy'),
