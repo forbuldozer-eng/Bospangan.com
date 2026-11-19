@@ -60,7 +60,7 @@ function renderState(application, affiliate) {
   showView("existingView");
   let title = "Pengajuan sedang ditinjau";
   let copy = "Pengajuan Anda sudah diterima dan menunggu pemeriksaan tim Bos Pangan.";
-  if (application.status === "approved" && affiliate) {
+  if (application.status === "approved" && affiliate?.status === "active") {
     title = "Pengajuan disetujui";
     copy = "Selamat, akun affiliate Anda aktif. Kode referral Anda: " + affiliate.affiliate_code + ".";
   } else if (application.status === "rejected") {
