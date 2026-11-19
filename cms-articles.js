@@ -421,9 +421,16 @@ function showEditor(show = true) {
   if (show) $("articleEditor").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function updateArticlePermalinkPrefix() {
+  const prefix = $("articlePermalinkPrefix");
+  const category = $("articleForm")?.elements.category?.value;
+  if (prefix) prefix.textContent = category === "promo_fnb" ? "/promo-fnb/" : "/blog/";
+}
+
 function resetEditor() {
   editingArticle = null;
   $("articleForm").reset();
+  updateArticlePermalinkPrefix();
   $("articleForm").elements.id.value = "";
   $("articleForm").elements.slug.dataset.manual = "false";
   if ($("articleVisualEditor")) $("articleVisualEditor").innerHTML = "";
@@ -595,6 +602,7 @@ function editArticle(article) {
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
   f.category.value = article.category || "blog";
+  updateArticlePermalinkPrefix();
   f.content_markdown.value = article.content_markdown || "";
   renderVisualEditorFromMarkdown();
   resetEditorHistory();
@@ -729,6 +737,8 @@ async function initialize() {
     return;
   }
 
+  $("articleForm").elements.category.addEventListener("change", updateArticlePermalinkPrefix);
+  updateArticlePermalinkPrefix();
   $("newArticleButton").addEventListener("click", () => {
     resetEditor();
     showEditor(true);
