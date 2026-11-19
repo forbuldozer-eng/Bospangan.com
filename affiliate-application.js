@@ -88,6 +88,10 @@ function renderState(application, affiliate) {
         '</section>'
       : ""); 
   if (application.status === "approved" && affiliate?.status === "active") {
+    loadAffiliateFinance(affiliate).catch(error => {
+      const node = $("affiliateFinanceStatus");
+      if (node) node.textContent = error.message || "Data komisi belum dapat dimuat.";
+    });
     $("copyAffiliateLink").addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(referralUrl);
@@ -104,6 +108,84 @@ function renderState(application, affiliate) {
     });
   }
 }
+async function loadAffiliateFinance(affiliate) {
+  const [commissionResult, withdrawalResult] = await Promise.all([
+    db.from("affiliate_commissions").select("amount,status,created_at,note").eq("affiliate_id", affiliate.id).order("created_at", { ascending: false }),
+    db.from("affiliate_withdrawals").select("id,amount,payment_method,payment_account_name,payment_account_number,status,review_note,created_at").eq("affiliate_id", affiliate.id).order("created_at", { ascending: false })
+  ]);
+  if (commissionResult.error) throw new Error("Riwayat komisi: " + commissionResult.error.message);
+  if (withdrawalResult.error) throw new Error("Riwayat pencairan: " + withdrawalResult.error.message);
+  const commissions = commissionResult.data || [];
+  const withdrawals = withdrawalResult.data || [];
+  const earned = commissions.filter(x => x.status !== "void").reduce((sum, x) => sum + Number(x.amount || 0), 0);
+  const availableCommission = commissions.filter(x => x.status === "available").reduce((sum, x) => sum + Number(x.amount || 0), 0);
+  const reserved = withdrawals.filter(x => ["pending","approved","paid"].includes(x.status)).reduce((sum, x) => sum + Number(x.amount || 0), 0);
+  const available = Math.max(0, availableCommission - reserved);
+  const money = value => "Rp" + Number(value || 0).toLocaleString("id-ID");
+  const statusLabel = {pending:"Menunggu review",approved:"Disetujui",rejected:"Ditolak",paid:"Sudah dibayar"};
+  const finance = document.createElement("section");
+  finance.className = "state";
+  finance.id = "affiliateFinance";
+  finance.innerHTML = `
+    <h3 style="margin:0 0 12px">Komisi dan pencairan</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px">
+      <div class="state"><small class="muted">Total komisi tercatat</small><strong>${money(earned)}</strong></div>
+      <div class="state"><small class="muted">Saldo dapat dicairkan</small><strong>${money(available)}</strong></div>
+    </div>
+    <h3 style="margin:18px 0 8px">Ajukan pencairan komisi</h3>
+    <p class="muted">Masukkan tujuan pembayaran dan nominal yang ingin dicairkan. Permintaan akan ditinjau oleh admin Bos Pangan.</p>
+    <form id="affiliateClaimForm">
+      <label>Metode pembayaran
+        <select name="payment_method" required>
+          <option value="">Pilih metode</option><option value="Bank Transfer">Transfer bank</option><option value="E-Wallet">E-wallet</option>
+        </select>
+      </label>
+      <label>Nama pemilik rekening / akun<input name="payment_account_name" required maxlength="120" autocomplete="name" placeholder="Sesuai nama pemilik rekening"></label>
+      <label>Nama bank / penyedia e-wallet<input name="payment_provider" required maxlength="60" placeholder="Contoh: BCA, BRI, Mandiri, DANA"></label>
+      <label>Nomor rekening / nomor akun<input name="payment_account_number" required maxlength="80" inputmode="numeric" placeholder="Masukkan nomor rekening atau akun"></label>
+      <label>Nominal pencairan (Rp)<input name="amount" type="number" min="1" max="${Math.floor(available)}" step="1" required placeholder="Maksimal ${money(available)}" ${available < 1 ? "disabled" : ""}></label>
+      <button type="submit" ${available < 1 ? "disabled" : ""}>Ajukan pencairan</button>
+      <p id="affiliateFinanceStatus" class="status" role="status" aria-live="polite"></p>
+    </form>
+    <h3 style="margin:18px 0 8px">Riwayat pencairan</h3>
+    ${withdrawals.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Tanggal</th><th align="left">Nominal</th><th align="left">Tujuan</th><th align="left">Status</th></tr></thead><tbody>${withdrawals.map(w => `<tr><td>${esc(new Date(w.created_at).toLocaleDateString("id-ID"))}</td><td>${money(w.amount)}</td><td>${esc(w.payment_method)} · ${esc(w.payment_account_name)}<br><small>${esc(w.payment_account_number)}</small></td><td>${esc(statusLabel[w.status] || w.status)}${w.review_note ? "<br><small>" + esc(w.review_note) + "</small>" : ""}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Belum ada permintaan pencairan.</p>'}
+    <h3 style="margin:18px 0 8px">Riwayat komisi</h3>
+    ${commissions.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Tanggal</th><th align="left">Catatan</th><th align="left">Nominal</th><th align="left">Status</th></tr></thead><tbody>${commissions.map(c => `<tr><td>${esc(new Date(c.created_at).toLocaleDateString("id-ID"))}</td><td>${esc(c.note || "Komisi affiliate")}</td><td>${money(c.amount)}</td><td>${esc(c.status)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Belum ada komisi yang dicatat admin.</p>'}
+  `;
+  $("existingState").append(finance);
+  $("affiliateClaimForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const amount = Number(data.get("amount"));
+    const provider = String(data.get("payment_provider") || "").trim();
+    const method = String(data.get("payment_method") || "").trim();
+    const submit = form.querySelector('button[type="submit"]');
+    if (!Number.isFinite(amount) || amount <= 0 || amount > available) {
+      $("affiliateFinanceStatus").textContent = "Nominal melebihi saldo yang dapat dicairkan.";
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = "Mengirim pengajuan…";
+    try {
+      const { error } = await db.rpc("request_affiliate_withdrawal", {
+        p_amount: amount,
+        p_payment_method: method + " - " + provider,
+        p_payment_account_name: String(data.get("payment_account_name") || "").trim(),
+        p_payment_account_number: String(data.get("payment_account_number") || "").trim()
+      });
+      if (error) throw error;
+      $("affiliateFinanceStatus").textContent = "Pengajuan pencairan berhasil dikirim dan menunggu pemeriksaan admin.";
+      await loadAffiliateFinance(affiliate);
+    } catch (error) {
+      $("affiliateFinanceStatus").textContent = error.message || "Pengajuan pencairan gagal.";
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Ajukan pencairan";
+    }
+  });
+}
+
 async function loadApplication() {
   showView("viewLoading");
   await ensureProfile();
@@ -117,7 +199,7 @@ async function loadApplication() {
   let affiliate = null;
   if (application.status === "approved") {
     const { data, error: affiliateError } = await db.from("affiliates")
-      .select("affiliate_code,status").eq("user_id", currentUser.id).maybeSingle();
+      .select("id,affiliate_code,status").eq("user_id", currentUser.id).maybeSingle();
     if (affiliateError) throw new Error("Status affiliate belum dapat dibaca: " + affiliateError.message);
     affiliate = data;
   }
