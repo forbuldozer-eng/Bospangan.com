@@ -68,11 +68,15 @@ function setMeta(article) {
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
+const promoMode = window.location.pathname.startsWith("/promo-fnb");
+const contentBase = promoMode ? "/promo-fnb/" : contentBase;
+
 async function getPublishedArticles() {
   const { data, error } = await supabase
     .from("cms_articles")
     .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
+    .eq("category", promoMode ? "promo_fnb" : "blog")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -81,13 +85,16 @@ async function getPublishedArticles() {
 
 function renderListing(articles) {
   if (!listing) return;
-  const intro = "Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.";
-  listing.innerHTML = '<h1>Artikel &amp; Panduan Usaha Warung</h1>' +
+  const intro = promoMode
+    ? "Temukan informasi promo, penawaran, paket produk, serta inspirasi pilihan makanan dan minuman dari Bos Pangan."
+    : "Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.";
+  const heading = promoMode ? "Promo F&B Bos Pangan" : "Artikel &amp; Panduan Usaha";
+  listing.innerHTML = '<h1>' + heading + '</h1>' +
     '<p class="intro">' + esc(intro) + '</p>' +
     (articles.length
       ? articles.map(article => '<article class="item">' +
           '<p class="meta">Panduan usaha · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
-          (article.featured_image_url ? '<a href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
+          (article.featured_image_url ? '<a href="' + contentBase + '' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
           '<h2><a href="/blog/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
@@ -100,7 +107,7 @@ function renderDetail(article, allArticles) {
   setMeta(article);
   const related = allArticles.filter(item => item.slug !== article.slug).slice(0, 3);
   detail.innerHTML =
-    '<div class="crumb"><a href="/">Beranda</a> / <a href="/blog/">Artikel</a> / ' + esc(article.title) + '</div>' +
+    '<div class="crumb"><a href="/">Beranda</a> / <a href="' + contentBase + '">Artikel</a> / ' + esc(article.title) + '</div>' +
     '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
     '<h1>' + esc(article.title) + '</h1>' +
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
@@ -121,7 +128,7 @@ async function init() {
       // Resolve the CMS slug from the rewrite query first, then from the URL path.
       // Avoid regex literals here so the browser can parse this module reliably.
       const pathParts = window.location.pathname.split("/").filter(Boolean);
-      const pathSlug = pathParts[0] === "blog" ? (pathParts[1] || "") : "";
+      const pathSlug = (pathParts[0] === "blog" || pathParts[0] === "promo-fnb") ? (pathParts[1] || "") : "";
       const querySlug = new URLSearchParams(window.location.search).get("slug") || "";
       const slug = detail.dataset.slug || querySlug || pathSlug;
       const article = articles.find(item => item.slug === slug);
