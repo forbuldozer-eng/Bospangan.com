@@ -35,8 +35,9 @@ function mount() {
       </div>
       <section class="panel" style="margin:18px 0">
         <h2 style="margin-top:0">1. Unggah CSV staging</h2>
-        <p class="muted">Gunakan file hasil <code>tkpi_csv_to_staging.py</code>. Semua baris yang diunggah dipaksa berstatus <strong>pending</strong>; file tidak dapat menyetujui atau menerbitkan data secara otomatis.</p>
+        <p class="muted">Unduh template CSV, isi dari PDF TKPI 2020 yang sudah diperiksa, lalu unggah di sini. File template berisi kolom sumber dan zat gizi; semua baris yang diunggah dipaksa berstatus <strong>pending</strong>.</p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <a class="btn" href="/data/import-templates/tkpi-2020-foods.csv" download="tkpi-2020-foods.csv">Unduh template CSV</a>
           <input id="nutritionCsvFile" type="file" accept=".csv,text/csv">
           <button id="nutritionUploadCsv" class="btn primary" type="button">Unggah ke staging</button>
           <button id="nutritionRefresh" class="btn" type="button">Muat ulang</button>
@@ -196,20 +197,41 @@ async function uploadCsv() {
   try {
     const csvRows = parseCsv(await file.text());
     if (csvRows.length > 500) throw new Error("Maksimal 500 baris per unggahan. Pecah CSV menjadi beberapa batch kecil.");
-    const required = ["batch_name","tkpi_code","source_page","raw_row"];
+    const stagingFormat = "raw_row" in csvRows[0];
+    const required = stagingFormat
+      ? ["batch_name","tkpi_code","source_page","raw_row"]
+      : ["tkpi_code","category_slug","name","source_page","water_g","energy_kcal","protein_g","fat_g","carbohydrate_g","fiber_g","ash_g","calcium_mg","phosphorus_mg","iron_mg","sodium_mg","potassium_mg","copper_mg","zinc_mg","retinol_ug","beta_carotene_ug","total_carotene_ug","thiamin_mg","riboflavin_mg","niacin_mg","vitamin_c_mg"];
     const missing = required.filter(k => !(k in csvRows[0]));
-    if (missing.length) throw new Error("Kolom CSV staging tidak lengkap: " + missing.join(", "));
+    if (missing.length) throw new Error("Kolom CSV tidak lengkap: " + missing.join(", "));
     const seen = new Set();
     const payload = csvRows.map((r,index) => {
       const code = String(r.tkpi_code || "").trim();
-      const batch = String(r.batch_name || "").trim();
+      const batch = String(r.batch_name || ("TKPI2020-" + String(r.category_slug || "import") + "-manual")).trim();
       const page = String(r.source_page || "").trim();
       if (!code || !batch || !/^[0-9]+$/.test(page) || Number(page) < 1) throw new Error("Baris CSV ke-" + (index+2) + " memiliki batch, kode, atau halaman yang tidak valid.");
       const key = batch + "::" + code;
       if (seen.has(key)) throw new Error("Kode TKPI duplikat dalam batch: " + code);
       seen.add(key);
       let raw;
-      try { raw = JSON.parse(r.raw_row); } catch { throw new Error("raw_row bukan JSON valid pada kode " + code + "."); }
+      if (stagingFormat) {
+        try { raw = JSON.parse(r.raw_row); } catch { throw new Error("raw_row bukan JSON valid pada kode " + code + "."); }
+      } else {
+        raw = {};
+        Object.keys(r).forEach(key => {
+          if (["tkpi_code","source_page","data_quality_status"].includes(key)) return;
+          const value = String(r[key] ?? "").trim();
+          if (key === "edible_portion_percent" || Object.hasOwn(nutrientLabels,key)) {
+            raw[key] = value === "" ? null : value;
+          } else {
+            raw[key] = value === "" ? null : value;
+          }
+        });
+        raw.category_slug = String(r.category_slug || "").trim();
+        raw.name = String(r.name || "").trim();
+        raw.source_version = raw.source_version || "2020";
+        raw.source_name = raw.source_name || "Tabel Komposisi Pangan Indonesia";
+        raw.source_url = raw.source_url || "https://repository.kemkes.go.id/book/668";
+      }
       if (!raw || typeof raw !== "object" || Array.isArray(raw) || !String(raw.name || "").trim() || !String(raw.category_slug || "").trim()) {
         throw new Error("Nama bahan atau kategori kosong pada kode " + code + ".");
       }
@@ -230,7 +252,7 @@ async function uploadCsv() {
       };
     });
     const batches = [...new Set(payload.map(r => r.batch_name))];
-    if (batches.length !== 1) throw new Error("Satu file hanya boleh berisi satu batch.");
+    if (batches.length !== 1) throw new Error("Satu file hanya boleh berisi satu batch/kategori.");
     const existing = await db.from("nutrition_import_staging").select("tkpi_code").eq("batch_name",batches[0]).range(0,4999);
     if (existing.error) throw existing.error;
     const existingCodes = new Set((existing.data || []).map(r => r.tkpi_code));
