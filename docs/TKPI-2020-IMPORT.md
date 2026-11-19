@@ -69,3 +69,21 @@ select public.import_approved_tkpi_rows('TKPI2020-serealia-01');
 7. The import function creates or updates food and nutrient rows as `reviewed`, but keeps `is_published = false`. Publication must be a separate admin decision after source-use permission and QA are confirmed.
 
 The import function expects these JSON keys in `raw_row`: `category_slug`, `name`, `food_state`, `source_code`, `edible_portion_percent`, `source_version`, `source_url`, `review_notes`, and the 21 nutrient keys from the CSV template. Numeric fields accept decimal points and non-negative values only. Empty cells remain NULL; zero is retained as zero.
+
+
+## PDF page rendering and OCR review
+
+The supplied scanned PDF can be rendered page-by-page with Poppler and Tesseract:
+
+```bash
+python scripts/tkpi_render_ocr_review.py "Tabel Komposisi Pangan Indonesia.pdf" --out build/tkpi-ocr
+```
+
+Defaults cover physical PDF pages 13–76 (the printed table section, printed pages 9–72 in the supplied scan). Override `--first-page` and `--last-page` if using a differently assembled PDF. The output contains a page PNG, OCR text, and OCR TSV for each page.
+
+A local smoke test on physical pages 14–15 completed successfully. It confirmed that the scan is image-based and that OCR text is imperfect: column headers, food codes, decimals, and blank cells are frequently misread. Therefore:
+- OCR files are navigation/review aids only, not import-ready records.
+- Never infer a value from a garbled OCR token.
+- Inspect the high-resolution PNG for every value entered into the CSV.
+- Keep uncertain cells blank and note them for a second review.
+- Do not upload the generated page images or full OCR dump to the public repository; the original PDF remains the user's local source file.
