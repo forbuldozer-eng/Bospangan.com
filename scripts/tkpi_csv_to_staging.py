@@ -23,6 +23,22 @@ NUTRIENTS = {
 }
 NUMERIC = NUTRIENTS | {"edible_portion_percent"}
 REQUIRED = {"tkpi_code", "category_slug", "name", "source_page"}
+# Printed page ranges and prefixes follow docs/TKPI-2020-IMPORT.md.
+GROUPS = {
+    "serealia": ({"AR", "AP"}, 9, 15),
+    "umbi-berpati": ({"BR", "BP"}, 16, 21),
+    "kacang-biji-bean": ({"CR", "CP"}, 22, 29),
+    "sayuran": ({"DR", "DP"}, 30, 41),
+    "buah": ({"ER", "EP"}, 42, 47),
+    "daging-unggas": ({"FR", "FP"}, 48, 54),
+    "ikan-kerang-udang": ({"GR", "GP"}, 55, 64),
+    "telur": ({"HR", "HP"}, 65, 66),
+    "susu": ({"JR", "JP"}, 67, 67),
+    "lemak-minyak": ({"KR", "KP"}, 68, 68),
+    "gula-sirup-konfeksioneri": ({"MR", "MP"}, 69, 69),
+    "bumbu": ({"NR", "NP"}, 70, 71),
+    "minuman": ({"PR", "PP"}, 72, 72),
+}
 STAGING_FIELDS = [
     "batch_name", "tkpi_code", "source_page", "raw_row",
     "ocr_confidence", "review_status", "review_notes",
@@ -72,10 +88,24 @@ def main() -> int:
                 if code in seen_codes:
                     raise ValueError(f"row {row_num}: duplicate TKPI code {code}")
                 seen_codes.add(code)
-                if not page_text.isdigit() or int(page_text) < 1:
-                    raise ValueError(f"row {row_num}: source_page must be a positive printed page number")
+                if not re.fullmatch(r"[A-Z]{2}[0-9]{3,}", code):
+                    raise ValueError(f"row {row_num}: invalid TKPI code format {code!r}")
+                if category not in GROUPS:
+                    raise ValueError(f"row {row_num}: unknown category_slug {category!r}")
+                if not page_text.isdigit():
+                    raise ValueError(f"row {row_num}: source_page must be a printed page number")
+                prefixes, first_page, last_page = GROUPS[category]
+                if code[:2] not in prefixes:
+                    raise ValueError(
+                        f"row {row_num}: code prefix {code[:2]} does not belong to {category}"
+                    )
+                if not first_page <= int(page_text) <= last_page:
+                    raise ValueError(
+                        f"row {row_num}: printed page {page_text} is outside "
+                        f"{category} range {first_page}-{last_page}"
+                    )
 
-                raw = {}
+                raw = {};
                 for key, value in row.items():
                     if key in {"tkpi_code", "source_page", "data_quality_status"}:
                         continue
