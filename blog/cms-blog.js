@@ -116,7 +116,7 @@ function renderDetail(article, allArticles) {
     '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
       related.map(item => '<li><a href="' + contentBase + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
-      '</ul><p><a href="/blog/">Lihat semua panduan usaha warung</a></p></section>' : '<p><a href="/blog/">Lihat semua artikel Bos Pangan</a></p>');
+      '</ul><p><a href="/blog/">Lihat semua panduan usaha warung</a></p></section>' : '<p><a href="' + contentBase + '">Lihat semua ' + (promoMode ? 'Promo F&B' : 'artikel Bos Pangan') + '</a></p>');
 }
 
 async function init() {
