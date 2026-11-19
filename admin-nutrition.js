@@ -195,6 +195,7 @@ async function uploadCsv() {
   $("nutritionUploadCsv").disabled = true;
   try {
     const csvRows = parseCsv(await file.text());
+    if (csvRows.length > 500) throw new Error("Maksimal 500 baris per unggahan. Pecah CSV menjadi beberapa batch kecil.");
     const required = ["batch_name","tkpi_code","source_page","raw_row"];
     const missing = required.filter(k => !(k in csvRows[0]));
     if (missing.length) throw new Error("Kolom CSV staging tidak lengkap: " + missing.join(", "));
@@ -230,7 +231,7 @@ async function uploadCsv() {
     });
     const batches = [...new Set(payload.map(r => r.batch_name))];
     if (batches.length !== 1) throw new Error("Satu file hanya boleh berisi satu batch.");
-    const existing = await db.from("nutrition_import_staging").select("tkpi_code").eq("batch_name",batches[0]);
+    const existing = await db.from("nutrition_import_staging").select("tkpi_code").eq("batch_name",batches[0]).range(0,4999);
     if (existing.error) throw existing.error;
     const existingCodes = new Set((existing.data || []).map(r => r.tkpi_code));
     const duplicate = payload.find(r => existingCodes.has(r.tkpi_code));
@@ -239,6 +240,7 @@ async function uploadCsv() {
     if (error) throw error;
     $("nutritionCsvFile").value = "";
     status(payload.length + " baris berhasil diunggah ke batch " + batches[0] + ". Semua baris tetap pending.");
+    busy = false;
     await load();
   } catch (error) {
     status("CSV tidak diunggah: " + (error?.message || String(error)), true);
