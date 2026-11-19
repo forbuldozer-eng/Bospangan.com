@@ -140,7 +140,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
     <div class="nav-group">
       <button class="group-toggle" type="button"><span class="left">Publication</span><span class="group-icon">▤</span></button>
       <div class="nav-items">
-        <button class="nav-link" data-page="news"><span>Berita / Blog</span><span class="nav-icon">▣</span></button>
+        <button class="nav-link" data-page="news"><span>Artikel (Blog & Promo F&B)</span><span class="nav-icon">▣</span></button>
         <button class="nav-link" data-page="pages"><span>Halaman</span><span class="nav-icon">▧</span></button>
         <button class="nav-link" data-page="feeds"><span>Feeds Timeline</span><span class="nav-icon">▤</span></button>
         <button class="nav-link" data-page="banner"><span>Banner</span><span class="nav-icon">▧</span></button>
@@ -234,6 +234,14 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
           <div class="article-workspace">
             <div class="article-main">
               <div class="article-card">
+                <div class="article-field">
+                  <label class="article-label" for="articleCategory">Kategori konten</label>
+                  <select id="articleCategory" name="category" required>
+                    <option value="blog">Blog</option>
+                    <option value="promo_fnb">Promo F&B</option>
+                  </select>
+                  <small class="article-side-note">Blog untuk panduan dan edukasi; Promo F&B untuk promosi produk, penawaran, dan campaign.</small>
+                </div>
                 <div class="article-field">
                   <label class="article-label" for="articleExcerpt">Ringkasan artikel</label>
                   <textarea id="articleExcerpt" name="excerpt" rows="3" maxlength="500" placeholder="Tulis ringkasan singkat untuk halaman daftar artikel."></textarea>
