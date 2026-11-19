@@ -11,6 +11,14 @@
     {
       "source": "/blog/:slug/",
       "destination": "/blog/article.html?slug=:slug"
+    },
+    {
+      "source": "/nutrisi/pangan/:slug",
+      "destination": "/nutrisi/pangan/index.html?slug=:slug"
+    },
+    {
+      "source": "/nutrisi/pangan/:slug/",
+      "destination": "/nutrisi/pangan/index.html?slug=:slug"
     }
   ]
 }

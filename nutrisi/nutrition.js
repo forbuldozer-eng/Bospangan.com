@@ -11,7 +11,9 @@ async function categories(){const {data,error}=await db.from("nutrition_categori
 async function foods(categoryId){let q=db.from("nutrition_foods").select("id,slug,name,scientific_name,description,food_state,serving_basis,category_id").eq("is_published",true).order("name");if(categoryId)q=q.eq("category_id",categoryId);const {data,error}=await q;if(error)throw error;return data||[]}
 const card=f=>`<article class="card"><span class="type">Bahan pangan</span><h3>${esc(f.name)}</h3><p>${esc(f.description||"Informasi bahan pangan dan komposisi gizi terverifikasi.")}</p><a href="/nutrisi/pangan/${encodeURIComponent(f.slug)}/">Lihat informasi gizi →</a></article>`;
 async function directory(){
- const cats=await categories(),rows=await foods(null);\n const catTarget=document.getElementById("nutritionCategories");\n if(catTarget)catTarget.innerHTML=cats.map(c=>`<article class="card category-card"><span class="type">Kelompok TKPI 2020</span><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><a href="/nutrisi/${encodeURIComponent(c.slug)}/">Jelajahi bahan pangan →</a></article>`).join("");
+ const cats=await categories(),rows=await foods(null);
+ const catTarget=document.getElementById("nutritionCategories");
+ if(catTarget)catTarget.innerHTML=cats.map(c=>`<article class="card category-card"><span class="type">Kelompok TKPI 2020</span><h3>${esc(c.name)}</h3><p>${esc(c.description)}</p><a href="/nutrisi/${encodeURIComponent(c.slug)}/">Jelajahi bahan pangan →</a></article>`).join("");
  const sel=document.getElementById("nutritionCategoryFilter"),input=document.getElementById("nutritionSearch");
  if(sel)sel.innerHTML='<option value="">Semua kategori</option>'+cats.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
  const term=(input?.value||"").toLocaleLowerCase("id-ID"),paint=()=>{
