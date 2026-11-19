@@ -49,7 +49,13 @@
     footer{width:min(900px,92%);border-top:1px solid var(--line);padding:24px 0 50px;margin:40px auto 0;font-size:14px}
     .article-not-found{padding:50px 0}
     @media(max-width:600px){.header-top{gap:8px}.brand img{width:56px;height:54px}.brand-name{font-size:15px}.brand-slogan{font-size:10px}.main-nav{gap:14px}.main-nav a{font-size:13px}.lead{font-size:18px}.article-gallery{grid-template-columns:1fr}.article-gallery img{height:auto;max-height:360px}}
-  </style>
+  
+/* Shared Bos Pangan navigation: centered and always one horizontal row */
+.site-header .main-nav,.main-nav,.site-header nav{display:flex!important;flex-flow:row nowrap!important;align-items:center;justify-content:center!important;gap:clamp(12px,2vw,28px)!important;width:100%;box-sizing:border-box;white-space:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding:14px 12px!important;margin:0 auto}
+.site-header .main-nav>a,.main-nav>a,.site-header nav>a{display:inline-flex;align-items:center;flex:0 0 auto;white-space:nowrap;color:#fff!important;text-decoration:none;font-size:clamp(12px,1.25vw,17px)!important;font-weight:700}
+.site-header .info-menu,.info-menu{display:none!important}
+@media(max-width:760px){.site-header .main-nav,.main-nav,.site-header nav{justify-content:flex-start!important;gap:18px!important;padding:12px 14px!important}.site-header .main-nav>a,.main-nav>a,.site-header nav>a{font-size:13px!important}}
+</style>
 </head>
 <body>
   <header class="site-header">
@@ -60,9 +66,7 @@
           <span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span>
         </a>
       </div>
-      <nav class="main-nav" aria-label="Navigasi utama">
-        <a href="/">⌂ Beranda</a><a href="/#katalog">Produk</a><a href="/#afiliasi">Ingin Menjadi Supplier Kami</a><a href="/blog/">Blog</a><a href="/nutrisi/">Nutrisi</a><a href="/#tentang">Tentang Kami</a>
-      </nav>
+      <nav class="main-nav" aria-label="Navigasi utama"><a href="/">⌂ Beranda</a><a href="/#katalog">🛒 Produk</a><a href="/#supplier">🤝 Ingin Menjadi Supplier Kami</a><a href="/blog/">◉ Blog</a><a href="/nutrisi/">Nutrisi</a><a href="/#tentang">Tentang Kami</a><a href="/#kontak">Hubungi Kami</a></nav>
     </div>
   </header>
   <main id="cmsBlogArticle">
