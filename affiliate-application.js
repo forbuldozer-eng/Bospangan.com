@@ -152,6 +152,7 @@ async function loadAffiliateFinance(affiliate) {
     <h3 style="margin:18px 0 8px">Riwayat komisi</h3>
     ${commissions.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th align="left">Tanggal</th><th align="left">Catatan</th><th align="left">Nominal</th><th align="left">Status</th></tr></thead><tbody>${commissions.map(c => `<tr><td>${esc(new Date(c.created_at).toLocaleDateString("id-ID"))}</td><td>${esc(c.note || "Komisi affiliate")}</td><td>${money(c.amount)}</td><td>${esc(c.status)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Belum ada komisi yang dicatat admin.</p>'}
   `;
+  $("affiliateFinance")?.remove();
   $("existingState").append(finance);
   $("affiliateClaimForm").addEventListener("submit", async event => {
     event.preventDefault();
