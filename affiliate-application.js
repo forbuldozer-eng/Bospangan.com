@@ -72,7 +72,7 @@ function renderState(application, affiliate) {
     : "";
   $("existingState").innerHTML = "<strong>" + esc(title) + "</strong><span>" + esc(copy) + "</span>" +
     '<p class="muted">Diajukan: ' + esc(new Date(application.created_at).toLocaleString("id-ID")) + "</p>" +
-    (application.status === "approved" && affiliate
+    (application.status === "approved" && affiliate?.status === "active"
       ? '<section class="referral-panel" aria-label="Perangkat promosi affiliate">' +
         '<h3 style="margin:16px 0 6px">Link affiliate Anda</h3>' +
         '<p class="muted">Bagikan link ini kepada customer. Jika mereka membuka link dan berbelanja sesuai ketentuan, referral akan dikaitkan dengan akun Anda.</p>' +
@@ -87,7 +87,7 @@ function renderState(application, affiliate) {
         '<p class="muted">Masa atribusi referral: 90 hari. Komisi mengikuti ketentuan program.</p>' +
         '</section>'
       : ""); 
-  if (application.status === "approved" && affiliate) {
+  if (application.status === "approved" && affiliate?.status === "active") {
     $("copyAffiliateLink").addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(referralUrl);
