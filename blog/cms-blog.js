@@ -63,13 +63,13 @@ function setMeta(article) {
   const ogDescription = document.querySelector('meta[property="og:description"]');
   if (ogDescription) ogDescription.content = description;
   const canonical = document.querySelector('link[rel="canonical"]');
-  if (canonical) canonical.href = "https://bospangan.com/blog/" + encodeURIComponent(article.slug) + "/";
+  if (canonical) canonical.href = "https://bospangan.com" + contentBase + encodeURIComponent(article.slug) + "/";
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
 const promoMode = window.location.pathname.startsWith("/promo-fnb");
-const contentBase = promoMode ? "/promo-fnb/" : contentBase;
+const contentBase = promoMode ? "/promo-fnb/" : "/blog/";
 
 async function getPublishedArticles() {
   const { data, error } = await supabase
@@ -95,7 +95,7 @@ function renderListing(articles) {
       ? articles.map(article => '<article class="item">' +
           '<p class="meta">Panduan usaha · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
           (article.featured_image_url ? '<a href="' + contentBase + '' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
-          '<h2><a href="/blog/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
+          '<h2><a href="' + contentBase + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
     '<p><a href="/">Kembali ke halaman utama Bos Pangan</a></p>';
@@ -115,7 +115,7 @@ function renderDetail(article, allArticles) {
     '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
     '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
-      related.map(item => '<li><a href="/blog/' + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
+      related.map(item => '<li><a href="' + contentBase + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
       '</ul><p><a href="/blog/">Lihat semua panduan usaha warung</a></p></section>' : '<p><a href="/blog/">Lihat semua artikel Bos Pangan</a></p>');
 }
 
