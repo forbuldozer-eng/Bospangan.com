@@ -87,3 +87,16 @@ A local smoke test on physical pages 14–15 completed successfully. It confirme
 - Inspect the high-resolution PNG for every value entered into the CSV.
 - Keep uncertain cells blank and note them for a second review.
 - Do not upload the generated page images or full OCR dump to the public repository; the original PDF remains the user's local source file.
+
+
+## Additional converter validation
+
+The CSV-to-staging converter also checks the TKPI group prefix and printed-page range before creating staging rows. For example, AR/AP codes must be assigned to the serealia group and printed pages 9–15. This catches common category/page mix-ups before a batch reaches Supabase.
+
+Run the regression tests with:
+
+```bash
+python -m unittest discover -s tests -p "test_tkpi_*.py" -v
+```
+
+The tests cover zero-versus-blank handling, duplicate codes, group-prefix mismatch, out-of-range printed pages, negative values, and comma-decimal rejection. They do not validate the correctness of values transcribed from the PDF; that remains a visual source-review step.
