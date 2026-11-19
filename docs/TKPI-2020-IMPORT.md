@@ -46,3 +46,26 @@ The import dictionary follows the TKPI table columns:
 - `supabase/migrations/20261119_tkpi_2020_catalog.sql`: database alignment and staging table.
 - `data/import-templates/tkpi-2020-foods.csv`: blank CSV header template.
 - `supabase/nutrition-directory.sql`: original directory schema; apply it first on a fresh database, then apply the migration above.
+
+
+## Controlled staging workflow
+
+1. Populate the CSV template only from a source whose reuse is authorized.
+2. Preserve every printed blank as an empty cell. Do not turn blanks, dashes, or trace symbols into zero.
+3. Compare each row against the original PDF page at readable zoom. Record the printed page number.
+4. Convert the prepared CSV to Supabase staging format:
+
+```bash
+python scripts/tkpi_csv_to_staging.py data/import-templates/tkpi-2020-foods.csv /tmp/tkpi-staging.csv --batch TKPI2020-serealia-01
+```
+
+5. Import `/tmp/tkpi-staging.csv` into `public.nutrition_import_staging` using the Supabase Table Editor. The converter always marks rows `pending`.
+6. After a Bos Pangan admin reviews each row and changes `review_status` to `approved`, run:
+
+```sql
+select public.import_approved_tkpi_rows('TKPI2020-serealia-01');
+```
+
+7. The import function creates or updates food and nutrient rows as `reviewed`, but keeps `is_published = false`. Publication must be a separate admin decision after source-use permission and QA are confirmed.
+
+The import function expects these JSON keys in `raw_row`: `category_slug`, `name`, `food_state`, `source_code`, `edible_portion_percent`, `source_version`, `source_url`, `review_notes`, and the 21 nutrient keys from the CSV template. Numeric fields accept decimal points and non-negative values only. Empty cells remain NULL; zero is retained as zero.
