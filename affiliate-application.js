@@ -67,11 +67,42 @@ function renderState(application, affiliate) {
     title = "Pengajuan belum disetujui";
     copy = application.review_note || "Pengajuan Anda belum disetujui. Silakan hubungi admin Bos Pangan untuk informasi lebih lanjut.";
   }
+  const referralUrl = affiliate?.affiliate_code
+    ? new URL("/?ref=" + encodeURIComponent(affiliate.affiliate_code), location.origin).toString()
+    : "";
   $("existingState").innerHTML = "<strong>" + esc(title) + "</strong><span>" + esc(copy) + "</span>" +
     '<p class="muted">Diajukan: ' + esc(new Date(application.created_at).toLocaleString("id-ID")) + "</p>" +
     (application.status === "approved" && affiliate
-      ? '<p class="muted">Masa atribusi referral: 90 hari. Komisi mengikuti ketentuan program.</p>'
-      : "");
+      ? '<section class="referral-panel" aria-label="Perangkat promosi affiliate">' +
+        '<h3 style="margin:16px 0 6px">Link affiliate Anda</h3>' +
+        '<p class="muted">Bagikan link ini kepada customer. Jika mereka membuka link dan berbelanja sesuai ketentuan, referral akan dikaitkan dengan akun Anda.</p>' +
+        '<label for="affiliateReferralLink">Link promosi</label>' +
+        '<input id="affiliateReferralLink" type="text" readonly value="' + esc(referralUrl) + '" style="width:100%;padding:12px;border:1px solid #ccd8ce;border-radius:10px;background:#fff;color:#183d31;margin:6px 0 10px">' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button type="button" id="copyAffiliateLink">Salin link affiliate</button>' +
+        '<button type="button" class="secondary" id="shareAffiliateLink">Bagikan via WhatsApp</button>' +
+        '</div>' +
+        '<p id="affiliateLinkStatus" class="muted" role="status" aria-live="polite"></p>' +
+        '<p class="muted">Kode referral: <strong>' + esc(affiliate.affiliate_code) + '</strong></p>' +
+        '<p class="muted">Masa atribusi referral: 90 hari. Komisi mengikuti ketentuan program.</p>' +
+        '</section>'
+      : ""); 
+  if (application.status === "approved" && affiliate) {
+    $("copyAffiliateLink").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(referralUrl);
+        $("affiliateLinkStatus").textContent = "Link affiliate berhasil disalin.";
+      } catch {
+        const input = $("affiliateReferralLink");
+        input.focus(); input.select();
+        $("affiliateLinkStatus").textContent = "Pilih dan salin link di atas.";
+      }
+    });
+    $("shareAffiliateLink").addEventListener("click", () => {
+      const text = "Yuk, lihat produk pangan di Bos Pangan melalui link saya: " + referralUrl;
+      window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank", "noopener,noreferrer");
+    });
+  }
 }
 async function loadApplication() {
   showView("viewLoading");
