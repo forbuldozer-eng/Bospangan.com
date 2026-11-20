@@ -1,12 +1,6 @@
-# Keep the public blog listing at /blog/ unchanged.
-# Keep the blog index accessible at both canonical and non-trailing-slash paths.
 
-# Internally serve the shared detail template for /blog/<slug>/ URLs.
 
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
 
 # Promo F&B remains on hold.
-/promo-fnb /blog/ 302
-/promo-fnb/ /blog/ 302
-/promo-fnb/* /blog/ 302
