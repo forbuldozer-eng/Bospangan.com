@@ -1,10 +1,12 @@
-# Cloudflare Pages route compatibility for existing Vercel dynamic routes.
-# Use .html detail templates outside the public slug folders to avoid directory-index redirects.
-# These are internal rewrites (200), not browser redirects.
+# Cloudflare Pages route compatibility for existing dynamic article routes.
+# Detail templates live outside /blog/ and /promo-fnb/ so wildcard routes cannot match their targets.
+# These are internal rewrites (200), preserving the requested public article URL.
+# Landing page routes are unchanged.
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
-/blog/:slug /blog/article.html?slug=:slug 200
-/blog/:slug/ /blog/article.html?slug=:slug 200
 
-/promo-fnb/:slug /promo-fnb/article.html?slug=:slug 200
-/promo-fnb/:slug/ /promo-fnb/article.html?slug=:slug 200
+/blog/:slug /article-templates/blog-detail.html?slug=:slug 200
+/blog/:slug/ /article-templates/blog-detail.html?slug=:slug 200
+
+/promo-fnb/:slug /article-templates/promo-fnb-detail.html?slug=:slug 200
+/promo-fnb/:slug/ /article-templates/promo-fnb-detail.html?slug=:slug 200
