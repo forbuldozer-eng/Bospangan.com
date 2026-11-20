@@ -63,19 +63,18 @@ function setMeta(article) {
   const ogDescription = document.querySelector('meta[property="og:description"]');
   if (ogDescription) ogDescription.content = description;
   const canonical = document.querySelector('link[rel="canonical"]');
-  if (canonical) canonical.href = "https://bospangan.com" + contentBase + encodeURIComponent(article.slug) + "/";
+  if (canonical) canonical.href = "https://bospangan.com/promo-fnb/" + encodeURIComponent(article.slug) + "/";
   const ogImage = document.querySelector('meta[property="og:image"]');
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
-const contentBase = "/promo-fnb/";
-
 async function getPublishedArticles() {
-  const { data, error } = await supabase
+  let query = supabase
     .from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,category,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
-    .in("category", ["promo", "promo_fnb"])
+    .eq("category", "promo");
+  const { data, error } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -84,15 +83,14 @@ async function getPublishedArticles() {
 
 function renderListing(articles) {
   if (!listing) return;
-  const intro = "Temukan informasi promo, penawaran, paket produk, serta inspirasi pilihan makanan dan minuman dari Bos Pangan.";
-  const heading = "Promo F&B Bos Pangan";
-  listing.innerHTML = '<h1>' + heading + '</h1>' +
+  const intro = "Temukan informasi promo dan penawaran produk Bos Pangan untuk kebutuhan usaha makanan dan minuman.";
+  listing.innerHTML = '<h1>Promo F&amp;B Bos Pangan</h1>' +
     '<p class="intro">' + esc(intro) + '</p>' +
     (articles.length
       ? articles.map(article => '<article class="item">' +
-          '<p class="meta">Promo F&B · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
-          (article.featured_image_url ? '<a href="' + contentBase + '' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
-          '<h2><a href="' + contentBase + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
+          '<p class="meta">' + "Promo F&amp;B" + ' · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
+           (article.featured_image_url ? '<a class="blog-card-image" href="/promo-fnb/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
+          '<h2><a href="/promo-fnb/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
     '<p><a href="/">Kembali ke halaman utama Bos Pangan</a></p>';
@@ -104,54 +102,44 @@ function renderDetail(article, allArticles) {
   setMeta(article);
   const related = allArticles.filter(item => item.slug !== article.slug).slice(0, 3);
   detail.innerHTML =
-    '<div class="crumb"><a href="/">Beranda</a> / <a href="' + contentBase + '">Promo F&amp;B</a> / ' + esc(article.title) + '</div>' +
-    '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
+    '<div class="crumb"><a href="/">Beranda</a> / <a href="/promo-fnb/">Promo F&amp;B</a> / ' + esc(article.title) + '</div>' +
+    '<article><p class="meta">Promo F&B · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
     '<h1>' + esc(article.title) + '</h1>' +
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
     (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" loading="eager">' : fallbackHero) +
     '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
     '<div class="callout"><b>Temukan penawaran Bos Pangan lainnya</b><p>Lihat pilihan produk dan informasi terbaru melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
-      related.map(item => '<li><a href="' + contentBase + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
-      '</ul><p><a href="/blog/">Lihat semua Promo F&amp;B</a></p></section>' : '<p><a href="' + contentBase + '">Lihat semua ' + (promoMode ? 'Promo F&B' : 'artikel Bos Pangan') + '</a></p>');
+      related.map(item => '<li><a href="/promo-fnb/' + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
+      '</ul><p><a href="/promo-fnb/">Lihat semua Promo F&amp;B</a></p></section>' : '<p><a href="/promo-fnb/">Lihat semua Promo F&amp;B</a></p>');
 }
 
 async function init() {
   ensureGalleryStyles();
   try {
     const articles = await getPublishedArticles();
-    if (listing) renderListing(articles);
+    if (listing && articles.length) renderListing(articles);
     if (detail) {
       // Resolve the CMS slug from the rewrite query first, then from the URL path.
       // Avoid regex literals here so the browser can parse this module reliably.
       const pathParts = window.location.pathname.split("/").filter(Boolean);
       const pathSlug = pathParts[0] === "promo-fnb" ? (pathParts[1] || "") : "";
       const querySlug = new URLSearchParams(window.location.search).get("slug") || "";
-      const rawSlug = detail.dataset.slug || querySlug || pathSlug;
-      // Cloudflare wildcard captures may include a trailing slash.
-      // Normalize the captured slug before comparing it with the CMS record.
-      let slug = String(rawSlug);
-      while (slug.startsWith("/")) slug = slug.slice(1);
-      while (slug.endsWith("/")) slug = slug.slice(0, -1);
-      try { slug = decodeURIComponent(slug); } catch (_) {}
-      if (!slug) {
-        detail.innerHTML = '<div class="article-not-found"><h1>Promo belum dipilih</h1><p>Silakan pilih promo dari halaman Promo F&amp;B.</p><a href="/blog/">Kembali ke Promo F&amp;B</a></div>';
-        return;
-      }
+      const slug = detail.dataset.slug || querySlug || pathSlug;
       const article = articles.find(item => item.slug === slug);
       if (article) {
         renderDetail(article, articles);
       } else {
-        detail.innerHTML = '<div class="article-not-found"><h1>Promo tidak ditemukan</h1><p>Promo mungkin belum diterbitkan atau alamatnya sudah berubah.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
+        detail.innerHTML = '<div class="article-not-found"><h1>Promo tidak ditemukan</h1><p>Promo mungkin belum diterbitkan atau alamatnya sudah berubah.</p><a href="/promo-fnb/">Kembali ke Promo F&amp;B</a></div>';
       }
     }
   } catch (error) {
     console.error("Bos Pangan Promo F&B failed to load.", error);
     if (detail) {
-      detail.innerHTML = '<div class="article-not-found"><h1>Promo belum dapat dimuat</h1><p>Terjadi kendala saat mengambil artikel dari server. Silakan muat ulang halaman beberapa saat lagi.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
+      detail.innerHTML = '<div class="article-not-found"><h1>Promo belum dapat dimuat</h1><p>Terjadi kendala saat mengambil artikel dari server. Silakan muat ulang halaman beberapa saat lagi.</p><a href="/promo-fnb/">Kembali ke Promo F&amp;B</a></div>';
     }
     if (listing) {
-      listing.innerHTML = '<h1>' + "Promo F&amp;B Bos Pangan" + '</h1><p>Artikel belum dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</p>';
+      listing.innerHTML = '<h1>Promo F&amp;B Bos Pangan</h1><p>Promo belum dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</p>';
     }
   }
 }
