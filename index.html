@@ -155,6 +155,34 @@
 @media(max-width:460px){
   .site-header .main-nav{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:12px}
 }
+
+/* Explicitly force the Hubungi Kami dropdown trigger to remain visible */
+.site-header nav.main-nav > details.info-menu{
+ display:flex!important;
+ flex:0 0 auto!important;
+ visibility:visible!important;
+ opacity:1!important;
+ position:relative!important;
+ align-items:center!important;
+ min-width:max-content!important;
+ max-width:none!important;
+ color:#fff!important;
+}
+.site-header nav.main-nav > details.info-menu > summary{
+ display:inline-flex!important;
+ visibility:visible!important;
+ opacity:1!important;
+ color:#fff!important;
+ white-space:nowrap!important;
+ cursor:pointer!important;
+ list-style:none!important;
+}
+.site-header nav.main-nav > details.info-menu > summary::-webkit-details-marker{display:none!important}
+.site-header nav.main-nav > details.info-menu[open] > .info-dropdown{
+ display:grid!important;
+ visibility:visible!important;
+ opacity:1!important;
+}
 </style>
 <style id="bp-navigation-image2-target">
 /* Public navigation aligned with the storefront hero/banner width */
