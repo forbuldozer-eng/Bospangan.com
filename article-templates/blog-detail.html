@@ -76,11 +76,9 @@
   </main>
   <footer>Bos Pangan · Juara Pangan Lokal</footer>
   <script>
-    // This HTML is an internal rewrite target for /blog/:slug/.
-    // Direct visits without a slug should return to the public article listing.
-    if (!new URLSearchParams(window.location.search).get("slug")) {
-      window.location.replace("/blog/");
-    }
+    // This page is served by an internal rewrite for /blog/<slug>/.
+    // Never redirect to the listing here: keep the requested URL and let the
+    // CMS module show a useful message if a slug is missing or unavailable.
   </script>
   <script type="module" src="/blog/cms-blog.js" onerror="document.getElementById('cmsBlogArticle').textContent='Artikel gagal dimuat. Kembali ke daftar artikel.'"></script>
 
