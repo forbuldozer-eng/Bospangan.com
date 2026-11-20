@@ -236,6 +236,7 @@
 <a href="/blog/">◉ Blog</a>
 <a href="/?affiliate=1" aria-label="Daftar dan masuk program affiliate">♧ Affiliate</a>
 <a href="/nutrisi/">Info Nutrisi makanan</a>
+<a href="/promo-fnb/">% Promo F&amp;B</a>
 <details class="info-menu">
  <summary>Hubungi Kami <span aria-hidden="true">▾</span></summary>
  <div class="info-dropdown">
@@ -366,35 +367,33 @@ for(const id of ['waFloat','waDialog'])$(id).addEventListener('click',trackChat)
 $('more').onclick=()=>{limit+=24;render()};$('search').oninput=()=>{limit=24;render()};$('basket').onclick=basket;$('closeBox').onclick=()=>$('box').close();const initialQuery=new URLSearchParams(location.search).get('q');if(initialQuery){$('search').value=initialQuery;$('searchTop').value=initialQuery}render();openSharedView();
 </script><style id="tws-auth-style">.auth-tabs{display:flex;gap:8px;margin:12px 0 18px}.auth-tabs button{flex:1}.auth-tabs .active{background:var(--green);color:#fff}.auth-form label{font-weight:650}.auth-form input{width:100%}.auth-note{background:#eef5ed;border-radius:10px;padding:10px 12px;font-size:13px;margin:10px 0}.auth-google{width:100%;margin-top:10px}.auth-actions{display:flex;gap:8px;flex-wrap:wrap}.auth-actions button{flex:1}.auth-error{color:#a12626;min-height:1.4em}.auth-success{color:#17633f;min-height:1.4em}.account-card{border:1px solid var(--line);border-radius:12px;padding:14px}.auth-small{font-size:12px;color:#58685e}.site-header .main-nav{display:flex!important;flex-flow:row nowrap!important;align-items:center;justify-content:center;width:100%;max-width:100%;min-width:0;gap:clamp(14px,2.2vw,30px);padding:14px 0;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin;-webkit-overflow-scrolling:touch}.site-header .main-nav>a{display:inline-flex;align-items:center;flex:0 0 auto;white-space:nowrap;font-size:clamp(12px,1.25vw,17px);line-height:1.3}.site-header .main-nav>a:focus-visible{outline:2px solid #fff;outline-offset:4px;border-radius:4px}@media(max-width:760px){.site-header .main-nav{gap:18px;padding:12px 2px}.site-header .main-nav>a{font-size:13px}}</style><script type="module" src="/storefront-banner.js"></script>
 <script type="module" src="/storefront-category-order.js"></script><script type="module" src="/storefront-commerce.js"></script><script type="module" src="/auth.js"></script><script type="module" src="/customer-auth.js"></script><style id="bp-navigation-production-fix">
-/* Bos Pangan: one centered horizontal navigation row on every public page */
+/* Keep the navigation container exactly aligned with the public content/banner width. */
 .site-header .main-nav,
 .site-header nav.main-nav {
   display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
+  flex-flow:row nowrap!important;
   align-items:center!important;
   justify-content:center!important;
-  gap:clamp(10px,1.35vw,20px)!important;
-  width:100%!important;
-  max-width:100%!important;
+  width:min(1120px,92%)!important;
+  max-width:1120px!important;
   min-width:0!important;
   margin:0 auto!important;
-  padding:14px 12px!important;
+  padding:14px 0!important;
   box-sizing:border-box!important;
+  gap:clamp(9px,1.05vw,16px)!important;
   white-space:nowrap!important;
   overflow:visible!important;
-  scrollbar-width:none;
-  -webkit-overflow-scrolling:touch;
+  position:relative!important;
+  z-index:20!important;
 }
-.site-header .main-nav::-webkit-scrollbar {display:none}
 .site-header .main-nav>a {
   display:inline-flex!important;
-  flex:0 0 auto!important;
+  flex:0 1 auto!important;
   align-items:center!important;
   justify-content:center!important;
   min-width:max-content!important;
   white-space:nowrap!important;
-  font-size:clamp(12px,1.12vw,16px)!important;
+  font-size:clamp(12px,1.05vw,16px)!important;
   line-height:1.3!important;
   text-align:center!important;
   color:#fff!important;
@@ -418,6 +417,7 @@ $('more').onclick=()=>{limit+=24;render()};$('search').oninput=()=>{limit=24;ren
   white-space:nowrap!important;
   cursor:pointer!important;
   list-style:none!important;
+  font-size:clamp(12px,1.05vw,16px)!important;
 }
 .site-header .main-nav .info-menu>summary::-webkit-details-marker,
 .site-header .main-nav details>summary::-webkit-details-marker {display:none!important}
@@ -451,11 +451,14 @@ $('more').onclick=()=>{limit+=24;render()};$('search').oninput=()=>{limit=24;ren
 @media(max-width:760px){
   .site-header .main-nav,
   .site-header nav.main-nav {
+    width:92%!important;
     justify-content:flex-start!important;
-    gap:16px!important;
-    padding:12px 14px!important;
+    flex-wrap:wrap!important;
+    gap:12px!important;
+    padding:12px 0!important;
   }
-  .site-header .main-nav>a {font-size:13px!important}
+  .site-header .main-nav>a,
+  .site-header .main-nav .info-menu>summary {font-size:13px!important}
 }
 </style>
 </body></html>
