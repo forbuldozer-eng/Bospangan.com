@@ -1,11 +1,9 @@
-# Keep one public article system: Blog listing + one shared Blog detail template.
-# Promo F&B is temporarily on hold and routes back to the main article listing.
-/landingpage/:slug /landingpage/index.html?slug=:slug 200
-/landingpage/:slug/ /landingpage/index.html?slug=:slug 200
+# Public CMS article routes use Cloudflare Pages wildcard captures (:splat).
+# Keep the listing at /blog/ and internally rewrite each article slug to one detail template.
+/landingpage/* /landingpage/index.html?slug=:splat 200
+/blog/* /article-templates/blog-detail.html?slug=:splat 200
 
-/blog/:slug /article-templates/blog-detail.html?slug=:slug 200
-/blog/:slug/ /article-templates/blog-detail.html?slug=:slug 200
-
+# Promo F&B remains on hold; keep it out of the public article system.
 /promo-fnb /blog/ 302
 /promo-fnb/ /blog/ 302
 /promo-fnb/* /blog/ 302
