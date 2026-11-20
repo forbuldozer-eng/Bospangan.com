@@ -11,7 +11,7 @@ if (!urlMatch || !keyMatch) throw new Error("Konfigurasi Supabase tidak ditemuka
 const supabaseUrl = urlMatch[1].replace(/\/$/, "");
 const publicKey = keyMatch[1];
 const endpoint = new URL(supabaseUrl + "/rest/v1/cms_articles");
-endpoint.searchParams.set("select", "title,slug,excerpt,category,seo_title,seo_description,cover_image_url,cover_image_alt,featured_image_url,featured_image_alt,published_at,updated_at,content_markdown,content_html,content_type,status");
+endpoint.searchParams.set("select", "title,slug,excerpt,category,seo_title,seo_description,focus_keyphrase,seo_metadata,cover_image_url,cover_image_alt,featured_image_url,featured_image_alt,published_at,updated_at,content_markdown,content_html,content_type,status");
 endpoint.searchParams.set("content_type", "eq.blog");
 endpoint.searchParams.set("status", "eq.published");
 endpoint.searchParams.set("published_at", "lte." + new Date().toISOString());
@@ -63,10 +63,18 @@ if (!keptUrls.some(entry => (entry.match(/<loc>([\s\S]*?)<\/loc>/) || [])[1] ===
   keptUrls.push("<url><loc>https://bospangan.com/blog/</loc></url>");
 }
 for (const article of articles) {
-  const canonical = "https://bospangan.com/blog/" + article.slug + "/";
+  let seoMetadata = article.seo_metadata || {};
+  if (typeof seoMetadata === "string") {
+    try { seoMetadata = JSON.parse(seoMetadata); } catch { seoMetadata = {}; }
+  }
+  const advanced = seoMetadata.advanced || {};
+  const canonicalDefault = "https://bospangan.com/blog/" + article.slug + "/";
+  const customCanonical = String(advanced.canonicalUrl || "").trim();
+  const hasCustomCanonical = /^https:\/\/[^\\s"'<>]+$/i.test(customCanonical) && customCanonical !== canonicalDefault;
+  if (advanced.noIndex || hasCustomCanonical) continue;
   const lastmodValue = article.updated_at || article.published_at;
   const lastmod = lastmodValue ? new Date(lastmodValue).toISOString() : "";
-  keptUrls.push("<url><loc>" + canonical + "</loc>" +
+  keptUrls.push("<url><loc>" + canonicalDefault + "</loc>" +
     (lastmod ? "<lastmod>" + lastmod + "</lastmod>" : "") + "</url>");
 }
 await writeFile(sitemapPath, sitemapHeader[0] + "\n" + keptUrls.join("\n") + "\n</urlset>\n", "utf8");
