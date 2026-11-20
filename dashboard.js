@@ -51,12 +51,20 @@ function activatePage(page){
   };
   $("crumb").textContent = labels[page] || pageInfo[page]?.[0] || "Dashboard";
   closeMobileMenu();
+  if (page !== "blog") $("blogCmsPanel")?.classList.add("hidden");
   if (page !== "media") $("mediaAdminPanel")?.classList.add("hidden");
   if (page !== "invoice") $("invoiceAdminPanel")?.classList.add("hidden");
   if (page !== "customers") $("customerDatabasePanel")?.classList.add("hidden");
 
   if(page === "overview"){
     showOnly("overviewView");
+    return;
+  }
+  if(page === "blog"){
+    showOnly("adminView");
+    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel","affiliateAdminPanel"].forEach(id => $(id)?.classList.add("hidden"));
+    $("blogCmsPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:blog-open"));
     return;
   }
   if(page === "categories"){
