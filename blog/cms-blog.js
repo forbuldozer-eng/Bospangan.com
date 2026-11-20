@@ -69,12 +69,13 @@ function setMeta(article) {
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
-async function getPublishedArticles() {
-  const { data, error } = await supabase
+async function getPublishedArticles(category = null) {
+  let query = supabase
     .from("cms_articles")
     .select("id,title,slug,excerpt,category,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
-    .eq("status", "published")
-    .eq("category", isPromoListing ? "promo" : "blog")
+    .eq("status", "published");
+  if (category) query = query.eq("category", category);
+  const { data, error } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -117,7 +118,7 @@ function renderDetail(article, allArticles) {
 async function init() {
   ensureGalleryStyles();
   try {
-    const articles = await getPublishedArticles();
+    const articles = await getPublishedArticles(listing ? (isPromoListing ? "promo" : "blog") : null);
     if (listing && articles.length) renderListing(articles);
     if (detail) {
       // Resolve the CMS slug from the rewrite query first, then from the URL path.
