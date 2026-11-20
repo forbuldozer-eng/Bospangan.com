@@ -20,6 +20,7 @@ let currentRole = null;
 let currentPermissions = [];
 
 const pageInfo = {
+  blog:["Blog & Artikel","Kelola artikel dan publikasi Blog Bos Pangan","CMS Blog baru."],
   pages:["Halaman Website","Kelola halaman informasi seperti Tentang Kami dan Kontak","Modul halaman statis memerlukan struktur konten dan workflow publikasi tersendiri."],
   feeds:["Feeds Timeline","Kelola konten timeline dan feed","Modul feeds belum memiliki tabel penyimpanan pada backend saat ini."],
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
@@ -45,7 +46,7 @@ function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
-    overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
+    overview:"Dashboard",blog:"Blog & Artikel",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
     campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
     notifications:"Log Notifikasi","financial-report":"Laporan Keuangan"
   };
@@ -55,6 +56,13 @@ function activatePage(page){
   if (page !== "invoice") $("invoiceAdminPanel")?.classList.add("hidden");
   if (page !== "customers") $("customerDatabasePanel")?.classList.add("hidden");
 
+  if(page === "blog"){
+    showOnly("adminView");
+    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id=>$(id)?.classList.add("hidden"));
+    $("blogCmsPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:blog-open"));
+    return;
+  }
   if(page === "overview"){
     showOnly("overviewView");
     return;
