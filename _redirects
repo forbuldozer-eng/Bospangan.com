@@ -1,9 +1,10 @@
 # Cloudflare Pages route compatibility for existing Vercel dynamic routes.
+# Detail templates are nested one level deeper so wildcard routes cannot rewrite themselves.
 # These are internal rewrites (200), not browser redirects.
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
-/blog/:slug /blog/article.html?slug=:slug 200
-/blog/:slug/ /blog/article.html?slug=:slug 200
+/blog/:slug /blog/article/index.html?slug=:slug 200
+/blog/:slug/ /blog/article/index.html?slug=:slug 200
 
-/promo-fnb/:slug /promo-fnb/article.html?slug=:slug 200
-/promo-fnb/:slug/ /promo-fnb/article.html?slug=:slug 200
+/promo-fnb/:slug /promo-fnb/article/index.html?slug=:slug 200
+/promo-fnb/:slug/ /promo-fnb/article/index.html?slug=:slug 200
