@@ -687,7 +687,7 @@ async function saveArticle(forceDraft = false) {
     title,
     slug,
     excerpt: f.excerpt.value.trim(),
-    category: f.category.value === "promo_fnb" ? "promo" : "blog",
+    category: f.category.value === "promo_fnb" ? "promo_fnb" : "blog",
     content_markdown: content,
     featured_image_url: imageUrl,
     featured_image_alt: f.featured_image_alt.value.trim(),
