@@ -45,7 +45,7 @@ async function init() {
 
   const canonical = document.createElement("link");
   canonical.rel = "canonical";
-  canonical.href = location.origin + "/blog/" + article.slug + "/";
+  canonical.href = "https://bospangan.com/blog/" + article.slug + "/";
   document.head.append(canonical);
 
   const schema = {
@@ -63,6 +63,16 @@ async function init() {
   jsonLd.textContent = JSON.stringify(schema);
   document.head.append(jsonLd);
 
+  let content = article.content_html || "";
+  if (!content.trim() && article.content_markdown) {
+    const [{ marked }, { default: DOMPurify }] = await Promise.all([
+      import("https://esm.sh/marked@15.0.7"),
+      import("https://esm.sh/dompurify@3.2.6")
+    ]);
+    content = DOMPurify.sanitize(marked.parse(article.content_markdown));
+  }
+  const image = article.cover_image_url || article.featured_image_url;
+  const imageAlt = article.cover_image_alt || article.featured_image_alt || article.title;
   root.className = "";
   root.innerHTML =
     '<div class="cat">' + esc(article.category) + '</div>' +
@@ -70,8 +80,8 @@ async function init() {
     '<div class="meta">Bos Pangan · ' +
     new Date(article.published_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) +
     '</div>' +
-    (article.cover_image_url ? '<img class="cover" src="' + esc(article.cover_image_url) + '" alt="' + esc(article.cover_image_alt || article.title) + '">' : '') +
-    '<div class="content">' + (article.content_html || "") + '</div>' +
+    (image ? '<img class="cover" src="' + esc(image) + '" alt="' + esc(imageAlt) + '">' : '') +
+    '<div class="content">' + content + '</div>' +
     '<p><a href="/blog/">← Kembali ke semua artikel</a></p>';
 }
 
