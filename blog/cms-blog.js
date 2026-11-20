@@ -87,7 +87,7 @@ function renderListing(articles) {
     (articles.length
       ? articles.map(article => '<article class="item">' +
           '<p class="meta">Panduan usaha · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
-          (article.featured_image_url ? '<a href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
+          '<a class="blog-card-image" href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url || ('/blog/images/' + article.slug + '.svg')) + '" alt="' + esc(article.featured_image_alt || article.title) + '" onerror="this.closest(\'a\').hidden=true" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' +
           '<h2><a href="/blog/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
