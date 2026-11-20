@@ -242,6 +242,14 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
                 <div class="article-field">
                   <label class="article-label" for="articleExcerpt">Ringkasan artikel</label>
                   <textarea id="articleExcerpt" name="excerpt" rows="3" maxlength="500" placeholder="Tulis ringkasan singkat untuk halaman daftar artikel."></textarea>
+                <div class="article-field" style="margin-top:14px">
+                  <label class="article-label" for="articleCategory">Kategori publikasi</label>
+                  <select id="articleCategory" name="category" required>
+                    <option value="blog">Blog</option>
+                    <option value="promo">Promo</option>
+                  </select>
+                  <p class="article-side-note">Pilih Promo agar artikel tampil di halaman Promo F&amp;B.</p>
+                </div>
                 </div>
                 <div class="article-field">
                   <label class="article-label">Isi artikel</label>
