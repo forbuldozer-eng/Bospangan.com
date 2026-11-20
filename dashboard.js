@@ -20,7 +20,7 @@ let currentRole = null;
 let currentPermissions = [];
 
 const pageInfo = {
-  news:["Berita / Blog","Kelola artikel dan publikasi Bos Pangan","Modul publikasi artikel belum dihubungkan ke database CMS."],
+  blog:["Blog & Artikel","Kelola artikel dan publikasi Blog Bos Pangan","CMS Blog baru."],
   pages:["Halaman Website","Kelola halaman informasi seperti Tentang Kami dan Kontak","Modul halaman statis memerlukan struktur konten dan workflow publikasi tersendiri."],
   feeds:["Feeds Timeline","Kelola konten timeline dan feed","Modul feeds belum memiliki tabel penyimpanan pada backend saat ini."],
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
@@ -40,13 +40,13 @@ function closeMobileMenu(){
   $("scrim").classList.remove("show");
 }
 function showOnly(id){
-  ["overviewView","placeholderView","articleView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
+  ["overviewView","placeholderView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
   activeLinks.forEach(link => link.classList.toggle("active", link.dataset.page === page));
   const labels = {
-    overview:"Dashboard",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
+    overview:"Dashboard",blog:"Blog & Artikel",pages:"Landing Page",banner:"Banner Website",products:"Produk",orders:"Pesanan",special:"Transaksi Khusus",
     campaigns:"Promosi Produk","store-settings":"Pengaturan Toko",admins:"Admin & Hak Akses",
     notifications:"Log Notifikasi","financial-report":"Laporan Keuangan"
   };
@@ -56,6 +56,13 @@ function activatePage(page){
   if (page !== "invoice") $("invoiceAdminPanel")?.classList.add("hidden");
   if (page !== "customers") $("customerDatabasePanel")?.classList.add("hidden");
 
+  if(page === "blog"){
+    showOnly("adminView");
+    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id=>$(id)?.classList.add("hidden"));
+    $("blogCmsPanel")?.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("cms:blog-open"));
+    return;
+  }
   if(page === "overview"){
     showOnly("overviewView");
     return;
@@ -136,20 +143,7 @@ function activatePage(page){
     $("customerDatabasePanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:customers-open"));
     return;
-  }
-  if(page === "nutrition-import"){
-    showOnly("adminView");
-    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id => $(id)?.classList.add("hidden"));
-    $("nutritionImportPanel")?.classList.remove("hidden");
-    window.dispatchEvent(new CustomEvent("cms:nutrition-import-open"));
-    return;
-  }
-  if(page === "news"){
-    showOnly("articleView");
-    window.dispatchEvent(new CustomEvent("cms:articles-open"));
-    return;
-  }
-  if(page === "product-report"){
+  }if(page === "product-report"){
     showOnly("adminView");
     $("commerceAdmin")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.add("hidden");
