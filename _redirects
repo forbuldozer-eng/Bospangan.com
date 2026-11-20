@@ -4,3 +4,6 @@
 
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
+
+# Blog article detail: keep /blog/{slug}/ in the browser and serve the detail template.
+/blog/* /blog/article.html?slug=:splat 200
