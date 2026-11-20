@@ -424,7 +424,7 @@ function showEditor(show = true) {
 function updateArticlePermalinkPrefix() {
   const prefix = $("articlePermalinkPrefix");
   const category = $("articleForm")?.elements.category?.value;
-  if (prefix) prefix.textContent = category === "promo_fnb" ? "/promo-fnb/" : "/blog/";
+  if (prefix) prefix.textContent = "/promo-fnb/";
 }
 
 function resetEditor() {
@@ -621,7 +621,7 @@ async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
     .select("id,title,slug,category,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
-    .eq("category", "promo")
+    .in("category", ["promo_fnb", "promo"])
      .order("updated_at", { ascending: false });
   if (error) throw error;
 
