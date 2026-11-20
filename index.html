@@ -164,7 +164,7 @@
  align-items:center!important;justify-content:space-between!important;
  gap:clamp(10px,1.05vw,18px)!important;width:min(1320px,94%)!important;
  max-width:1320px!important;min-width:0!important;margin:0 auto!important;
- padding:16px 0!important;overflow-x:auto!important;overflow-y:visible!important;
+ padding:16px 0!important;overflow:visible!important;
  white-space:nowrap!important;scrollbar-width:none!important;box-sizing:border-box!important;
 }
 .site-header .main-nav::-webkit-scrollbar{display:none!important}
@@ -196,7 +196,7 @@
 .site-header .main-nav .info-dropdown a:hover,.site-header .main-nav .info-dropdown a:focus-visible{background:#f0f5ed!important}
 .site-header .main-nav>a:hover,.site-header .main-nav>a:focus-visible,.site-header .main-nav .info-menu summary:hover{color:#f5d66b!important}
 @media(max-width:760px){
- .site-header .main-nav,.site-header nav.main-nav{justify-content:flex-start!important;gap:18px!important;width:94%!important;padding:12px 0!important}
+ .site-header .main-nav,.site-header nav.main-nav{justify-content:flex-start!important;gap:18px!important;width:max-content!important;min-width:94%!important;max-width:none!important;padding:12px 16px!important;overflow:visible!important}
  .site-header .main-nav>a,.site-header .main-nav>.info-menu{font-size:15px!important}
  .site-header .main-nav .info-dropdown{right:auto!important;left:0!important}
 }
