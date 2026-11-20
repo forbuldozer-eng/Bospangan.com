@@ -8,6 +8,23 @@ create table if not exists public.cms_articles(
  status text not null default 'draft' check(status in('draft','published')),
  author_id uuid references auth.users(id) on delete set null,created_by uuid references auth.users(id) on delete set null,updated_by uuid references auth.users(id) on delete set null,
  created_at timestamptz not null default now(),updated_at timestamptz not null default now(),published_at timestamptz);
+alter table public.cms_articles add column if not exists content_type text not null default 'blog';
+alter table public.cms_articles add column if not exists title text not null default '';
+alter table public.cms_articles add column if not exists slug text not null default '';
+alter table public.cms_articles add column if not exists excerpt text not null default '';
+alter table public.cms_articles add column if not exists content_html text not null default '';
+alter table public.cms_articles add column if not exists category text not null default 'Umum';
+alter table public.cms_articles add column if not exists cover_image_url text;
+alter table public.cms_articles add column if not exists cover_image_alt text not null default '';
+alter table public.cms_articles add column if not exists seo_title text not null default '';
+alter table public.cms_articles add column if not exists seo_description text not null default '';
+alter table public.cms_articles add column if not exists status text not null default 'draft';
+alter table public.cms_articles add column if not exists author_id uuid references auth.users(id) on delete set null;
+alter table public.cms_articles add column if not exists created_by uuid references auth.users(id) on delete set null;
+alter table public.cms_articles add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.cms_articles add column if not exists created_at timestamptz not null default now();
+alter table public.cms_articles add column if not exists updated_at timestamptz not null default now();
+alter table public.cms_articles add column if not exists published_at timestamptz;
 create unique index if not exists cms_articles_blog_slug_unique on public.cms_articles(slug);
 create index if not exists cms_articles_blog_publish_idx on public.cms_articles(status,published_at desc);
 alter table public.cms_articles enable row level security;
