@@ -4,3 +4,7 @@
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
 
 # Nutrition food detail route
+
+# Blog article detail: internal rewrite; browser URL remains /blog/{slug}/
+/blog/:slug/ /blog/article.html?slug=:slug 200
+/blog/:slug /blog/article.html?slug=:slug 200
