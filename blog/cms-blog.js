@@ -76,7 +76,7 @@ async function getPublishedArticles() {
     .from("cms_articles")
     .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
-    .eq("category", promoMode ? "promo_fnb" : "blog")
+    .eq("category", promoMode ? "promo" : "blog")
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -123,7 +123,7 @@ async function init() {
   ensureGalleryStyles();
   try {
     const articles = await getPublishedArticles();
-    if (listing && articles.length) renderListing(articles);
+    if (listing) renderListing(articles);
     if (detail) {
       // Resolve the CMS slug from the rewrite query first, then from the URL path.
       // Avoid regex literals here so the browser can parse this module reliably.
@@ -144,7 +144,7 @@ async function init() {
       detail.innerHTML = '<div class="article-not-found"><h1>Artikel belum dapat dimuat</h1><p>Terjadi kendala saat mengambil artikel dari server. Silakan muat ulang halaman beberapa saat lagi.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
     }
     if (listing) {
-      listing.innerHTML = '<h1>Artikel &amp; Panduan Usaha</h1><p>Artikel belum dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</p>';
+      listing.innerHTML = '<h1>' + (promoMode ? "Promo F&amp;B Bos Pangan" : "Artikel &amp; Panduan Usaha") + '</h1><p>Artikel belum dapat dimuat. Silakan muat ulang halaman beberapa saat lagi.</p>';
     }
   }
 }
