@@ -4,7 +4,7 @@
 /blog/ /blog/index.html 200
 
 # Internally serve the shared detail template for /blog/<slug>/ URLs.
-/blog/* /article-templates/blog-detail.html?slug=:splat 200
+/blog/* /article-templates/blog-detail?slug=:splat 200
 
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
