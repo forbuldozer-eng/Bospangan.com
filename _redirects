@@ -1,12 +1,11 @@
-# Cloudflare Pages route compatibility for existing dynamic article routes.
-# Detail templates live outside /blog/ and /promo-fnb/ so wildcard routes cannot match their targets.
-# These are internal rewrites (200), preserving the requested public article URL.
-# Landing page routes are unchanged.
+# Keep one public article system: Blog listing + one shared Blog detail template.
+# Promo F&B is temporarily on hold and routes back to the main article listing.
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
 
 /blog/:slug /article-templates/blog-detail.html?slug=:slug 200
 /blog/:slug/ /article-templates/blog-detail.html?slug=:slug 200
 
-/promo-fnb/:slug /article-templates/promo-fnb-detail.html?slug=:slug 200
-/promo-fnb/:slug/ /article-templates/promo-fnb-detail.html?slug=:slug 200
+/promo-fnb /blog/ 302
+/promo-fnb/ /blog/ 302
+/promo-fnb/* /blog/ 302
