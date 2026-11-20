@@ -144,9 +144,17 @@ function activatePage(page){
     window.dispatchEvent(new CustomEvent("cms:nutrition-import-open"));
     return;
   }
-  if(page === "news"){
-    showOnly("articleView");
-    window.dispatchEvent(new CustomEvent("cms:articles-open"));
+  if(page === "blog"){
+    showOnly("adminView");
+    $("commerceAdmin")?.classList.add("hidden");
+    $("siteBannerPanel")?.classList.add("hidden");
+    $("landingPagesPanel")?.classList.add("hidden");
+    $("categoryOrderPanel")?.classList.add("hidden");
+    $("productCategoriesPanel")?.classList.add("hidden");
+    $("mediaAdminPanel")?.classList.add("hidden");
+    $("invoiceAdminPanel")?.classList.add("hidden");
+    $("customerDatabasePanel")?.classList.add("hidden");
+    window.dispatchEvent(new CustomEvent("cms:blog-open"));
     return;
   }
   if(page === "product-report"){
