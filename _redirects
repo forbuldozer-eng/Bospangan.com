@@ -1,2 +1,6 @@
+# Permanently retire the removed legacy Blog detail template.
+/article-templates/blog-detail /blog/ 301
+/article-templates/blog-detail/ /blog/ 301
+
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
