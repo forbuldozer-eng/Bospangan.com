@@ -1,8 +1,5 @@
 # Keep the public blog listing at /blog/ unchanged.
-# Serve the CMS JavaScript module directly before the article wildcard rewrite.
-/blog/cms-blog.js /blog/cms-blog.js 200
-
-# Article detail URLs: /blog/<slug>/ -> shared detail template (internal rewrite).
+# Internally serve the shared detail template for /blog/<slug>/ URLs.
 /blog/* /article-templates/blog-detail.html?slug=:splat 200
 
 # Existing landing page slug routing.
