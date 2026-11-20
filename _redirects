@@ -1,6 +1,2 @@
-
-
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
-
-# Promo F&B remains on hold.
