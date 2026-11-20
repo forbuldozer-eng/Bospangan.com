@@ -80,6 +80,34 @@
 .site-header .main-nav>a,.main-nav>a,.site-header nav>a{display:inline-flex;align-items:center;flex:0 0 auto;white-space:nowrap;color:#fff!important;text-decoration:none;font-size:clamp(12px,1.25vw,17px)!important;font-weight:700}
 .site-header .info-menu,.info-menu{display:none!important}
 @media(max-width:760px){.site-header .main-nav,.main-nav,.site-header nav{justify-content:flex-start!important;gap:18px!important;padding:12px 14px!important}.site-header .main-nav>a,.main-nav>a,.site-header nav>a{font-size:13px!important}}
+
+/* Explicitly force the Hubungi Kami dropdown trigger to remain visible */
+.site-header nav.main-nav > details.info-menu{
+ display:flex!important;
+ flex:0 0 auto!important;
+ visibility:visible!important;
+ opacity:1!important;
+ position:relative!important;
+ align-items:center!important;
+ min-width:max-content!important;
+ max-width:none!important;
+ color:#fff!important;
+}
+.site-header nav.main-nav > details.info-menu > summary{
+ display:inline-flex!important;
+ visibility:visible!important;
+ opacity:1!important;
+ color:#fff!important;
+ white-space:nowrap!important;
+ cursor:pointer!important;
+ list-style:none!important;
+}
+.site-header nav.main-nav > details.info-menu > summary::-webkit-details-marker{display:none!important}
+.site-header nav.main-nav > details.info-menu[open] > .info-dropdown{
+ display:grid!important;
+ visibility:visible!important;
+ opacity:1!important;
+}
 </style>
 <style id="bp-navigation-image2-target">
 /* Public navigation aligned with the storefront hero/banner width */
