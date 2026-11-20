@@ -20,7 +20,7 @@ let currentRole = null;
 let currentPermissions = [];
 
 const pageInfo = {
-  news:["Berita / Blog","Kelola artikel dan publikasi Bos Pangan","Modul publikasi artikel belum dihubungkan ke database CMS."],
+  news:["Konten Promo F&B","Kelola materi promosi F&B Bos Pangan","Kelola konten yang ditampilkan pada halaman Promo F&B."],
   pages:["Halaman Website","Kelola halaman informasi seperti Tentang Kami dan Kontak","Modul halaman statis memerlukan struktur konten dan workflow publikasi tersendiri."],
   feeds:["Feeds Timeline","Kelola konten timeline dan feed","Modul feeds belum memiliki tabel penyimpanan pada backend saat ini."],
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
