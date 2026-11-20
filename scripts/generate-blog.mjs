@@ -209,4 +209,25 @@ for (const entry of await readdir(blogDir, { withFileTypes: true })) {
     }
   } catch {}
 }
-console.log("Static Blog build completed: " + articles.length + " articles.");
+// Keep the public Blog index and replace generated article URLs in the sitemap.
+const sitemapPath = path.join(root, "sitemap.xml");
+const sitemapSource = await readFile(sitemapPath, "utf8");
+const sitemapHeader = sitemapSource.match(/<\?xml[^>]*\?>\s*<urlset[^>]*>/);
+if (!sitemapHeader) throw new Error("Struktur sitemap.xml tidak dikenali.");
+const existingUrls = sitemapSource.match(/<url>[\s\S]*?<\/url>/g) || [];
+const keptUrls = existingUrls.filter(entry => {
+  const loc = (entry.match(/<loc>([\s\S]*?)<\/loc>/) || [])[1] || "";
+  return !/^https:\/\/bospangan\.com\/blog\/.+\/$/.test(loc);
+});
+if (!keptUrls.some(entry => (entry.match(/<loc>([\s\S]*?)<\/loc>/) || [])[1] === "https://bospangan.com/blog/")) {
+  keptUrls.push("<url><loc>https://bospangan.com/blog/</loc></url>");
+}
+for (const article of articles) {
+  const canonical = "https://bospangan.com/blog/" + article.slug + "/";
+  const lastmodValue = article.updated_at || article.published_at;
+  const lastmod = lastmodValue ? new Date(lastmodValue).toISOString() : "";
+  keptUrls.push("<url><loc>" + canonical + "</loc>" +
+    (lastmod ? "<lastmod>" + lastmod + "</lastmod>" : "") + "</url>");
+}
+await writeFile(sitemapPath, sitemapHeader[0] + "\n" + keptUrls.join("\n") + "\n</urlset>\n", "utf8");
+console.log("Static Blog build completed: " + articles.length + " articles; sitemap updated.");
