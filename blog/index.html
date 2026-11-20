@@ -80,6 +80,34 @@
 .site-header .main-nav>a,.main-nav>a,.site-header nav>a{display:inline-flex;align-items:center;flex:0 0 auto;white-space:nowrap;color:#fff!important;text-decoration:none;font-size:clamp(12px,1.25vw,17px)!important;font-weight:700}
 .site-header .info-menu,.info-menu{display:none!important}
 @media(max-width:760px){.site-header .main-nav,.main-nav,.site-header nav{justify-content:flex-start!important;gap:18px!important;padding:12px 14px!important}.site-header .main-nav>a,.main-nav>a,.site-header nav>a{font-size:13px!important}}
+
+/* Explicitly force the Hubungi Kami dropdown trigger to remain visible */
+.site-header nav.main-nav > details.info-menu{
+ display:flex!important;
+ flex:0 0 auto!important;
+ visibility:visible!important;
+ opacity:1!important;
+ position:relative!important;
+ align-items:center!important;
+ min-width:max-content!important;
+ max-width:none!important;
+ color:#fff!important;
+}
+.site-header nav.main-nav > details.info-menu > summary{
+ display:inline-flex!important;
+ visibility:visible!important;
+ opacity:1!important;
+ color:#fff!important;
+ white-space:nowrap!important;
+ cursor:pointer!important;
+ list-style:none!important;
+}
+.site-header nav.main-nav > details.info-menu > summary::-webkit-details-marker{display:none!important}
+.site-header nav.main-nav > details.info-menu[open] > .info-dropdown{
+ display:grid!important;
+ visibility:visible!important;
+ opacity:1!important;
+}
 </style>
 <style id="bp-navigation-image2-target">
 /* Public navigation aligned with the storefront hero/banner width */
@@ -126,50 +154,53 @@
  .site-header .main-nav .info-dropdown{right:auto!important;left:0!important}
 }
 </style>
-</head><body><header class="site-header"><div class="header-inner"><div class="header-top"><a class="brand" href="/" aria-label="Bos Pangan - Beranda"><img src="/assets/bos-pangan-logo.webp" alt="Logo resmi Bos Pangan"><span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span></a><form class="header-search" action="/" role="search"><input type="search" name="q" id="searchTop" placeholder="Ketik nama / kategori..." aria-label="Cari artikel dan panduan"><button type="submit" aria-label="Cari">⌕</button></form><div class="header-actions"><button type="button" id="basket" aria-label="Keranjang">🛒 <span id="basketCount">0</span></button><button type="button" id="favoriteTop" aria-label="Favorit">♥ <span id="favoriteCount">0</span></button><button type="button" id="accountTop" class="login-button">Masuk / Daftar</button></div></div><nav class="main-nav" aria-label="Navigasi utama">
+<style id="bp-blog-card-image-fallback">
+#cmsBlogListing .blog-card-image{display:block;margin:14px 0 18px;overflow:hidden;border-radius:16px;background:#eef2e8}
+#cmsBlogListing .blog-card-image img{display:block;width:100%;height:clamp(180px,28vw,300px);object-fit:cover}
+#cmsBlogListing .item h2{margin-top:8px}
+</style></head><body><header class="site-header"><div class="header-inner"><div class="header-top"><a class="brand" href="/" aria-label="Bos Pangan - Beranda"><img src="/assets/bos-pangan-logo.webp" alt="Logo resmi Bos Pangan"><span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span></a><form class="header-search" action="/" role="search"><input type="search" name="q" id="searchTop" placeholder="Ketik nama / kategori..." aria-label="Cari artikel dan panduan"><button type="submit" aria-label="Cari">⌕</button></form><div class="header-actions"><button type="button" id="basket" aria-label="Keranjang">🛒 <span id="basketCount">0</span></button><button type="button" id="favoriteTop" aria-label="Favorit">♥ <span id="favoriteCount">0</span></button><button type="button" id="accountTop" class="login-button">Masuk / Daftar</button></div></div><nav class="main-nav" aria-label="Navigasi utama">
 <a href="/">⌂ Beranda</a>
 <a href="/#katalog">🛒 Produk</a>
 <a href="/#supplier">🤝 Ingin Menjadi Supplier Kami</a>
 <a href="/blog/">◉ Blog</a>
 <a href="/?affiliate=1" aria-label="Daftar dan masuk program affiliate">♧ Affiliate</a>
 <a href="/nutrisi/">Info Nutrisi makanan</a>
+<a href="/promo-fnb/">% Promo F&amp;B</a>
 <details class="info-menu">
  <summary>Hubungi Kami <span aria-hidden="true">▾</span></summary>
  <div class="info-dropdown">
   <a href="/#tentang">Tentang Kami</a>
  </div>
 </details>
-</nav></div></header><main id="cmsBlogListing"><h1>Artikel & Panduan Usaha Warung</h1><p class="intro">Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.</p><article class="item"><p class="meta">Panduan usaha · 8 menit baca</p><h2><a href="/blog/cara-memulai-usaha-warung-sembako/">Cara Memulai Usaha Warung Sembako dari Nol</a></h2><p>Susun rencana usaha, anggaran, pilihan produk, pemasok, dan pencatatan sederhana untuk memulai warung secara bertahap.</p></article><article class="item"><p class="meta">Daftar produk · 6 menit baca</p><h2><a href="/blog/daftar-barang-warung-sembako/">Daftar Barang Warung Sembako yang Perlu Disiapkan</a></h2><p>Kenali kategori bahan pokok, kebutuhan dapur, makanan, minuman, dan perlengkapan rumah tangga untuk stok awal.</p></article><article class="item"><p class="meta">Operasional toko · 5 menit baca</p><h2><a href="/blog/cara-mengatur-stok-warung/">Cara Mengatur Stok Warung agar Lebih Terencana</a></h2><p>Bangun pencatatan persediaan, pemeriksaan rutin, stok minimum, serta rotasi produk yang tepat.</p></article><article class="item"><p class="meta">Keuangan warung · 7 menit baca</p><h2><a href="/blog/cara-menghitung-keuntungan-warung-sembako/">Cara Menghitung Keuntungan Warung Sembako dengan Mudah</a></h2><p>Pelajari cara menghitung omzet, harga pokok penjualan, biaya operasional, dan laba bersih dengan pencatatan sederhana.</p></article><article class="item"><p class="meta">Pemasaran warung · 7 menit baca</p><h2><a href="/blog/tips-meningkatkan-penjualan-warung-sembako/">Tips Meningkatkan Penjualan Warung Sembako secara Bertahap</a></h2><p>Kenali cara meningkatkan pengalaman pelanggan melalui stok, penataan produk, pelayanan, dan promosi lokal.</p></article><p><a href="/">Kembali ke halaman utama Bos Pangan</a></p></main><footer>Bos Pangan · Tangerang</footer><script type="module" src="/blog/cms-blog.js"></script><style id="bp-navigation-production-fix">
-/* Bos Pangan: one centered horizontal navigation row on every public page */
+</nav></div></header><main id="cmsBlogListing"><h1>Artikel & Panduan Usaha Warung</h1><p class="intro">Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.</p><article class="item"><a class="blog-card-image" href="/blog/cara-memulai-usaha-warung-sembako/"><img src="/blog/images/cara-memulai-usaha-warung-sembako.svg" alt="Ilustrasi cara memulai usaha warung sembako" loading="lazy"></a><p class="meta">Panduan usaha · 8 menit baca</p><h2><a href="/blog/cara-memulai-usaha-warung-sembako/">Cara Memulai Usaha Warung Sembako dari Nol</a></h2><p>Susun rencana usaha, anggaran, pilihan produk, pemasok, dan pencatatan sederhana untuk memulai warung secara bertahap.</p></article><article class="item"><a class="blog-card-image" href="/blog/daftar-barang-warung-sembako/"><img src="/blog/images/daftar-barang-warung-sembako.svg" alt="Ilustrasi daftar barang warung sembako" loading="lazy"></a><p class="meta">Daftar produk · 6 menit baca</p><h2><a href="/blog/daftar-barang-warung-sembako/">Daftar Barang Warung Sembako yang Perlu Disiapkan</a></h2><p>Kenali kategori bahan pokok, kebutuhan dapur, makanan, minuman, dan perlengkapan rumah tangga untuk stok awal.</p></article><article class="item"><a class="blog-card-image" href="/blog/cara-mengatur-stok-warung/"><img src="/blog/images/cara-mengatur-stok-warung.svg" alt="Ilustrasi cara mengatur stok warung" loading="lazy"></a><p class="meta">Operasional toko · 5 menit baca</p><h2><a href="/blog/cara-mengatur-stok-warung/">Cara Mengatur Stok Warung agar Lebih Terencana</a></h2><p>Bangun pencatatan persediaan, pemeriksaan rutin, stok minimum, serta rotasi produk yang tepat.</p></article><article class="item"><a class="blog-card-image" href="/blog/cara-menghitung-keuntungan-warung-sembako/"><img src="/blog/images/cara-menghitung-keuntungan-warung-sembako.svg" alt="Ilustrasi cara menghitung keuntungan warung sembako" loading="lazy"></a><p class="meta">Keuangan warung · 7 menit baca</p><h2><a href="/blog/cara-menghitung-keuntungan-warung-sembako/">Cara Menghitung Keuntungan Warung Sembako dengan Mudah</a></h2><p>Pelajari cara menghitung omzet, harga pokok penjualan, biaya operasional, dan laba bersih dengan pencatatan sederhana.</p></article><article class="item"><a class="blog-card-image" href="/blog/tips-meningkatkan-penjualan-warung-sembako/"><img src="/blog/images/tips-meningkatkan-penjualan-warung-sembako.svg" alt="Ilustrasi tips meningkatkan penjualan warung sembako" loading="lazy"></a><p class="meta">Pemasaran warung · 7 menit baca</p><h2><a href="/blog/tips-meningkatkan-penjualan-warung-sembako/">Tips Meningkatkan Penjualan Warung Sembako secara Bertahap</a></h2><p>Kenali cara meningkatkan pengalaman pelanggan melalui stok, penataan produk, pelayanan, dan promosi lokal.</p></article><p><a href="/">Kembali ke halaman utama Bos Pangan</a></p></main><footer>Bos Pangan · Tangerang</footer><script type="module" src="/blog/cms-blog.js"></script>
+<style id="bp-navigation-production-fix">
+/* Keep the navigation container exactly aligned with the public content/banner width. */
 .site-header .main-nav,
 .site-header nav.main-nav {
   display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
+  flex-flow:row nowrap!important;
   align-items:center!important;
   justify-content:center!important;
-  gap:clamp(10px,1.35vw,20px)!important;
-  width:100%!important;
-  max-width:100%!important;
+  width:min(1120px,92%)!important;
+  max-width:1120px!important;
   min-width:0!important;
   margin:0 auto!important;
-  padding:14px 12px!important;
+  padding:14px 0!important;
   box-sizing:border-box!important;
+  gap:clamp(9px,1.05vw,16px)!important;
   white-space:nowrap!important;
-  overflow-x:auto!important;
-  overflow-y:hidden!important;
-  scrollbar-width:none;
-  -webkit-overflow-scrolling:touch;
+  overflow:visible!important;
+  position:relative!important;
+  z-index:20!important;
 }
-.site-header .main-nav::-webkit-scrollbar {display:none}
 .site-header .main-nav>a {
   display:inline-flex!important;
-  flex:0 0 auto!important;
+  flex:0 1 auto!important;
   align-items:center!important;
   justify-content:center!important;
   min-width:max-content!important;
   white-space:nowrap!important;
-  font-size:clamp(12px,1.12vw,16px)!important;
+  font-size:clamp(12px,1.05vw,16px)!important;
   line-height:1.3!important;
   text-align:center!important;
   color:#fff!important;
@@ -177,15 +208,64 @@
 }
 .site-header .main-nav .info-menu,
 .site-header .main-nav details,
-.site-header .info-menu {display:none!important}
+.site-header .info-menu {
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  position:relative!important;
+  align-items:center!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.site-header .main-nav .info-menu>summary,
+.site-header .main-nav details>summary {
+  display:inline-flex!important;
+  align-items:center!important;
+  color:#fff!important;
+  white-space:nowrap!important;
+  cursor:pointer!important;
+  list-style:none!important;
+  font-size:clamp(12px,1.05vw,16px)!important;
+}
+.site-header .main-nav .info-menu>summary::-webkit-details-marker,
+.site-header .main-nav details>summary::-webkit-details-marker {display:none!important}
+.site-header .main-nav .info-menu .info-dropdown,
+.site-header .main-nav details .info-dropdown {
+  display:none;
+  position:absolute!important;
+  z-index:99999!important;
+  top:calc(100% + 10px)!important;
+  right:0!important;
+  left:auto!important;
+  min-width:190px!important;
+  padding:9px!important;
+  background:#fff!important;
+  border:1px solid #d6e8f5!important;
+  border-radius:12px!important;
+  box-shadow:0 10px 25px #123b5b30!important;
+}
+.site-header .main-nav .info-menu[open] .info-dropdown,
+.site-header .main-nav details[open] .info-dropdown {
+  display:grid!important;
+  gap:5px!important;
+}
+.site-header .main-nav .info-dropdown a {
+  display:block!important;
+  padding:10px 12px!important;
+  color:#123b5b!important;
+  text-decoration:none!important;
+  white-space:nowrap!important;
+}
 @media(max-width:760px){
   .site-header .main-nav,
   .site-header nav.main-nav {
+    width:92%!important;
     justify-content:flex-start!important;
-    gap:16px!important;
-    padding:12px 14px!important;
+    flex-wrap:wrap!important;
+    gap:12px!important;
+    padding:12px 0!important;
   }
-  .site-header .main-nav>a {font-size:13px!important}
+  .site-header .main-nav>a,
+  .site-header .main-nav .info-menu>summary {font-size:13px!important}
 }
 </style>
 </body></html>

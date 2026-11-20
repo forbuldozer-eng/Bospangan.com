@@ -6,6 +6,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from "/auth-config.js";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const listing = document.getElementById("cmsBlogListing");
 const detail = document.getElementById("cmsBlogArticle");
+const isPromoListing = location.pathname.replace(/\/+$/, "") === "/promo-fnb";
 const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
@@ -68,11 +69,13 @@ function setMeta(article) {
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
-async function getPublishedArticles() {
-  const { data, error } = await supabase
+async function getPublishedArticles(category = null) {
+  let query = supabase
     .from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
-    .eq("status", "published")
+    .select("id,title,slug,excerpt,category,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
+    .eq("status", "published");
+  if (category) query = query.eq("category", category);
+  const { data, error } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -81,13 +84,13 @@ async function getPublishedArticles() {
 
 function renderListing(articles) {
   if (!listing) return;
-  const intro = "Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.";
-  listing.innerHTML = '<h1>Artikel &amp; Panduan Usaha Warung</h1>' +
+  const intro = isPromoListing ? "Temukan informasi promo dan penawaran produk Bos Pangan untuk kebutuhan usaha makanan dan minuman." : "Referensi praktis untuk merencanakan usaha, memilih kebutuhan toko, dan mengelola persediaan warung sembako.";
+  listing.innerHTML = (isPromoListing ? '<h1>Promo F&amp;B Bos Pangan</h1>' : '<h1>Artikel &amp; Panduan Usaha Warung</h1>') +
     '<p class="intro">' + esc(intro) + '</p>' +
     (articles.length
       ? articles.map(article => '<article class="item">' +
-          '<p class="meta">Panduan usaha · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
-          (article.featured_image_url ? '<a href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' : '') +
+          '<p class="meta">' + (isPromoListing ? "Promo F&amp;B" : "Panduan usaha") + ' · ' + readingTime(article.content_markdown) + ' menit baca · ' + esc(dateLabel(article.published_at || article.created_at)) + '</p>' +
+          '<a class="blog-card-image" href="/blog/' + esc(article.slug) + '/"><img loading="lazy" src="' + esc(article.featured_image_url || ('/blog/images/' + article.slug + '.svg')) + '" alt="' + esc(article.featured_image_alt || article.title) + '" onerror="this.closest(\'a\').hidden=true" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px"></a>' +
           '<h2><a href="/blog/' + esc(article.slug) + '/">' + esc(article.title) + '</a></h2>' +
           '<p>' + esc(article.excerpt || "") + '</p></article>').join("")
       : '<p>Belum ada artikel yang diterbitkan. Silakan kembali lagi nanti.</p>') +
@@ -115,7 +118,7 @@ function renderDetail(article, allArticles) {
 async function init() {
   ensureGalleryStyles();
   try {
-    const articles = await getPublishedArticles();
+    const articles = await getPublishedArticles(listing ? (isPromoListing ? "promo" : "blog") : null);
     if (listing && articles.length) renderListing(articles);
     if (detail) {
       // Resolve the CMS slug from the rewrite query first, then from the URL path.

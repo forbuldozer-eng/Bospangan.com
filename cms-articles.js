@@ -594,6 +594,7 @@ function editArticle(article) {
   f.slug.value = article.slug || "";
   f.slug.dataset.manual = "true";
   f.excerpt.value = article.excerpt || "";
+  f.category.value = article.category || "blog";
   f.content_markdown.value = article.content_markdown || "";
   renderVisualEditorFromMarkdown();
   resetEditorHistory();
@@ -611,7 +612,7 @@ function editArticle(article) {
 async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
-    .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
+    .select("id,title,slug,excerpt,category,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
@@ -622,9 +623,10 @@ async function loadArticles() {
     return;
   }
 
-  target.innerHTML = '<table><thead><tr><th>Artikel</th><th>Status</th><th>Diperbarui</th><th>Aksi</th></tr></thead><tbody>' +
+  target.innerHTML = '<table><thead><tr><th>Artikel</th><th>Kategori</th><th>Status</th><th>Diperbarui</th><th>Aksi</th></tr></thead><tbody>' +
     data.map(article => '<tr>' +
       '<td><strong>' + esc(article.title) + '</strong><br><small>/' + esc(article.slug) + '</small></td>' +
+      '<td>' + (article.category === "promo" ? '<span style="color:#176342;font-weight:700">Promo</span>' : '<span>Blog</span>') + '</td>' +
       '<td>' + (article.status === "published" ? '<span style="color:#16834d;font-weight:700">Terbit</span>' : '<span style="color:#9a6a12;font-weight:700">Draft</span>') + '</td>' +
       '<td>' + esc(formatDate(article.updated_at)) + '</td>' +
       '<td><button class="btn" type="button" data-edit-article="' + esc(article.id) + '">Edit</button> ' +
@@ -678,6 +680,7 @@ async function saveArticle(forceDraft = false) {
     title,
     slug,
     excerpt: f.excerpt.value.trim(),
+    category: f.category.value === "promo" ? "promo" : "blog",
     content_markdown: content,
     featured_image_url: imageUrl,
     featured_image_alt: f.featured_image_alt.value.trim(),
