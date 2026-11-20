@@ -4,5 +4,3 @@
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
 
 # Nutrition food detail route
-/nutrisi/pangan/:slug /nutrisi/pangan/index.html?slug=:slug 200
-/nutrisi/pangan/:slug/ /nutrisi/pangan/index.html?slug=:slug 200
