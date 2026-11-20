@@ -70,7 +70,7 @@ for (const article of articles) {
   const advanced = seoMetadata.advanced || {};
   const canonicalDefault = "https://bospangan.com/blog/" + article.slug + "/";
   const customCanonical = String(advanced.canonicalUrl || "").trim();
-  const hasCustomCanonical = /^https:\/\/[^\\s"'<>]+$/i.test(customCanonical) && customCanonical !== canonicalDefault;
+  const hasCustomCanonical = /^https:\/\/[^\s"'<>]+$/i.test(customCanonical) && customCanonical !== canonicalDefault;
   if (advanced.noIndex || hasCustomCanonical) continue;
   const lastmodValue = article.updated_at || article.published_at;
   const lastmod = lastmodValue ? new Date(lastmodValue).toISOString() : "";
