@@ -20,7 +20,6 @@ let currentRole = null;
 let currentPermissions = [];
 
 const pageInfo = {
-  news:["Konten Promo F&B","Kelola materi promosi F&B Bos Pangan","Kelola konten yang ditampilkan pada halaman Promo F&B."],
   pages:["Halaman Website","Kelola halaman informasi seperti Tentang Kami dan Kontak","Modul halaman statis memerlukan struktur konten dan workflow publikasi tersendiri."],
   feeds:["Feeds Timeline","Kelola konten timeline dan feed","Modul feeds belum memiliki tabel penyimpanan pada backend saat ini."],
   banner:["Banner Website","Kelola banner promosi yang tampil di website","Modul banner akan dihubungkan ke halaman utama setelah skema banner ditambahkan."],
@@ -40,7 +39,7 @@ function closeMobileMenu(){
   $("scrim").classList.remove("show");
 }
 function showOnly(id){
-  ["overviewView","placeholderView","articleView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
+  ["overviewView","placeholderView","transactionReportView","financialReportView","accessPanel","adminView"].forEach(key => $(key).classList.toggle("hidden", key !== id));
 }
 function activatePage(page){
   const activeLinks = document.querySelectorAll(".nav-link");
@@ -143,13 +142,7 @@ function activatePage(page){
     $("nutritionImportPanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:nutrition-import-open"));
     return;
-  }
-  if(page === "news"){
-    showOnly("articleView");
-    window.dispatchEvent(new CustomEvent("cms:articles-open"));
-    return;
-  }
-  if(page === "product-report"){
+  }if(page === "product-report"){
     showOnly("adminView");
     $("commerceAdmin")?.classList.add("hidden");
     $("siteBannerPanel")?.classList.add("hidden");
