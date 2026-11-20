@@ -1,8 +1,5 @@
-# Permanently retire the removed legacy Blog detail template.
-/article-templates/blog-detail /blog/ 301
-/article-templates/blog-detail/ /blog/ 301
+# Blog article pages are served as static files at /blog/{slug}/index.html.
+# No Blog redirects or rewrites are used.
 
 # Existing landing page slug routing.
 /landingpage/* /landingpage/index.html?slug=:splat 200
-
-# Blog article URLs are handled by Cloudflare Pages Functions.
