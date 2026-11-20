@@ -58,54 +58,48 @@
 </style>
 
 <style id="bp-navigation-image2-target">
-/* Match the navigation's outer edges to the 1120px storefront banner/content */
+/* Public navigation aligned with the storefront hero/banner width */
 .site-header{background:#0d461a!important;color:#fff!important}
-.site-header .main-nav,
-.site-header nav.main-nav{
-  display:flex!important;
-  flex-direction:row!important;
-  flex-wrap:nowrap!important;
-  align-items:center!important;
-  justify-content:space-between!important;
-  gap:clamp(10px,1.1vw,18px)!important;
-  width:min(1120px,92%)!important;
-  max-width:1120px!important;
-  min-width:0!important;
-  margin:0 auto!important;
-  padding:16px 0!important;
-  overflow-x:auto!important;
-  overflow-y:hidden!important;
-  white-space:nowrap!important;
-  scrollbar-width:none!important;
-  box-sizing:border-box!important;
+.site-header .main-nav,.site-header nav.main-nav{
+ display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+ align-items:center!important;justify-content:space-between!important;
+ gap:clamp(10px,1.05vw,18px)!important;width:min(1320px,94%)!important;
+ max-width:1320px!important;min-width:0!important;margin:0 auto!important;
+ padding:16px 0!important;overflow-x:auto!important;overflow-y:visible!important;
+ white-space:nowrap!important;scrollbar-width:none!important;box-sizing:border-box!important;
 }
 .site-header .main-nav::-webkit-scrollbar{display:none!important}
-.site-header .main-nav>a,
-.site-header .main-nav>details,
-.site-header .main-nav>.info-menu{
-  display:inline-flex!important;
-  flex:0 0 auto!important;
-  align-items:center!important;
-  justify-content:center!important;
-  min-width:max-content!important;
-  max-width:none!important;
-  white-space:nowrap!important;
-  color:#fff!important;
-  font-size:clamp(15px,1.25vw,19px)!important;
-  font-weight:750!important;
-  line-height:1.35!important;
-  text-decoration:none!important;
+.site-header .main-nav>a,.site-header .main-nav>.info-menu{
+ display:inline-flex!important;flex:0 0 auto!important;align-items:center!important;
+ justify-content:center!important;min-width:max-content!important;max-width:none!important;
+ white-space:nowrap!important;color:#fff!important;
+ font-size:clamp(15px,1.18vw,18px)!important;font-weight:750!important;
+ line-height:1.35!important;text-decoration:none!important;
 }
-.site-header .main-nav>a:hover,
-.site-header .main-nav>a:focus-visible{color:#f5d66b!important}
+.site-header .main-nav .info-menu{position:relative!important}
+.site-header .main-nav .info-menu summary{
+ display:inline-flex!important;align-items:center!important;gap:7px!important;
+ color:#fff!important;cursor:pointer!important;list-style:none!important;
+ font:inherit!important;white-space:nowrap!important;
+}
+.site-header .main-nav .info-menu summary::-webkit-details-marker{display:none!important}
+.site-header .main-nav .info-dropdown{
+ position:absolute!important;z-index:30!important;top:calc(100% + 12px)!important;right:0!important;
+ min-width:190px!important;padding:8px!important;display:none;
+ background:#fff!important;border:1px solid #dce3d7!important;border-radius:12px!important;
+ box-shadow:0 10px 28px #102b4230!important;
+}
+.site-header .main-nav .info-menu[open] .info-dropdown{display:grid!important;gap:4px!important}
+.site-header .main-nav .info-dropdown a{
+ display:block!important;padding:10px 12px!important;border-radius:8px!important;
+ color:#193e34!important;text-decoration:none!important;font-size:15px!important;font-weight:650!important;
+}
+.site-header .main-nav .info-dropdown a:hover,.site-header .main-nav .info-dropdown a:focus-visible{background:#f0f5ed!important}
+.site-header .main-nav>a:hover,.site-header .main-nav>a:focus-visible,.site-header .main-nav .info-menu summary:hover{color:#f5d66b!important}
 @media(max-width:760px){
- .site-header .main-nav,.site-header nav.main-nav{
-   justify-content:flex-start!important;
-   gap:18px!important;
-   width:92%!important;
-   padding:12px 0!important;
- }
- .site-header .main-nav>a{font-size:15px!important}
+ .site-header .main-nav,.site-header nav.main-nav{justify-content:flex-start!important;gap:18px!important;width:94%!important;padding:12px 0!important}
+ .site-header .main-nav>a,.site-header .main-nav>.info-menu{font-size:15px!important}
+ .site-header .main-nav .info-dropdown{right:auto!important;left:0!important}
 }
 </style>
 </head>
@@ -118,7 +112,21 @@
           <span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span>
         </a>
       </div>
-      <nav class="main-nav" aria-label="Navigasi utama"><a href="/">⌂ Beranda</a><a href="/#katalog">🛒 Produk</a><a href="/#supplier">🤝 Ingin Menjadi Supplier Kami</a><a href="/blog/">◉ Blog</a><a href="/?affiliate=1" aria-label="Daftar dan masuk program affiliate">♧ Affiliate</a><a href="/nutrisi/">Nutrisi</a><a href="/#tentang">Tentang Kami</a><a href="/#kontak">Hubungi Kami</a></nav>
+      <nav class="main-nav" aria-label="Navigasi utama">
+<a href="/">⌂ Beranda</a>
+<a href="/#katalog">🛒 Produk</a>
+<a href="/#supplier">🤝 Ingin Menjadi Supplier Kami</a>
+<a href="/blog/">◉ Blog</a>
+<a href="/?affiliate=1" aria-label="Daftar dan masuk program affiliate">♧ Affiliate</a>
+<a href="/nutrisi/">Info Nutrisi makanan</a>
+<details class="info-menu">
+ <summary>ⓘ Info <span aria-hidden="true">▾</span></summary>
+ <div class="info-dropdown">
+  <a href="/#tentang">Tentang Kami</a>
+  <a href="/#kontak">Hubungi Kami</a>
+ </div>
+</details>
+</nav>
     </div>
   </header>
   <main id="cmsBlogArticle">
