@@ -1,3 +1,7 @@
+# Permanently retire the removed legacy Blog detail template.
+/article-templates/blog-detail /blog/ 301
+/article-templates/blog-detail/ /blog/ 301
+
 # Cloudflare Pages route compatibility for existing Vercel dynamic routes.
 # These are internal rewrites (200), not browser redirects.
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
