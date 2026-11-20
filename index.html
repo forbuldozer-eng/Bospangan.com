@@ -200,8 +200,20 @@
  .site-header .main-nav>a,.site-header .main-nav>.info-menu{font-size:15px!important}
  .site-header .main-nav .info-dropdown{right:auto!important;left:0!important}
 }
-</style>
-</head><body><header class="site-header"><div class="header-inner"><div class="header-top"><a class="brand" href="/" aria-label="Bos Pangan - Beranda"><img src="/assets/bos-pangan-logo.webp" alt="Logo resmi Bos Pangan"><span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span></a><form class="header-search" id="headerSearch" action="/" role="search"><input type="search" name="q" id="searchTop" placeholder="Cari produk atau kategori..." aria-label="Cari artikel dan panduan"><button type="submit" aria-label="Cari">⌕</button></form><div class="header-actions"><button type="button" id="basket" aria-label="Keranjang">🛒 <span id="basketCount">0</span></button><button type="button" id="favoriteTop" aria-label="Favorit">♥ <span id="favoriteCount">0</span></button><button type="button" id="accountTop" class="login-button">Masuk / Daftar</button></div></div><nav class="main-nav" aria-label="Navigasi utama">
+
+/* Explicitly keep the Contact dropdown trigger visible in the horizontal row */
+.site-header .main-nav details.info-menu{
+ display:inline-flex!important;visibility:visible!important;opacity:1!important;
+ flex:0 0 auto!important;position:relative!important;align-items:center!important;
+ min-width:max-content!important;color:#fff!important;
+}
+.site-header .main-nav details.info-menu>summary{
+ display:inline-flex!important;visibility:visible!important;opacity:1!important;
+ align-items:center!important;gap:7px!important;color:#fff!important;
+ cursor:pointer!important;white-space:nowrap!important;list-style:none!important;
+}
+.site-header .main-nav details.info-menu>summary::-webkit-details-marker{display:none!important}
+</style></head><body><header class="site-header"><div class="header-inner"><div class="header-top"><a class="brand" href="/" aria-label="Bos Pangan - Beranda"><img src="/assets/bos-pangan-logo.webp" alt="Logo resmi Bos Pangan"><span class="brand-copy"><span class="brand-name">BOS PANGAN</span><span class="brand-slogan">Juara Pangan Lokal</span></span></a><form class="header-search" id="headerSearch" action="/" role="search"><input type="search" name="q" id="searchTop" placeholder="Cari produk atau kategori..." aria-label="Cari artikel dan panduan"><button type="submit" aria-label="Cari">⌕</button></form><div class="header-actions"><button type="button" id="basket" aria-label="Keranjang">🛒 <span id="basketCount">0</span></button><button type="button" id="favoriteTop" aria-label="Favorit">♥ <span id="favoriteCount">0</span></button><button type="button" id="accountTop" class="login-button">Masuk / Daftar</button></div></div><nav class="main-nav" aria-label="Navigasi utama">
 <a href="/">⌂ Beranda</a>
 <a href="/#katalog">🛒 Produk</a>
 <a href="/#supplier">🤝 Ingin Menjadi Supplier Kami</a>
