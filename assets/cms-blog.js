@@ -68,7 +68,7 @@ function setMeta(article) {
   if (ogImage && article.featured_image_url) ogImage.content = article.featured_image_url;
 }
 
-const promoMode = window.location.pathname.startsWith("/promo-fnb");
+const promoMode = window.location.pathname.startsWith("/promo-fnb") || document.getElementById("cmsBlogArticle")?.dataset.contentType === "promo";
 const contentBase = promoMode ? "/promo-fnb/" : "/blog/";
 
 async function getPublishedArticles() {
@@ -131,6 +131,10 @@ async function init() {
       const pathSlug = (pathParts[0] === "blog" || pathParts[0] === "promo-fnb") ? (pathParts[1] || "") : "";
       const querySlug = new URLSearchParams(window.location.search).get("slug") || "";
       const slug = detail.dataset.slug || querySlug || pathSlug;
+      if (!slug) {
+        window.location.replace(contentBase);
+        return;
+      }
       const article = articles.find(item => item.slug === slug);
       if (article) {
         renderDetail(article, articles);
