@@ -1,0 +1,11 @@
+(function(){
+'use strict';
+var URL_BASE='https://flyndyrplyvalnhzhvzw.supabase.co';
+var KEY='sb_publishable_LSYv452getvz1s0E3oNciA_O8eBkDny';
+var root=document.getElementById('cmsBlogListing');
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function message(v){if(root)root.innerHTML='<h1>Promo F&amp;B Bos Pangan</h1><p class="intro">Temukan informasi promo dan penawaran terbaru dari Bos Pangan.</p><p role="status">'+esc(v)+'</p>';}
+function render(rows){if(!root)return;var cards=rows.map(function(a){var slug=encodeURIComponent(a.slug||'');var href='/promo-fnb/'+slug+'/';var img=a.featured_image_url?'<a href="'+href+'"><img loading="lazy" src="'+esc(a.featured_image_url)+'" alt="'+esc(a.featured_image_alt||a.title)+'" style="display:block;width:100%;max-height:340px;object-fit:cover;border-radius:12px;margin:18px 0"></a>':'';var date=a.published_at?new Date(a.published_at).toLocaleDateString('id-ID'):'';return '<article class="item"><p class="meta">Promo F&amp;B'+(date?' · '+esc(date):'')+'</p>'+img+'<h2><a href="'+href+'">'+esc(a.title)+'</a></h2><p>'+esc(a.excerpt||'')+'</p></article>';}).join('');root.innerHTML='<h1>Promo F&amp;B Bos Pangan</h1><p class="intro">Temukan informasi promo dan penawaran terbaru dari Bos Pangan.</p>'+(cards||'<p>Belum ada artikel Promo F&amp;B berstatus Terbit. Pastikan kategori dan status artikel di CMS.</p>')+'<p><a href="/">Kembali ke halaman utama Bos Pangan</a></p>';}
+function load(){if(!root)return;message('Menghubungkan ke data promo…');var url=URL_BASE+'/rest/v1/cms_articles?select=id,title,slug,excerpt,featured_image_url,featured_image_alt,published_at,created_at&status=eq.published&category=in.(promo_fnb,promo)&order=published_at.desc.nullslast,created_at.desc';fetch(url,{headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'},cache:'no-store'}).then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error('Supabase HTTP '+r.status+' '+t.slice(0,180));});return r.json();}).then(render).catch(function(e){console.error('[Promo F&B]',e);message('Data promo gagal dimuat: '+(e.message||'Kesalahan jaringan'));});}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load,{once:true});else load();
+})();
