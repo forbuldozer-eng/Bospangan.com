@@ -83,7 +83,7 @@ function applyVisualCommand(command) {
   else if(command==="link"){
     const selected=window.getSelection()?.toString()||"";
     if(!selected){window.alert("Pilih dahulu kata atau kalimat yang akan dijadikan hyperlink.");return;}
-    const href=window.prompt("Masukkan URL internal (/blog/...) atau eksternal (https://...):");
+    const href=window.prompt("Masukkan URL internal (/promo-fnb/...) atau eksternal (https://...):");
     if(!href)return;
     if(!/^(https?:\/\/|\/)/i.test(href.trim())||/^\/\//.test(href.trim())){window.alert("URL tidak valid.");return;}
     document.execCommand("createLink",false,href.trim());
@@ -264,7 +264,7 @@ function insertHyperlink() {
   const selected = field.value.slice(start, end);
   const label = selected || window.prompt("Teks keyword atau kalimat yang akan dijadikan hyperlink:");
   if (!label) return;
-  const destination = window.prompt("Masukkan URL tujuan (internal: /blog/slug/ atau eksternal: https://...):");
+  const destination = window.prompt("Masukkan URL tujuan (internal: /promo-fnb/slug/ atau eksternal: https://...):");
   if (!destination) return;
   const href = destination.trim();
   if (!/^(https?:\/\/|\/)/i.test(href) || /^\/\//.test(href)) {
@@ -621,7 +621,8 @@ async function loadArticles() {
   setStatus("Memuat daftar artikel...");
   const { data, error } = await db.from("cms_articles")
     .select("id,title,slug,category,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,focus_keyphrase,status,published_at,created_at,updated_at")
-    .order("updated_at", { ascending: false });
+    .eq("category", "promo")
+     .order("updated_at", { ascending: false });
   if (error) throw error;
 
   const target = $("articlesTable");
