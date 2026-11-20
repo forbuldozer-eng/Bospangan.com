@@ -133,7 +133,9 @@ async function init() {
       const rawSlug = detail.dataset.slug || querySlug || pathSlug;
       // Cloudflare wildcard captures may include a trailing slash.
       // Normalize the captured slug before comparing it with the CMS record.
-      let slug = String(rawSlug).replace(/^\\/+|\\/+$/g, "");
+      let slug = String(rawSlug);
+      while (slug.startsWith("/")) slug = slug.slice(1);
+      while (slug.endsWith("/")) slug = slug.slice(0, -1);
       try { slug = decodeURIComponent(slug); } catch (_) {}
       if (!slug) {
         detail.innerHTML = '<div class="article-not-found"><h1>Artikel belum dipilih</h1><p>Silakan buka artikel dari daftar di halaman Blog.</p><a href="/blog/">Kembali ke daftar artikel</a></div>';
