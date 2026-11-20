@@ -6,8 +6,7 @@
 # These are internal rewrites (200), not browser redirects.
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
-/blog/:slug /blog/article.html?slug=:slug 200
-/blog/:slug/ /blog/article.html?slug=:slug 200
+/blog/* /blog/article.html?slug=:splat 200
 
 # Nutrition food detail route
 /nutrisi/pangan/:slug /nutrisi/pangan/index.html?slug=:slug 200
