@@ -135,13 +135,6 @@ function activatePage(page){
     $("customerDatabasePanel")?.classList.remove("hidden");
     window.dispatchEvent(new CustomEvent("cms:customers-open"));
     return;
-  }
-  if(page === "nutrition-import"){
-    showOnly("adminView");
-    ["commerceAdmin","siteBannerPanel","landingPagesPanel","categoryOrderPanel","productCategoriesPanel","mediaAdminPanel","invoiceAdminPanel","customerDatabasePanel"].forEach(id => $(id)?.classList.add("hidden"));
-    $("nutritionImportPanel")?.classList.remove("hidden");
-    window.dispatchEvent(new CustomEvent("cms:nutrition-import-open"));
-    return;
   }if(page === "product-report"){
     showOnly("adminView");
     $("commerceAdmin")?.classList.add("hidden");
