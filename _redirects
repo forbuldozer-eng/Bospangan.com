@@ -1,9 +1,14 @@
-# Public CMS article routes use Cloudflare Pages wildcard captures (:splat).
-# Keep the listing at /blog/ and internally rewrite each article slug to one detail template.
-/landingpage/* /landingpage/index.html?slug=:splat 200
+# Keep the public blog listing at /blog/ unchanged.
+# Serve the CMS JavaScript module directly before the article wildcard rewrite.
+/blog/cms-blog.js /blog/cms-blog.js 200
+
+# Article detail URLs: /blog/<slug>/ -> shared detail template (internal rewrite).
 /blog/* /article-templates/blog-detail.html?slug=:splat 200
 
-# Promo F&B remains on hold; keep it out of the public article system.
+# Existing landing page slug routing.
+/landingpage/* /landingpage/index.html?slug=:splat 200
+
+# Promo F&B remains on hold.
 /promo-fnb /blog/ 302
 /promo-fnb/ /blog/ 302
 /promo-fnb/* /blog/ 302
