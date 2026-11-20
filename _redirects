@@ -1,10 +1,5 @@
 # Keep one public article system: Blog listing + one shared Blog detail template.
 # Promo F&B is temporarily on hold and routes back to the main article listing.
-# The shared article template is internal; send direct visits to the public Blog listing.
-/article-templates/blog-detail /blog/ 301
-/article-templates/blog-detail/ /blog/ 301
-/article-templates/blog-detail.html /blog/ 301
-/article-templates/blog-detail.html/ /blog/ 301
 /landingpage/:slug /landingpage/index.html?slug=:slug 200
 /landingpage/:slug/ /landingpage/index.html?slug=:slug 200
 
