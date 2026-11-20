@@ -73,7 +73,7 @@ async function getPublishedArticles() {
     .from("cms_articles")
     .select("id,title,slug,excerpt,category,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
-    .eq("category", "promo");
+    .in("category", ["promo", "promo_fnb"]);
   const { data, error } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
