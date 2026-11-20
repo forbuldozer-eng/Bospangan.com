@@ -76,7 +76,7 @@ async function getPublishedArticles() {
     .from("cms_articles")
     .select("id,title,slug,excerpt,content_markdown,featured_image_url,featured_image_alt,seo_title,seo_description,published_at,created_at,updated_at")
     .eq("status", "published")
-    .eq("category", promoMode ? "promo" : "blog")
+    .in("category", promoMode ? ["promo", "promo_fnb"] : ["blog"])
     .order("published_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
