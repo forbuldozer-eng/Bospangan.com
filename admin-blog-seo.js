@@ -175,6 +175,12 @@ function runAnalysis() {
   const intro=tokens.slice(0,Math.max(45,Math.ceil(tokens.length*.12))).join(" ");
   const anchors=Array.from(c.content?.querySelectorAll("a[href]")||[]);
   const internal=anchors.filter(a=>a.getAttribute("href")?.startsWith("/")||/^https?:\/\/(www\.)?bospangan\.com\//i.test(a.href)).length;
+  const external=anchors.filter(a=>/^https?:\/\//i.test(a.href)&&!/^https?:\/\/(www\.)?bospangan\.com\//i.test(a.href)).length;
+  const unsafeExternal=anchors.filter(a=>/^https?:\/\//i.test(a.href)&&!/^https?:\/\/(www\.)?bospangan\.com\//i.test(a.href)&&a.target==="_blank"&&!/noopener|noreferrer/i.test(a.rel)).length;
+  const bodyH1=Array.from(c.content?.querySelectorAll("h1")||[]).length;
+  const bodyImages=Array.from(c.content?.querySelectorAll("img")||[]);
+  const missingBodyAlt=bodyImages.filter(img=>!img.getAttribute("alt")?.trim()).length;
+  const emptyLinks=anchors.filter(a=>!a.innerText.trim()&&!a.querySelector("img[alt]")).length;
   const checks=[];
   if(!focus) checks.push([false,"Frasa kunci utama","Isi focus keyphrase agar pemeriksaan lebih relevan.",true]);
   else {
@@ -190,8 +196,13 @@ function runAnalysis() {
   checks.push([c.seoTitle.length>=30&&c.seoTitle.length<=60,"Panjang SEO title",counter(c.seoTitle,30,60)]);
   checks.push([c.description.length>=110&&c.description.length<=160,"Panjang meta description",counter(c.description,110,160)]);
   checks.push([!c.imageUrl||!!c.imageAlt,"Alt text gambar utama",c.imageUrl?"Jelaskan isi gambar secara spesifik.":"Tambahkan gambar utama bila relevan."]);
+  checks.push([missingBodyAlt===0,"Alt text gambar dalam artikel",bodyImages.length+" gambar di dalam isi; "+missingBodyAlt+" belum memiliki alt text deskriptif."]);
+  checks.push([bodyH1===0,"Struktur heading H1",bodyH1===0?"Gunakan judul artikel sebagai H1, lalu H2/H3 di dalam isi.":"Ditemukan "+bodyH1+" H1 di dalam konten. Gunakan H2/H3 untuk subbagian."]);
+  checks.push([emptyLinks===0,"Teks anchor tautan",emptyLinks===0?"Semua tautan memiliki teks anchor.":emptyLinks+" tautan belum memiliki teks yang dapat dipahami."]);
+  checks.push([unsafeExternal===0,"Keamanan tautan eksternal",unsafeExternal===0?"Tautan eksternal yang membuka tab baru menggunakan rel aman.":unsafeExternal+" tautan eksternal perlu rel=\"noopener noreferrer\"."]);
   checks.push([tokens.length>=300,"Panjang isi artikel",tokens.length+" kata terdeteksi; 300 kata adalah panduan editorial, bukan syarat ranking."]);
-  checks.push([internal>=1,"Tautan internal",internal+" tautan internal ditemukan; tautkan ke halaman yang relevan."]);
+  checks.push([internal>=3,"Tautan internal",internal+" tautan internal ditemukan; panduan editorial Bos Pangan menyarankan setidaknya 3 tautan kontekstual."]);
+  checks.push([external>=1,"Referensi eksternal",external+" tautan eksternal ditemukan. Tambahkan sumber tepercaya hanya bila benar-benar mendukung isi."]);
   const score=Math.round(checks.filter(x=>x[0]).length/Math.max(1,checks.length)*100);
   $("bpsScoreNumber").textContent=score;$("blogSeoScoreBadge").textContent=score+"/100 SEO";
   $("bpsScoreText").textContent=score>=80?"Dasar SEO on-page cukup lengkap.":score>=55?"Masih ada hal yang dapat diperbaiki.":"Lengkapi elemen utama sebelum menerbitkan.";
@@ -215,7 +226,7 @@ function runAnalysis() {
   $("bpsReadabilityChecks").innerHTML=read.map(x=>row(x[0],x[1],x[2])).join("");
   updatePreview();updateSchemaPreview();
 }
-function updateAll(){if(!$("bpsRoot"))return;runAnalysis();}
+function updateAll(){if(!$("bpsRoot"))return;runAnalysis();if(linkCacheLoaded)renderLinkSuggestions();}
 function suggestPhrases() {
   const c=context(),freq=new Map(),titleTokens=words(c.title);
   for(const token of words(c.text)){if(token.length<5||STOP_WORDS.has(token))continue;freq.set(token,(freq.get(token)||0)+1);}
@@ -279,6 +290,7 @@ const observer=new MutationObserver(findAndInstall);
 observer.observe(document.documentElement,{childList:true,subtree:true});
 findAndInstall();
 
+window.addEventListener("blog:content-change",()=>{if(!$("bpsRoot"))return;runAnalysis();if(linkCacheLoaded)renderLinkSuggestions();});
 window.addEventListener("blog:seo-reset",()=>{
   meta=defaults();
   if($("blogSeoPluginHost")?.dataset.bpsInstalled==="1"){
