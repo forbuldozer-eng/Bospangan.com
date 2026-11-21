@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nilai Gizi Makanan Indonesia · TKPI 2017 | Bos Pangan</title>
+<meta name="description" content="Cari komposisi gizi bahan pangan Indonesia per 100 gram bagian yang dapat dimakan dari TKPI 2017. Telusuri menurut nama, kode, kelompok, atau tipe bahan.">
+<link rel="canonical" href="https://bospangan.com/nutrisi/tkpi-2017/">
+<link rel="icon" href="/assets/bospangan-icon.svg">
+<link rel="stylesheet" href="./direktori.css">
+<script type="module" src="./direktori.js"></script>
+</head>
+<body>
+<header><div class="wrap mast"><a href="/"><img src="/assets/bospangan-logo.svg" alt="Bos Pangan" width="155" height="38"></a><nav><a href="/nutrisi/">Pusat Nutrisi</a> <a href="/blog/">Blog</a></nav></div></header>
+<main class="wrap">
+<div id="directory">
+<section class="intro"><small>Tabel Komposisi Pangan Indonesia · 2017</small><h1>Nilai gizi makanan</h1><p>Telusuri bahan pangan Indonesia dan lihat kandungan gizinya per 100 gram bagian yang dapat dimakan.</p></section>
+<form id="filters" role="search">
+<label>Nama atau kode pangan<input id="query" type="search" placeholder="Misalnya nasi atau AP001"></label>
+<label>Kelompok<select id="group"><option value="">Semua kelompok</option></select></label>
+<label>Tipe bahan<select id="type"><option value="">Semua tipe</option></select></label>
+<div id="alphabet" aria-label="Huruf awal nama pangan" role="group"></div>
+</form>
+<div class="summary"><p id="count" role="status">Memuat data pangan…</p><label>Per halaman <select id="size"><option>25</option><option>50</option><option>100</option></select></label></div>
+<table class="listing"><thead><tr><th>Nama pangan</th><th>Kode</th><th>Kelompok</th><th>Tipe</th></tr></thead><tbody id="results"></tbody></table>
+<div class="pager"><button id="prev" type="button" disabled>Sebelumnya</button><span id="position"></span><button id="next" type="button" disabled>Berikutnya</button></div>
+</div>
+<section id="detail" hidden><div class="actions"><a href="#">← Daftar pangan</a><button id="print">Cetak</button></div><div id="record"></div></section>
+<noscript>Aktifkan JavaScript untuk menelusuri direktori pangan.</noscript>
+</main><footer><div class="wrap">Sumber data · Tabel Komposisi Pangan Indonesia 2017, Kementerian Kesehatan RI.</div></footer>
+</body></html>
