@@ -68,7 +68,7 @@ function blogEditorCommand(command){
   }else if(map[command])document.execCommand(map[command],false,null);
   blogSaveSelection();window.dispatchEvent(new Event("blog:content-change"));
 }
-$("blogTools").onmousedown=e=>{if(e.target.closest("button")&&!e.target.closest("[data-c='internal']"))e.preventDefault();};
+$("blogTools").onmousedown=e=>{if(e.target.closest("button")){if(e.target.closest("[data-c='internal']"))blogSaveSelection();else e.preventDefault();}};
 $("blogTools").onclick=e=>{const command=e.target.closest("[data-c]")?.dataset.c;if(command)blogEditorCommand(command);};
 $("blogInternalLinkDialog").onclick=e=>{
   if(e.target.closest("[data-link-close]")){blogCloseLinkPicker();return;}
