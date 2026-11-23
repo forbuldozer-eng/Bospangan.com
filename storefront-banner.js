@@ -6,7 +6,7 @@ const hero = document.getElementById("homeHero");
 
 function applyDescription(node, value) {
   if (!node) return;
-  node.textContent = value || "Temukan berbagai kebutuhan pangan dan produk harian dalam satu katalog.";
+  node.textContent = value || "Bos Pangan menyediakan produk dan makanan bergizi nasional untuk memenuhi kebutuhan pangan masyarakat.";
   node.hidden = false;
   node.style.setProperty("font", "400 16px/1.5 system-ui,sans-serif", "important");
   node.style.setProperty("letter-spacing", "normal", "important");
@@ -68,13 +68,13 @@ async function renderHomepageBanner() {
   hero.style.setProperty("border-radius", "22px", "important");
 
   if (eyebrow) {
-    eyebrow.textContent = "BEKASI / KATALOG PRODUK";
+    eyebrow.textContent = "BOS PANGAN / PANGAN BERGIZI NASIONAL";
     eyebrow.hidden = false;
     eyebrow.style.setProperty("color", "#fff", "important");
   }
   if (title) {
     title.hidden = false;
-    title.textContent = "Pilihan produk pangan untuk kebutuhan Anda.";
+    title.textContent = "Menyediakan Produk dan Makanan Bergizi Nasional";
     title.style.setProperty("color", "#fff", "important");
   }
   applyDescription(description, description?.textContent);
