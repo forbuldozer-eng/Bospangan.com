@@ -48,6 +48,34 @@ function ensureGalleryStyles() {
   document.head.append(style);
 }
 
+function buildTableOfContents(markdown) {
+  const template = document.createElement("template");
+  template.innerHTML = safeMarkdown(markdown);
+  const headings = [...template.content.querySelectorAll("h2, h3")];
+  const usedIds = new Set();
+  const items = headings.map((heading, index) => {
+    const label = heading.textContent.trim();
+    const base = label.toLocaleLowerCase("id-ID")
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "bagian-" + (index + 1);
+    let headingId = base;
+    let suffix = 2;
+    while (usedIds.has(headingId)) headingId = base + "-" + suffix++;
+    usedIds.add(headingId);
+    heading.id = headingId;
+    return { id: headingId, label, level: Number(heading.tagName.slice(1)) };
+  });
+  const html = template.innerHTML;
+  if (!items.length) return { html, toc: "" };
+  const links = items.map(item =>
+    '<li class="toc-level-' + item.level + '"><a href="#' + esc(item.id) + '">' + esc(item.label) + '</a></li>'
+  ).join("");
+  return {
+    html,
+    toc: '<nav class="article-toc" aria-label="Daftar isi"><strong>Daftar Isi</strong><ol>' + links + '</ol></nav>'
+  };
+}
+
 function setMeta(article) {
   const title = article.seo_title || article.title;
   const description = article.seo_description || article.excerpt || "";
@@ -102,13 +130,15 @@ function renderDetail(article, allArticles) {
   const fallbackHero = detail.querySelector(".heroimg")?.outerHTML || "";
   setMeta(article);
   const related = allArticles.filter(item => item.slug !== article.slug).slice(0, 3);
+  const articleBody = buildTableOfContents(article.content_markdown);
   detail.innerHTML =
     '<div class="crumb"><a href="/">Beranda</a> / <a href="/blog/">Artikel</a> / ' + esc(article.title) + '</div>' +
     '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
     '<h1>' + esc(article.title) + '</h1>' +
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
     (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" loading="eager">' : fallbackHero) +
-    '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
+    articleBody.toc +
+    '<div class="article-content">' + articleBody.html + '</div>' +
     '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
       related.map(item => '<li><a href="/blog/' + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
