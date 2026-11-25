@@ -102,6 +102,9 @@ function renderDetail(article, allArticles) {
   const fallbackHero = detail.querySelector(".heroimg")?.outerHTML || "";
   setMeta(article);
   const related = allArticles.filter(item => item.slug !== article.slug).slice(0, 3);
+  const guideSlug = "cara-memulai-usaha-warung-sembako";
+  const hasGuideLink = article.slug === guideSlug || String(article.content_markdown || "").includes(guideSlug);
+  const guideLink = hasGuideLink ? "" : '<p>Jika Anda sedang merencanakan toko bahan pangan, baca <a href="/blog/cara-memulai-usaha-warung-sembako/">panduan memulai usaha warung sembako dari nol</a> untuk menyusun langkah awalnya.</p>';
   detail.innerHTML =
     '<div class="crumb"><a href="/">Beranda</a> / <a href="/blog/">Artikel</a> / ' + esc(article.title) + '</div>' +
     '<article><p class="meta">Panduan usaha · Diperbarui ' + esc(dateLabel(article.updated_at || article.published_at)) + '</p>' +
@@ -109,7 +112,7 @@ function renderDetail(article, allArticles) {
     '<p class="lead">' + esc(article.excerpt || "") + '</p>' +
     (article.featured_image_url ? '<img class="heroimg" src="' + esc(article.featured_image_url) + '" alt="' + esc(article.featured_image_alt || article.title) + '" loading="eager">' : fallbackHero) +
     '<div class="article-content">' + safeMarkdown(article.content_markdown) + '</div>' +
-    '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p><a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
+    '<div class="callout"><b>Ingin mengembangkan usaha warung?</b><p>Temukan kebutuhan operasional dan katalog produk melalui halaman utama Bos Pangan.</p>' + guideLink + '<a class="btn" href="/">Kunjungi Bos Pangan</a></div></article>' +
     (related.length ? '<section class="related"><h2>Artikel terkait</h2><ul>' +
       related.map(item => '<li><a href="/blog/' + esc(item.slug) + '/">' + esc(item.title) + '</a></li>').join("") +
       '</ul><p><a href="/blog/">Lihat semua panduan usaha warung</a></p></section>' : '<p><a href="/blog/">Lihat semua artikel Bos Pangan</a></p>');
