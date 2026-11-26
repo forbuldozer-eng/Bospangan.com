@@ -1,26 +1,29 @@
-# Cloudflare Pages alternative deployment
+# Cloudflare Pages SEO build
 
-This repository is a static HTML/CSS/JavaScript site. Keep the existing Vercel project and production domain unchanged while validating Cloudflare Pages on its generated `*.pages.dev` preview URL.
+This repository is a static HTML/CSS/JavaScript site. Cloudflare Pages must run the TKPI SEO generator during every deployment so the clean detail URLs and sitemap are rebuilt from the source dataset.
 
 ## Pages build settings
 
 - Framework preset: None
-- Production branch: `infra/cloudflare-pages-alternative` for initial preview only
-- Build command: leave blank
-- Build output directory: repository root (`/` or `.`, depending on dashboard validation)
+- Build command: `node scripts/build-tkpi-seo.mjs`
+- Build output directory: `.` (repository root)
 - Root directory: repository root
+- Production branch: keep the existing production branch setting; use branch previews to validate this change before any production cutover.
 
-The root `_redirects` file preserves the current dynamic landing-page and blog article URL patterns using Cloudflare Pages internal rewrites.
+The build command creates one static HTML page for each TKPI 2017 food record under `/nutrisi/tkpi-2017/pangan/<slug>/`, then regenerates `/sitemap.xml` using the canonical `https://www.bospangan.com` host. Entries without source composition-page data or nutrient values remain accessible but receive `noindex` and are excluded from the sitemap.
 
-## Validation before any DNS or production cutover
+## Validation before production
 
-1. Confirm the Pages build completes.
-2. Test the homepage, CMS login, customer login, product catalog, and category routes.
-3. Test at least one published landing-page slug and one blog article slug.
-4. Test Supabase auth, reads, and writes against the configured project.
-5. Check browser console and network errors.
-6. Only consider a production domain change after explicit approval and successful tests. Do not change DNS as part of this alternative setup.
+1. Confirm the Cloudflare Pages build completes and logs the generated-page and sitemap counts.
+2. Open the TKPI 2017 directory and test several food detail links, including a simple name and a name containing punctuation/diacritics.
+3. Confirm each detail page returns HTML with a unique title, meta description, self-referencing canonical, and visible nutrition table.
+4. Confirm `https://www.bospangan.com/sitemap.xml` contains the generated detail URLs and `robots.txt` references that sitemap.
+5. Confirm the sitemap only contains canonical, indexable URLs and has no duplicate locations.
+6. Test the homepage, CMS login, customer login, catalog, blog and landing-page routes.
+7. Check browser console and network errors.
+
+Do not change DNS, production routing, or the live domain as part of this code change. Promote the Cloudflare Pages build only after preview validation and explicit approval.
 
 ## Supabase
 
-The frontend public URL and publishable key remain in `auth-config.js`. The CLI project ID in `supabase/config.toml` is aligned to the same project. Never put a Supabase secret/service-role key in browser code.
+The frontend public URL and publishable key remain in `auth-config.js`. Never put a Supabase secret/service-role key in browser code.
